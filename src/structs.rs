@@ -1,5 +1,7 @@
 use crate::opcodes::OpcodeFn;
 
+#[allow(dead_code)] //remove after design stuff is done
+
 pub const MAX_ARGS:usize = 3;
 
 #[derive(Copy, Clone)]
@@ -29,6 +31,7 @@ pub enum JumpBehavior{
 }
 
 #[derive(PartialEq)]
+#[derive(Copy, Clone)]
 pub enum Register{
     EAX,
     ECX,
@@ -66,6 +69,7 @@ pub struct Pipeline{
 
 
 #[derive(PartialEq)]
+#[derive(Copy, Clone)]
 pub enum ValueLocation{
     None,
     Immediate(u32),
@@ -84,6 +88,7 @@ pub enum ValueLocation{
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct OpArgument{
     pub location: ValueLocation,
     pub size: ValueSize
