@@ -1,5 +1,6 @@
 use crate::structs::*;
 
+#[allow(dead_code)] //remove after design stuff is done
 
 pub type OpcodeFn = fn();
 

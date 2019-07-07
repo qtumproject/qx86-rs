@@ -9,7 +9,7 @@ pub enum ValueSize{
     None,
     Byte,
     Word,
-    DWord
+    Dword
 }
 
 #[derive(Copy, Clone)]
@@ -67,12 +67,20 @@ pub struct Pipeline{
     pub gas_cost: i32,
 }
 
+#[derive(PartialEq)]
+#[derive(Copy, Clone)]
+pub enum SizedValue{
+    None,
+    Byte(u8),
+    Word(u16),
+    Dword(u32)
+}
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum ValueLocation{
     None,
-    Immediate(u32),
+    Immediate(SizedValue),
     Address(u32),
     ComplexAddress{
         address: u32, 
@@ -91,7 +99,7 @@ pub enum ValueLocation{
 #[derive(Copy, Clone)]
 pub struct OpArgument{
     pub location: ValueLocation,
-    pub size: ValueSize
+    pub size: u8 //size in bytes
 }
 
 
@@ -102,7 +110,7 @@ impl Default for OpArgument{
     fn default() -> OpArgument{
         OpArgument{
             location: ValueLocation::None,
-            size: ValueSize::None
+            size: 0
         }
     }
 }
