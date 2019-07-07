@@ -4,6 +4,7 @@ use crate::opcodes::OpcodeFn;
 
 pub const MAX_ARGS:usize = 3;
 
+#[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum ValueSize{
     None,
@@ -81,18 +82,20 @@ pub enum SizedValue{
 pub enum ValueLocation{
     None,
     Immediate(SizedValue),
-    Address(u32),
+    Address(u32, ValueSize),
     ComplexAddress{
         address: u32, 
         base: Register,
         scale: u8, //0, 1, 2, or 4
-        index: Register 
+        index: Register,
+        size: ValueSize
     },
     ComplexImmediateAddress{
         immediate: u32, 
         base: Register, 
         scale: u8, //0, 1, 2, or 4
-        index: Register 
+        index: Register, 
+        size: ValueSize
     }
 }
 

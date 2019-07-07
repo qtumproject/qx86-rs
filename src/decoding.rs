@@ -63,12 +63,12 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
         ImmediateAddress =>{
             if address_override{
                 bytes = &bytes[1..]; //advance by one
-                args[0].location = ValueLocation::Address(u16_from_bytes(bytes)? as u32);
+                args[0].location = ValueLocation::Address(u16_from_bytes(bytes)? as u32, opcode.arg_size[0]);
                 args[0].size = 2;
                 2
             } else {
                 bytes = &bytes[1..]; //advance by one
-                args[0].location = ValueLocation::Address(u32_from_bytes(bytes)?);
+                args[0].location = ValueLocation::Address(u32_from_bytes(bytes)?, opcode.arg_size[0]);
                 args[0].size = 4;
                 4
             }
@@ -90,7 +90,7 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
             args[0].size as usize
         },
         RegisterSuffix =>{
-            args[0].location = ValueLocation::Address(convert_reg_to_address(opcode_byte & 0x7, opcode.arg_size[0]));
+            args[0].location = ValueLocation::Address(convert_reg_to_address(opcode_byte & 0x7, opcode.arg_size[0]), opcode.arg_size[0]);
             0
         }
     };
@@ -133,7 +133,7 @@ mod tests {
         ];
         let (arg, size) = decode_arg(ValueSource::ImmediateAddress, ValueSize::Byte, bytes);
 
-        assert!(arg.location == ValueLocation::Address(0x44332211));
+        assert!(arg.location == ValueLocation::Address(0x44332211, ValueSize::Byte));
         assert!(size == 4);
     }
     #[test]
