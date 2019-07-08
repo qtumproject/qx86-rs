@@ -1,4 +1,3 @@
-use crate::opcodes::OpcodeFn;
 
 #[allow(dead_code)] //remove after design stuff is done
 
@@ -62,11 +61,6 @@ pub enum Register{
     Null
 }
 
-pub struct Pipeline{
-    pub function: OpcodeFn,
-    pub args: [OpArgument; MAX_ARGS],
-    pub gas_cost: i32,
-}
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]

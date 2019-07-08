@@ -215,3 +215,24 @@ The overall rationale of this VM design is to allow for optimal performance, whi
 
 
 
+
+
+# Organization
+
+Components:
+
+## Management
+
+This is the top level component intended for being called from external programs
+
+## Decoding / Pipeline
+
+This will read the memory located at EIP and parse the opcodes and arguments. With the parsed info, it will then populate the pipeline 
+
+## Execution
+
+This will execute all operations defined in the pipeline. Each opcode will work on a simple and generic set of arguments so that the actual opcode function only needs to concern itself with the logic used by the opcode, and not how to get the source and destination arguments to the right place
+
+## Memory System
+
+This manages memory and is used internally anytime an opcode is executed and needs to access memory, or even when the opcodes are decoded in order to read the bytecode
