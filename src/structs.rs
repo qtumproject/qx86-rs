@@ -73,29 +73,32 @@ pub enum SizedValue{
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
-pub enum ValueLocation{
+pub enum ArgLocation{
     None,
     Immediate(SizedValue),
-    Address(u32, ValueSize),
-    ComplexAddress{
-        address: u32, 
-        base: Register,
-        scale: u8, //0, 1, 2, or 4
-        index: Register,
-        size: ValueSize
+    Address(u32, ValueSize), //an immediate address
+    RegisterValue(u8, ValueSize),
+    RegisterAddress(u8, ValueSize),
+    ModRMAddress16{
+        offset: Option<u16>, 
+        reg1: Option<u8>,
+        reg2: Option<u8>
     },
-    ComplexImmediateAddress{
-        immediate: u32, 
-        base: Register, 
-        scale: u8, //0, 1, 2, or 4
-        index: Register, 
-        size: ValueSize
+    ModRMAddress32{
+        offset: Option<u32>,
+        reg: Option<u8>
+    },
+    SIBAddress32{
+        offset: Option<u32>,
+        base: Option<u8>, //register
+        scale: u8, //1, 2, 4, 8
+        index: Option<u8>
     }
 }
 
 #[derive(Copy, Clone)]
 pub struct OpArgument{
-    pub location: ValueLocation,
+    pub location: ArgLocation,
     pub size: u8 //size in bytes
 }
 
@@ -106,7 +109,7 @@ pub struct OpArgument{
 impl Default for OpArgument{
     fn default() -> OpArgument{
         OpArgument{
-            location: ValueLocation::None,
+            location: ArgLocation::None,
             size: 0
         }
     }

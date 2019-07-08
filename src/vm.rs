@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use crate::pipeline::*;
+use crate::opcodes::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
@@ -10,8 +11,12 @@ pub struct VM{
     pub eflags: u32,
 
     pub memory: MemorySystem,
-    pub pipeline: Vec<Pipeline>
+    pub pipeline: Vec<Pipeline>,
     //todo: hypervisor to call external code
+
+    //set when an error has occurred within an opcode execution
+    pub errored: Option<OpcodeError>,
+    pub error_eip: u32
 }
 
 #[derive(Default)]
@@ -82,6 +87,11 @@ impl MemorySystem{
         self.map.contains_key(&(address & 0xFFFF0000))
     }
 }
+
+impl VM{
+    
+}
+
 
 #[cfg(test)]
 mod tests{

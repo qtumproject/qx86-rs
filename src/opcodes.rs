@@ -1,8 +1,14 @@
 use crate::structs::*;
+use crate::vm::*;
+use crate::pipeline::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
-pub type OpcodeFn = fn();
+pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline);
+
+pub enum OpcodeError{
+
+}
 
 #[derive(Copy, Clone)]
 pub struct Opcode{
@@ -16,7 +22,8 @@ pub struct Opcode{
     pub address_override_valid: bool,
     pub jump_behavior: JumpBehavior
 }
-pub fn nop(){
+
+pub fn nop(_vm: &mut VM, _pipeline: &Pipeline){
 
 }
 

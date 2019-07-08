@@ -3,23 +3,6 @@ use crate::opcodes::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
-fn convert_reg_to_address(reg: u8, size: ValueSize) -> u32{
-    const REG_FLAG:u32 = 1 << 30;
-    const DWORD_BEGIN:u32 = 0;
-    const WORD_BEGIN:u32 = 8;
-    const BYTE_BEGIN:u32 = 12;
-    const NONE_BEGIN:u32 = 32; //anything greater than this will equate to 0
-    let begin = match size{
-        ValueSize::Byte => BYTE_BEGIN,
-        ValueSize::Word => WORD_BEGIN,
-        ValueSize::Dword => DWORD_BEGIN,
-        ValueSize::None => NONE_BEGIN
-    };
-
-    //in theory should maybe panic or something if reg > 7? 
-    REG_FLAG | ((reg & 0x07) as u32) + begin
-}
-
 
 pub enum DecodeError{
     MemoryError
@@ -65,12 +48,12 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
             ImmediateAddress =>{
                 if address_override{
                     bytes = &bytes[1..]; //advance by one
-                    args[n].location = ValueLocation::Address(u16_from_bytes(bytes)? as u32, opcode.arg_size[n]);
+                    args[n].location = ArgLocation::Address(u16_from_bytes(bytes)? as u32, opcode.arg_size[n]);
                     args[n].size = 2;
                     2
                 } else {
                     bytes = &bytes[1..]; //advance by one
-                    args[n].location = ValueLocation::Address(u32_from_bytes(bytes)?, opcode.arg_size[n]);
+                    args[n].location = ArgLocation::Address(u32_from_bytes(bytes)?, opcode.arg_size[n]);
                     args[n].size = 4;
                     4
                 }
@@ -78,13 +61,13 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
             ImmediateValue => {
                 bytes = &bytes[1..]; //advance by one
                 let (loc, sz) = match opcode.arg_size[n]{
-                    ValueSize::None => (ValueLocation::Immediate(SizedValue::None), 0),
-                    ValueSize::Byte => (ValueLocation::Immediate(SizedValue::Byte(bytes[0])), 1),
+                    ValueSize::None => (ArgLocation::Immediate(SizedValue::None), 0),
+                    ValueSize::Byte => (ArgLocation::Immediate(SizedValue::Byte(bytes[0])), 1),
                     ValueSize::Word => {
-                        (ValueLocation::Immediate(SizedValue::Word(u16_from_bytes(bytes)?)), 2)
+                        (ArgLocation::Immediate(SizedValue::Word(u16_from_bytes(bytes)?)), 2)
                     },
                     ValueSize::Dword => {
-                        (ValueLocation::Immediate(SizedValue::Dword(u32_from_bytes(bytes)?)), 4)
+                        (ArgLocation::Immediate(SizedValue::Dword(u32_from_bytes(bytes)?)), 4)
                     }
                 };
                 args[n].location = loc;
@@ -92,7 +75,7 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
                 args[n].size as usize
             },
             RegisterSuffix =>{
-                args[n].location = ValueLocation::Address(convert_reg_to_address(opcode_byte & 0x7, opcode.arg_size[n]), opcode.arg_size[n]);
+                args[n].location = ArgLocation::RegisterValue(opcode_byte & 0x7, opcode.arg_size[n]);
                 0
             }
         };
@@ -136,7 +119,7 @@ mod tests {
         ];
         let (arg, size) = decode_arg(ValueSource::ImmediateAddress, ValueSize::Byte, bytes);
 
-        assert!(arg.location == ValueLocation::Address(0x44332211, ValueSize::Byte));
+        assert!(arg.location == ArgLocation::Address(0x44332211, ValueSize::Byte));
         assert!(size == 4);
     }
     #[test]
@@ -151,17 +134,17 @@ mod tests {
         ];
         {
             let (arg, size) = decode_arg(ValueSource::ImmediateValue, ValueSize::Byte, &bytes);
-            assert!(arg.location == ValueLocation::Immediate(SizedValue::Byte(0x11)));
+            assert!(arg.location == ArgLocation::Immediate(SizedValue::Byte(0x11)));
             assert!(size == 1);
         }
         {
             let (arg, size) = decode_arg(ValueSource::ImmediateValue, ValueSize::Word, &bytes);
-            assert!(arg.location == ValueLocation::Immediate(SizedValue::Word(0x2211)));
+            assert!(arg.location == ArgLocation::Immediate(SizedValue::Word(0x2211)));
             assert!(size == 2);
         }
         {
             let (arg, size) = decode_arg(ValueSource::ImmediateValue, ValueSize::Dword, &bytes);
-            assert!(arg.location == ValueLocation::Immediate(SizedValue::Dword(0x44332211)));
+            assert!(arg.location == ArgLocation::Immediate(SizedValue::Dword(0x44332211)));
             assert!(size == 4);
         }
     }
@@ -172,6 +155,6 @@ mod tests {
         ];
         let (arg, size) = decode_arg(ValueSource::RegisterSuffix, ValueSize::Dword, &bytes);
         assert!(size == 0);
-        assert!(arg.location == ValueLocation::Address(convert_reg_to_address(3, ValueSize::Dword), ValueSize::Dword));
+        assert!(arg.location == ArgLocation::RegisterValue(3, ValueSize::Dword));
     }
 }
