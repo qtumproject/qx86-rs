@@ -117,21 +117,45 @@ impl VM{
     }
     pub fn get_reg(&self, reg: u8, size: ValueSize) -> SizedValue{
         use ValueSize::*;
+        let r = reg as usize;
         match size{
             ValueSize::None => SizedValue::None,
             Byte => {
                 if reg & 0x04 == 0{
                     //access lows, AL, CL, DL, BL
-                    SizedValue::Byte((self.regs[reg as usize] & 0xFF) as u8)
+                    SizedValue::Byte((self.regs[r] & 0xFF) as u8)
                 }else{
-                    SizedValue::Byte(((self.regs[(reg & 0x03) as usize] & 0xFF00) >> 8) as u8)
+                    //access highs, AH, CH, DH, BH
+                    SizedValue::Byte(((self.regs[r & 0x03] & 0xFF00) >> 8) as u8)
                 }
             },
             Word => {
-                SizedValue::Word((self.regs[reg as usize] & 0xFFFF) as u16)
+                SizedValue::Word((self.regs[r] & 0xFFFF) as u16)
             },
             Dword => {
-                SizedValue::Dword(self.regs[reg as usize])
+                SizedValue::Dword(self.regs[r])
+            }
+        }
+    }
+    pub fn set_reg(&mut self, reg: u8, value: SizedValue){
+        use SizedValue::*;
+        let r = reg as usize;
+        match value{
+            SizedValue::None => (), //could potentially throw an error here?
+            Byte(v) => {
+                if reg & 0x04 == 0{
+                    //access lows, AL, CL, DL, BL
+                    self.regs[r] = (self.regs[r] & 0xFFFFFF00) | (v as u32);
+                }else{
+                    //access highs, AH, CH, DH, BH
+                    self.regs[r] = (self.regs[r & 0x03] & 0xFFFF00FF) | ((v as u32) << 8);
+                }
+            },
+            Word(v) => {
+                self.regs[r] = (self.regs[r] & 0xFFFF0000) | (v as u32);
+            },
+            Dword(v) => {
+                self.regs[r] = v;
             }
         }
     }
@@ -169,10 +193,25 @@ mod tests{
         vm.regs[2] = 0x11223344; // EDX
         vm.regs[4] = 0xFFEEDDBB; // ESP
         assert!(vm.get_reg(2, ValueSize::Dword) == SizedValue::Dword(0x11223344));
+        assert!(vm.get_reg(4, ValueSize::Dword) == SizedValue::Dword(0xFFEEDDBB));
         assert!(vm.get_reg(2, ValueSize::Word) == SizedValue::Word(0x3344));
         assert!(vm.get_reg(4, ValueSize::Word) == SizedValue::Word(0xDDBB));
         assert!(vm.get_reg(2, ValueSize::Byte) == SizedValue::Byte(0x44)); //DL
         assert!(vm.get_reg(6, ValueSize::Byte) == SizedValue::Byte(0x33)); //DH
-
+    }
+    #[test]
+    fn test_register_writes(){
+        use SizedValue::*;
+        let mut vm = VM::default();
+        vm.regs[2] = 0x11223344; // EDX
+        vm.regs[4] = 0xFFEEDDBB; // ESP
+        vm.set_reg(2, Dword(0xAABBCCDD));
+        assert!(vm.get_reg(2, ValueSize::Dword) == SizedValue::Dword(0xAABBCCDD));
+        vm.set_reg(4, Word(0x1122));
+        assert!(vm.regs[4] == 0xFFEE1122);
+        vm.set_reg(2, Byte(0x55)); //DL
+        assert!(vm.regs[2] == 0xAABBCC55);
+        vm.set_reg(6, Byte(0x66)); //DH
+        assert!(vm.regs[6] == 0xAABB6655);
     }
 }
