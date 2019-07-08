@@ -12,23 +12,7 @@ pub enum ValueSize{
     Dword
 }
 
-#[derive(Copy, Clone)]
-pub enum ValueSource{
-    None,
-    ModRM,
-    ModRMReg, //the /r field
-    ImmediateAddress,
-    ImmediateValue,
-    RegisterSuffix //lowest 3 bits of the opcode is used for register
-}
 
-#[derive(Copy, Clone)]
-pub enum JumpBehavior{
-    None,
-    Absolute,
-    Relative,
-    Conditional
-}
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
@@ -82,17 +66,20 @@ pub enum ArgLocation{
     ModRMAddress16{
         offset: Option<u16>, 
         reg1: Option<u8>,
-        reg2: Option<u8>
+        reg2: Option<u8>,
+        size: ValueSize
     },
     ModRMAddress32{
         offset: Option<u32>,
-        reg: Option<u8>
+        reg: Option<u8>,
+        size: ValueSize
     },
     SIBAddress32{
         offset: Option<u32>,
         base: Option<u8>, //register
         scale: u8, //1, 2, 4, 8
-        index: Option<u8>
+        index: Option<u8>,
+        size: ValueSize
     }
 }
 

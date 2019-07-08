@@ -158,7 +158,7 @@ mod tests {
         }
     }
     #[test]
-    fn decode_register_suffix(){
+    fn decode_register_suffix_value(){
         let bytes = [
             0xF3
         ];
