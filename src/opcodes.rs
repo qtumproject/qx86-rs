@@ -11,10 +11,34 @@ pub enum OpcodeError{
 }
 
 #[derive(Copy, Clone)]
+pub enum ArgSource{
+    None,
+    ModRM,
+    ModRMReg, //the /r field
+    ImmediateValue,
+    ImmediateAddress, //known as an "offset" in docs rather than pointer or address
+    RegisterSuffix, //lowest 3 bits of the opcode is used for register
+    //note: for Jump opcodes, exactly 1 argument is the only valid encoding
+    JumpRel8,
+    JumpRel16,
+    JumpRel32
+}
+
+#[derive(Copy, Clone)]
+pub enum JumpBehavior{
+    None,
+    Relative,
+    //any opcode which changes EIP by an amount which can not be predicted at the decoding stage
+    //this includes opcodes like `jne` and also opcodes like `jmp eax` 
+    Conditional 
+}
+
+//defines an opcode with all the information needed for decoding the opcode and all arguments
+#[derive(Copy, Clone)]
 pub struct Opcode{
     pub function: OpcodeFn,
     pub arg_size: [ValueSize; MAX_ARGS],
-    pub arg_source: [ValueSource; MAX_ARGS],
+    pub arg_source: [ArgSource; MAX_ARGS],
     pub has_modrm: bool,
     pub gas_cost: i32,
     pub rep_valid: bool,
@@ -32,7 +56,7 @@ impl Default for Opcode{
         Opcode{
             function: nop,
             arg_size: [ValueSize::None, ValueSize::None, ValueSize::None],
-            arg_source: [ValueSource::None, ValueSource::None, ValueSource::None],
+            arg_source: [ArgSource::None, ArgSource::None, ArgSource::None],
             has_modrm: false,
             gas_cost: 0,
             rep_valid: false,
@@ -47,7 +71,11 @@ impl Default for Opcode{
 lazy_static! {
     static ref OPCODES: [Opcode; 0x1FFF] = {
         let mut o: [Opcode; 0x1FFF] = [Opcode::default(); 0x1FFF];
-        o[0].gas_cost = 10;
+        //nop
+        o[0x90].gas_cost = 0;
+        
+        
+
         o
     };
 }

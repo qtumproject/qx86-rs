@@ -111,7 +111,7 @@ mod tests{
     #[test]
     fn test_memory_failures(){
         let mut m = MemorySystem::default();
-        let bytes = m.add_memory(0x10000, 0x100, false).unwrap();
+        let _bytes = m.add_memory(0x10000, 0x100, false).unwrap();
         assert!(m.add_memory(0x10000, 0x100, false) == Err(MemoryError::ConflictingAdd));
         assert!(m.add_memory(0x100FF, 0x100, false) == Err(MemoryError::UnalignedAdd));
         assert!(m.get_memory(0x10200) == Err(MemoryError::Overrun));
