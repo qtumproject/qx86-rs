@@ -84,13 +84,60 @@ impl MemorySystem{
             }
         }
     }
+    pub fn get_sized_memory(&self, address: u32, size: u32) -> Result<&[u8], MemoryError>{
+        let m = self.get_memory(address)?;
+        if m.len() < size as usize {
+            return Err(MemoryError::Overrun);
+        }
+        Ok(m)
+    }
+    pub fn get_mut_sized_memory(&mut self, address: u32, size: u32) -> Result<&mut [u8], MemoryError>{
+        let m = self.get_mut_memory(address)?;
+        if m.len() < size as usize {
+            return Err(MemoryError::Overrun);
+        }
+        Ok(m)
+    }
+    pub fn get_u8(&self, address: u32) -> Result<u8, MemoryError>{
+        let m = self.get_sized_memory(address, 1)?;
+        Ok(m[0])
+    }
+    pub fn get_u16(&self, address: u32) -> Result<u16, MemoryError>{
+        use std::convert::TryInto;
+        let m = self.get_sized_memory(address, 2)?;
+        let v: [u8; 2] = *(&m[0..2].try_into().unwrap());
+        Ok(u16::from_le_bytes(v))
+    }
+    pub fn get_u32(&self, address: u32) -> Result<u32, MemoryError>{
+        use std::convert::TryInto;
+        let m = self.get_sized_memory(address, 4)?;
+        let v: [u8; 4] = *(&m[0..4].try_into().unwrap());
+        Ok(u32::from_le_bytes(v))
+    }
+    pub fn set_u8(&mut self, address: u32, v: u8) -> Result<u8, MemoryError>{
+        let m = self.get_mut_sized_memory(address, 1)?;
+        m[0] = v;
+        Ok(v)
+    }
+    pub fn set_u16(&mut self, address: u32, v: u16) -> Result<u16, MemoryError>{
+        let m = self.get_mut_sized_memory(address, 2)?;
+        let d = v.to_le_bytes();
+        (&mut m[0..2]).copy_from_slice(&d);
+        Ok(v)
+    }
+    pub fn set_u32(&mut self, address: u32, v: u32) -> Result<u32, MemoryError>{
+        let m = self.get_mut_sized_memory(address, 4)?;
+        let d = v.to_le_bytes();
+        (&mut m[0..4]).copy_from_slice(&d);
+        Ok(v)
+    }
     pub fn section_exists(&self, address: u32) -> bool{
         self.map.contains_key(&(address & 0xFFFF0000))
     }
 }
 
 impl VM{
-    pub fn get_arg(arg: ArgLocation) -> SizedValue{
+    pub fn get_arg(&self, arg: ArgLocation) -> SizedValue{
         use ArgLocation::*;
         match arg{
             None => SizedValue::None,
@@ -99,7 +146,7 @@ impl VM{
                 SizedValue::None
             },
             RegisterValue(r, s) => {
-                SizedValue::None
+                self.get_reg(r, s)
             },
             RegisterAddress(r, s) => {
                 SizedValue::None
@@ -159,6 +206,22 @@ impl VM{
             }
         }
     }
+    pub fn get_mem(&self, address: u32, size: ValueSize) -> Result<SizedValue, MemoryError>{
+        use ValueSize::*;
+        match size{
+            None => Ok(SizedValue::None),
+            Byte => {
+                let m = self.memory.get_memory(address)?;
+                match m.get(0){
+                    Option::None => return Err(MemoryError::Overrun),
+                    Some(b) => return Ok(SizedValue::Byte(*b))
+                }
+            },
+            _ => {
+                Ok(SizedValue::None)
+            }
+        }
+    }
 }
 
 
@@ -176,6 +239,27 @@ mod tests{
         assert!(m.get_memory(0x10020).unwrap()[0] == 0x34);
         assert!(m.section_exists(0x10000));
         assert!(!m.section_exists(0x20000));
+    }
+    #[test]
+    fn test_memory_ints(){
+        let mut m = MemorySystem::default();
+        let area = 0x100000;
+        let bytes = m.add_memory(area, 0x100, false).unwrap();
+        bytes[0x10] = 0x11; 
+        bytes[0x11] = 0x22;
+        bytes[0x12] = 0x33;
+        bytes[0x13] = 0x44;
+        assert!(m.get_u8(area + 0x10).unwrap() == 0x11);
+        assert!(m.get_u8(area + 0x11).unwrap() == 0x22);
+        assert!(m.get_u16(area + 0x10).unwrap() == 0x2211);
+        assert!(m.get_u32(area + 0x10).unwrap() == 0x44332211);
+        m.set_u32(area + 0x20, 0xAABBCCDD).unwrap();
+        m.set_u16(area + 0x30, 0x1234).unwrap();
+        let bytes = m.get_memory(area).unwrap(); //reassign bytes to avoid borrowing error, can't overlap with previous set operations
+        assert!(bytes[0x20] == 0xDD);
+        assert!(bytes[0x21] == 0xCC);
+        assert!(bytes[0x22] == 0xBB);
+        assert!(bytes[0x23] == 0xAA);
     }
     #[test]
     fn test_memory_failures(){
