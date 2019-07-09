@@ -73,7 +73,7 @@ impl Default for Opcode{
         }
     }
 }
-
+pub const OPCODE_TABLE_SIZE:usize = 0x1FFF;
 const OP_TWOBYTE:usize = 1 << 12;
 const OP_OVERRIDE:usize = 1 << 13;
 const OP_GROUP_SHIFT:u8 = 8;

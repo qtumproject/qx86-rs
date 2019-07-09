@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::pipeline::*;
 use crate::opcodes::*;
 use crate::structs::*;
@@ -13,7 +12,7 @@ pub struct VM{
     pub eflags: u32,
 
     pub memory: MemorySystem,
-    pub pipeline: Vec<Pipeline>,
+    //pub pipeline: Vec<Pipeline>,
     //todo: hypervisor to call external code
 
     //set when an error has occurred within an opcode execution
