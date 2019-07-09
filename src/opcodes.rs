@@ -20,9 +20,7 @@ pub enum ArgSource{
     ImmediateAddress, //known as an "offset" in docs rather than pointer or address
     RegisterSuffix, //lowest 3 bits of the opcode is used for register
     //note: for Jump opcodes, exactly 1 argument is the only valid encoding
-    JumpRel8,
-    JumpRel16,
-    JumpRel32
+    JumpRel
 }
 
 #[derive(PartialEq)]

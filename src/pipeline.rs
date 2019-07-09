@@ -33,6 +33,8 @@ pub fn clear_pipeline(pipeline: &mut [Pipeline]){
 pub fn fill_pipeline(vm: &VM, opcodes: &[Opcode], pipeline: &mut [Pipeline]) -> Result<(), VMError>{
     let mut eip = vm.eip;
     let mut stop_filling = false;
+    //writeable if in memory with top bit set
+    let writeable = vm.eip & 0x8000000 > 0;
     clear_pipeline(pipeline);
     for n in 0..pipeline.len(){
         let mut p = &mut pipeline[n];
@@ -69,6 +71,11 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[Opcode], pipeline: &mut [Pipeline]) -> 
             };
             eip += p.eip_size as u32;
         }
+        if writeable {
+            //if in writeable space, only use one pipeline slot at a time
+            //otherwise, the memory we are decoding could be changed by an opcode within the pipeline
+            stop_filling = true;
+        }
 
     }
     Ok(())
@@ -101,7 +108,7 @@ mod tests{
         opcodes[0x02].gas_cost = 2;
         opcodes[0x02].function = nop;
         
-        opcodes[0x03].arg_source[0] = ArgSource::ImmediateValue; //ArgSource::JumpRel32;
+        opcodes[0x03].arg_source[0] = ArgSource::JumpRel;
         opcodes[0x03].arg_size[0] = ValueSize::Dword;
         opcodes[0x03].jump_behavior = JumpBehavior::Conditional;
         opcodes[0x03].function = test3_op;

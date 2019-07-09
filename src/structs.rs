@@ -1,6 +1,8 @@
 
 #[allow(dead_code)] //remove after design stuff is done
 
+use crate::vm::*;
+
 pub const MAX_ARGS:usize = 3;
 
 #[derive(PartialEq)]
@@ -56,22 +58,86 @@ pub enum SizedValue{
 }
 
 impl SizedValue{
-    pub fn u32(&self) -> u32{
+    pub fn u32_exact(&self) -> Result<u32, VMError>{
+        match self{
+            SizedValue::Dword(v) => Ok(*v),
+            _ => Err(VMError::WrongSizeExpectation)
+        }
+    }
+    pub fn u16_exact(&self) -> Result<u16, VMError>{
+        match self{
+            SizedValue::Word(v) => Ok(*v),
+            _ => Err(VMError::WrongSizeExpectation)
+        }
+    }
+    pub fn u8_exact(&self) -> Result<u8, VMError>{
+        match self{
+            SizedValue::Byte(v) => Ok(*v),
+            _ => Err(VMError::WrongSizeExpectation)
+        }
+    }
+    
+    //zx = zero extend to fit into integer size
+    pub fn u32_zx(&self) ->  Result<u32, VMError>{
+        match self{
+            SizedValue::Dword(v) => Ok(*v),
+            SizedValue::Word(v) => Ok(*v as u32),
+            SizedValue::Byte(v) => Ok(*v as u32),
+            SizedValue::None => Ok(0),
+        }
+    }
+    pub fn u16_zx(&self) ->  Result<u16, VMError>{
+        match self{
+            SizedValue::Word(v) => Ok(*v),
+            SizedValue::Byte(v) => Ok(*v as u16),
+            SizedValue::None => Ok(0),
+            SizedValue::Dword(v) => Err(VMError::TooBigSizeExpectation)
+        }
+    }
+    //sx = signed extend to fit into integer size
+    pub fn u32_sx(&self) ->  Result<u32, VMError>{
+        match self{
+            SizedValue::Dword(v) => Ok(*v),
+            SizedValue::Word(v) => Ok((*v as i32) as u32),
+            SizedValue::Byte(v) => Ok((*v as i32) as u32),
+            SizedValue::None => Ok(0),
+        }
+    }
+    pub fn u16_sx(&self) ->  Result<u16, VMError>{
+        match self{
+            SizedValue::Word(v) => Ok(*v),
+            SizedValue::Byte(v) => Ok((*v as i16) as u16),
+            SizedValue::None => Ok(0),
+            SizedValue::Dword(v) => Err(VMError::TooBigSizeExpectation)
+        }
+    }
+
+    //trunc = make fit into the specified type even if data is lost
+    //If the type is larger then equivalent to zero-extend
+    //top bytes will be cut when casting to a smaller type
+    //Note these can not error
+    pub fn u32_trunc(&self) ->  u32{
         match self{
             SizedValue::Dword(v) => *v,
-            _ => panic!("Invalid SizedValue expectation")
+            SizedValue::Word(v) => *v as u32,
+            SizedValue::Byte(v) => *v as u32,
+            SizedValue::None => 0,
         }
     }
-    pub fn u16(&self) -> u16{
+    pub fn u16_trunc(&self) ->  u16{
         match self{
-            SizedValue::Word(v) => *v,
-            _ => panic!("Invalid SizedValue expectation")
+            SizedValue::Word(v) => *v as u16,
+            SizedValue::Byte(v) => *v as u16,
+            SizedValue::None => 0,
+            SizedValue::Dword(v) => *v as u16
         }
     }
-    pub fn u8(&self) -> u8{
+    pub fn u8_trunc(&self) -> u8{
         match self{
-            SizedValue::Byte(v) => *v,
-            _ => panic!("Invalid SizedValue expectation")
+            SizedValue::Word(v) => *v as u8,
+            SizedValue::Byte(v) => *v as u8,
+            SizedValue::None => 0,
+            SizedValue::Dword(v) => *v as u8
         }
     }
 }

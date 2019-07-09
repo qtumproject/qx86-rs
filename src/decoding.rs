@@ -45,7 +45,7 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
                 args[n].size = 4;
                 4
             }
-            ImmediateValue => {
+            ImmediateValue | JumpRel => {
                 let (loc, sz) = match opcode.arg_size[n]{
                     ValueSize::None => (ArgLocation::Immediate(SizedValue::None), 0),
                     ValueSize::Byte => (ArgLocation::Immediate(SizedValue::Byte(bytes[0])), 1),
@@ -62,15 +62,6 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
             RegisterSuffix =>{
                 args[n].location = ArgLocation::RegisterValue(opcode_byte & 0x7, opcode.arg_size[n]);
                 0
-            },
-            JumpRel8 =>{
-                1
-            },
-            JumpRel16 => {
-                2
-            },
-            JumpRel32 => {
-                4
             }
         };
         args[n].size = advance;

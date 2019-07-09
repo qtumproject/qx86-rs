@@ -38,6 +38,10 @@ pub enum VMError{
 
     //decoding error
     DecodingOverrun, //needed more bytes for decoding -- about equivalent to ReadBadMemory
+    
+    //argument errors
+    WrongSizeExpectation,
+    TooBigSizeExpectation,
 }
 
 
@@ -54,7 +58,7 @@ impl VM{
                 self.get_reg(r, s)
             },
             RegisterAddress(r, s) => {
-                self.get_mem(self.get_reg(r, ValueSize::Dword).u32(), s)?
+                self.get_mem(self.get_reg(r, ValueSize::Dword).u32_exact()?, s)?
             },
             /*
             ModRMAddress16{offset, reg1, reg2, size} => {
@@ -127,6 +131,29 @@ impl VM{
             }
         }
     }
+    pub fn set_mem(&mut self, address: u32, value: SizedValue) -> Result<(), VMError>{
+        use SizedValue::*;
+        if address & 0x80000000 == 0{
+            //in read-only memory
+            return Err(VMError::WroteReadOnlyMemory(address));
+        }
+        match value{
+            None => (),
+            Byte(v) => {
+                self.memory.set_u8(address, v)?;
+            },
+            Word(v) => {
+                self.memory.set_u16(address, v)?;
+            },
+            Dword(v) => {
+                self.memory.set_u32(address, v)?;
+            }
+        };
+        Ok(())
+    }
+
+
+
 }
 
 
