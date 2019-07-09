@@ -140,7 +140,55 @@ impl SizedValue{
             SizedValue::Dword(v) => *v as u8
         }
     }
+
+    pub fn convert_size_zx(&self, s: ValueSize) -> Result<SizedValue, VMError>{
+        use ValueSize::*;
+        match s{
+            Dword => Ok(SizedValue::Dword(self.u32_zx()?)),
+            Word => Ok(SizedValue::Word(self.u16_zx()?)),
+            Byte => Ok(SizedValue::Byte(self.u8_exact()?)),
+            None => Err(VMError::WrongSizeExpectation)
+        }
+    }
+    pub fn convert_size_sx(&self, s: ValueSize) -> Result<SizedValue, VMError>{
+        use ValueSize::*;
+        match s{
+            Dword => Ok(SizedValue::Dword(self.u32_sx()?)),
+            Word => Ok(SizedValue::Word(self.u16_sx()?)),
+            Byte => Ok(SizedValue::Byte(self.u8_exact()?)),
+            None => Err(VMError::WrongSizeExpectation)
+        }
+    }
+    pub fn convert_size_trunc(&self, s: ValueSize) -> SizedValue{
+        use ValueSize::*;
+        match s{
+            Dword => SizedValue::Dword(self.u32_trunc()),
+            Word => SizedValue::Word(self.u16_trunc()),
+            Byte => SizedValue::Byte(self.u8_trunc()),
+            None => SizedValue::None
+        }
+    }
 }
+
+trait ToSizedValue{
+    fn to_sized(&self) -> SizedValue;
+}
+impl ToSizedValue for u8{
+    fn to_sized(&self) -> SizedValue{
+        return SizedValue::Byte(*self);
+    }
+}
+impl ToSizedValue for u16{
+    fn to_sized(&self) -> SizedValue{
+        return SizedValue::Word(*self);
+    }
+}
+impl ToSizedValue for u32{
+    fn to_sized(&self) -> SizedValue{
+        return SizedValue::Dword(*self);
+    }
+}
+
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]

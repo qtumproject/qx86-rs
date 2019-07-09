@@ -24,6 +24,7 @@ pub struct VM{
 #[derive(Copy, Clone)]
 pub enum VMError{
     None,
+    NotYetImplemented, //ideally throw none of these when finished
     //memory errors
     ReadBadMemory(u32),
     WroteBadMemory(u32),
@@ -35,6 +36,7 @@ pub enum VMError{
     
     //execution error
     InvalidOpcode,
+    WroteUnwriteableArgumnet,
 
     //decoding error
     DecodingOverrun, //needed more bytes for decoding -- about equivalent to ReadBadMemory
@@ -71,6 +73,32 @@ impl VM{
                 SizedValue::None
             }
         })
+    }
+    //When the specified ArgLocation does not match the size of SizedValue, the SizedValue will be zero extended to fit
+    //If the SizedValue is larger than can fit, then an error will be returned
+    pub fn set_arg(&mut self, arg: ArgLocation, v: SizedValue) -> Result<(), VMError>{
+        use ArgLocation::*;
+        match arg{
+            None => (),
+            Immediate(v) => return Err(VMError::WroteUnwriteableArgumnet), //should never happen, this is an implementation error
+            Address(a, s) => {
+                self.set_mem(a, v.convert_size_zx(s)?)?
+            },
+            RegisterValue(r, s) => {
+                self.set_reg(r, v.convert_size_zx(s)?)
+            },
+            RegisterAddress(r, s) => {
+                self.set_mem(self.get_reg(r, ValueSize::Dword).u32_exact()?, v.convert_size_zx(s)?)?
+            },
+            ModRMAddress{offset, reg, size} => {
+                return Err(VMError::NotYetImplemented);
+            },
+            SIBAddress{offset, base, scale, index, size} => {
+                return Err(VMError::NotYetImplemented);
+            }
+        };
+
+        Ok(())
     }
     pub fn get_reg(&self, reg: u8, size: ValueSize) -> SizedValue{
         use ValueSize::*;
@@ -248,5 +276,38 @@ mod tests{
         assert!(vm.get_arg(arg).unwrap() == Word(0x1122));
         let arg = ArgLocation::RegisterValue(0, ValueSize::Dword);
         assert!(vm.get_arg(arg).unwrap() == Dword(area + 12));
+    }
+
+    #[test]
+    fn test_set_arg(){
+        use SizedValue::*;
+        let mut vm = VM::default();
+        let area = 0x87660000; //make sure top bit of memory area is set so it's writeable
+        vm.memory.add_memory(area, 0x100).unwrap();
+        vm.memory.set_u32(area + 10, 0x11223344).unwrap();
+        vm.regs[0] = area + 12; //eax
+        
+
+        let arg = ArgLocation::Immediate(Word(0x9911));
+        assert!(vm.set_arg(arg, SizedValue::Byte(0x11)).is_err());
+
+        let arg = ArgLocation::Address(area + 10, ValueSize::Dword);
+        vm.set_arg(arg, SizedValue::Dword(0xAABBCCDD)).unwrap();
+        assert!(vm.memory.get_u32(area + 10).unwrap() == 0xAABBCCDD);
+
+        let arg = ArgLocation::RegisterAddress(0, ValueSize::Word);
+        vm.set_arg(arg, SizedValue::Word(0x1122)).unwrap();
+        assert!(vm.memory.get_u32(area + 10).unwrap() == 0x1122CCDD);
+        //test that it fails for too large of values
+        assert!(vm.set_arg(arg, SizedValue::Dword(0xABCDEF01)).is_err());
+        //and that memory is unmodified afterwards
+        assert!(vm.memory.get_u32(area + 10).unwrap() == 0x1122CCDD);
+
+        vm.set_arg(arg, SizedValue::Byte(0x11)).unwrap();
+        assert!(vm.memory.get_u32(area + 10).unwrap() == 0x0011CCDD);
+
+        let arg = ArgLocation::RegisterValue(1, ValueSize::Dword);
+        vm.set_arg(arg, SizedValue::Dword(0x99887766)).unwrap();
+        assert!(vm.regs[1] == 0x99887766);
     }
 }
