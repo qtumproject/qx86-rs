@@ -55,6 +55,27 @@ pub enum SizedValue{
     Dword(u32)
 }
 
+impl SizedValue{
+    pub fn u32(&self) -> u32{
+        match self{
+            SizedValue::Dword(v) => *v,
+            _ => panic!("Invalid SizedValue expectation")
+        }
+    }
+    pub fn u16(&self) -> u16{
+        match self{
+            SizedValue::Word(v) => *v,
+            _ => panic!("Invalid SizedValue expectation")
+        }
+    }
+    pub fn u8(&self) -> u8{
+        match self{
+            SizedValue::Byte(v) => *v,
+            _ => panic!("Invalid SizedValue expectation")
+        }
+    }
+}
+
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum ArgLocation{
@@ -63,18 +84,18 @@ pub enum ArgLocation{
     Address(u32, ValueSize), //an immediate address
     RegisterValue(u8, ValueSize),
     RegisterAddress(u8, ValueSize),
-    ModRMAddress16{
+    /*ModRMAddress16{ //Not supported except for with LEA
         offset: Option<u16>, 
         reg1: Option<u8>,
         reg2: Option<u8>,
         size: ValueSize
-    },
-    ModRMAddress32{
+    }, */
+    ModRMAddress{
         offset: Option<u32>,
         reg: Option<u8>,
         size: ValueSize
     },
-    SIBAddress32{
+    SIBAddress{
         offset: Option<u32>,
         base: Option<u8>, //register
         scale: u8, //1, 2, 4, 8

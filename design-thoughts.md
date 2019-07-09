@@ -96,6 +96,7 @@ This VM will not be designed as generalized, and as such we can impose many assu
 * PUSH and POP operations for segment registers modify the stack, but otherwise do nothing (equivalent to `push 0; pop [null]` )
 * Certain invalid opcode combinations, such as segment prefixes before opcodes which do not access memory are valid, as the segment prefix would be ignored. 
 * External interrupt behavior can be completely ignored, because there are no external interrupts. This, for instance, greatly simplifies the behavior of REP
+* All memory below 0x10000 is inaccessible. This effectively makes 16-bit addressing useless and thus will have no need to be implemented aside from potentially supporting 16-bit ModR/M parsing for the LEA instruction
 
 
 The execution logic will be a series of separate functions for an overall "type" of logic. For instance, with separate functions for `mov`, `sub`, and `mul`. For complex opcodes, it may be broken down further into size-specific functions, such as `sub_8bit` and `sub_32bit` 

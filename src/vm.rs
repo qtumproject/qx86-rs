@@ -40,10 +40,11 @@ pub enum VMError{
     DecodingOverrun, //needed more bytes for decoding -- about equivalent to ReadBadMemory
 }
 
+pub const READONLY_MEMORY:u32 = 0x80000000;
+
 #[derive(Default)]
 pub struct BufferMemory{
     pub memory: Vec<u8>,
-    pub readonly: bool
 }
 
 #[derive(Default)]
@@ -52,7 +53,7 @@ pub struct MemorySystem{
 }
 
 impl MemorySystem{
-    pub fn add_memory(&mut self, address: u32, size: u32, readonly: bool) -> Result<&mut [u8], VMError> {
+    pub fn add_memory(&mut self, address: u32, size: u32) -> Result<&mut [u8], VMError> {
         if address & 0xFFFF != 0{
             return Err(VMError::UnalignedMemoryAddition);
         }
@@ -63,7 +64,6 @@ impl MemorySystem{
         }
         let mut b = BufferMemory{
             memory: Vec::default(),
-            readonly: readonly
         };
         b.memory.resize(size as usize, 0);
         self.map.insert(aligned, b);
@@ -150,30 +150,31 @@ impl MemorySystem{
 }
 
 impl VM{
-    pub fn get_arg(&self, arg: ArgLocation) -> SizedValue{
+    pub fn get_arg(&self, arg: ArgLocation) -> Result<SizedValue, VMError>{
         use ArgLocation::*;
-        match arg{
+        Ok(match arg{
             None => SizedValue::None,
             Immediate(v) => v,
             Address(a, s) => {
-                SizedValue::None
+                self.get_mem(a, s)?
             },
             RegisterValue(r, s) => {
                 self.get_reg(r, s)
             },
             RegisterAddress(r, s) => {
-                SizedValue::None
+                self.get_mem(self.get_reg(r, ValueSize::Dword).u32(), s)?
             },
+            /*
             ModRMAddress16{offset, reg1, reg2, size} => {
                 SizedValue::None
-            },
-            ModRMAddress32{offset, reg, size} => {
+            },*/
+            ModRMAddress{offset, reg, size} => {
                 SizedValue::None
             },
-            SIBAddress32{offset, base, scale, index, size} => {
+            SIBAddress{offset, base, scale, index, size} => {
                 SizedValue::None
             }
-        }
+        })
     }
     pub fn get_reg(&self, reg: u8, size: ValueSize) -> SizedValue{
         use ValueSize::*;
@@ -224,14 +225,13 @@ impl VM{
         match size{
             None => Ok(SizedValue::None),
             Byte => {
-                let m = self.memory.get_memory(address)?;
-                match m.get(0){
-                    Option::None => return Err(VMError::ReadBadMemory(address)),
-                    Some(b) => return Ok(SizedValue::Byte(*b))
-                }
+                Ok(SizedValue::Byte(self.memory.get_u8(address)?))
             },
-            _ => {
-                Ok(SizedValue::None)
+            Word => {
+                Ok(SizedValue::Word(self.memory.get_u16(address)?))
+            },
+            Dword => {
+                Ok(SizedValue::Dword(self.memory.get_u32(address)?))
             }
         }
     }
@@ -244,7 +244,7 @@ mod tests{
     #[test]
     fn test_memory(){
         let mut m = MemorySystem::default();
-        let bytes = m.add_memory(0x10000, 0x100, false).unwrap();
+        let bytes = m.add_memory(0x10000, 0x100).unwrap();
         bytes[0x10] = 0x12;
         assert!(m.get_memory(0x10010).unwrap()[0] == 0x12);
         let mb = m.get_mut_memory(0x10020).unwrap();
@@ -257,7 +257,7 @@ mod tests{
     fn test_memory_ints(){
         let mut m = MemorySystem::default();
         let area = 0x100000;
-        let bytes = m.add_memory(area, 0x100, false).unwrap();
+        let bytes = m.add_memory(area, 0x100).unwrap();
         bytes[0x10] = 0x11; 
         bytes[0x11] = 0x22;
         bytes[0x12] = 0x33;
@@ -277,9 +277,9 @@ mod tests{
     #[test]
     fn test_memory_failures(){
         let mut m = MemorySystem::default();
-        let _bytes = m.add_memory(0x10000, 0x100, false).unwrap();
-        assert!(m.add_memory(0x10000, 0x100, false) == Err(VMError::ConflictingMemoryAddition));
-        assert!(m.add_memory(0x100FF, 0x100, false) == Err(VMError::UnalignedMemoryAddition));
+        let _bytes = m.add_memory(0x10000, 0x100).unwrap();
+        assert!(m.add_memory(0x10000, 0x100) == Err(VMError::ConflictingMemoryAddition));
+        assert!(m.add_memory(0x100FF, 0x100) == Err(VMError::UnalignedMemoryAddition));
         assert!(m.get_memory(0x10200) == Err(VMError::ReadBadMemory(0x10200)));
         assert!(m.get_mut_memory(0x10100) == Err(VMError::WroteBadMemory(0x10100)));
     }
@@ -310,5 +310,24 @@ mod tests{
         assert!(vm.regs[2] == 0xAABBCC55);
         vm.set_reg(6, Byte(0x66)); //DH
         assert!(vm.regs[6] == 0xAABB6655);
+    }
+
+    #[test]
+    fn test_get_arg(){
+        use SizedValue::*;
+        let mut vm = VM::default();
+        let area = 0x77660000;
+        vm.memory.add_memory(area, 0x100).unwrap();
+        vm.memory.set_u32(area + 10, 0x11223344).unwrap();
+        vm.regs[0] = area + 12; //eax
+        
+        let arg = ArgLocation::Immediate(Word(0x9911));
+        assert!(vm.get_arg(arg).unwrap() == Word(0x9911));
+        let arg = ArgLocation::Address(area + 10, ValueSize::Dword);
+        assert!(vm.get_arg(arg).unwrap() == Dword(0x11223344));
+        let arg = ArgLocation::RegisterAddress(0, ValueSize::Word);
+        assert!(vm.get_arg(arg).unwrap() == Word(0x1122));
+        let arg = ArgLocation::RegisterValue(0, ValueSize::Dword);
+        assert!(vm.get_arg(arg).unwrap() == Dword(area + 12));
     }
 }

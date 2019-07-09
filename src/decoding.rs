@@ -41,17 +41,10 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
                 1
             },
             ImmediateAddress =>{
-                if address_override{
-                    bytes = &bytes[1..]; //advance by one
-                    args[n].location = ArgLocation::Address(u16_from_bytes(bytes)? as u32, opcode.arg_size[n]);
-                    args[n].size = 2;
-                    2
-                } else {
-                    bytes = &bytes[1..]; //advance by one
-                    args[n].location = ArgLocation::Address(u32_from_bytes(bytes)?, opcode.arg_size[n]);
-                    args[n].size = 4;
-                    4
-                }
+                bytes = &bytes[1..]; //advance by one
+                args[n].location = ArgLocation::Address(u32_from_bytes(bytes)?, opcode.arg_size[n]);
+                args[n].size = 4;
+                4
             }
             ImmediateValue => {
                 bytes = &bytes[1..]; //advance by one
