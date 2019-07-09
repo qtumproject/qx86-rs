@@ -71,6 +71,8 @@ impl MemorySystem{
         Ok(&mut self.map.get_mut(&aligned).unwrap().memory[0..])
     }
 
+    //Note that this will not respect the "readonly" flag, nor readonly memory space
+    //This is designed for internal use and with the VM exposed methods checking for these errors
     pub fn get_mut_memory(&mut self, address: u32) -> Result<&mut [u8], VMError> {
         match self.map.get_mut(&(address & 0xFFFF0000)){
             Option::None => return Err(VMError::ReadUnloadedMemory(address)), //should never happen?
@@ -98,14 +100,14 @@ impl MemorySystem{
     pub fn get_sized_memory(&self, address: u32, size: u32) -> Result<&[u8], VMError>{
         let m = self.get_memory(address)?;
         if m.len() < size as usize {
-            return Err(VMError::ReadBadMemory(address));
+            return Err(VMError::ReadBadMemory(address + size - 1));
         }
         Ok(m)
     }
     pub fn get_mut_sized_memory(&mut self, address: u32, size: u32) -> Result<&mut [u8], VMError>{
         let m = self.get_mut_memory(address)?;
         if m.len() < size as usize {
-            return Err(VMError::ReadBadMemory(address));
+            return Err(VMError::WroteBadMemory(address + size - 1));
         }
         Ok(m)
     }
