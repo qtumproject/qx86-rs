@@ -25,6 +25,7 @@ pub enum ArgSource{
     JumpRel32
 }
 
+#[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum JumpBehavior{
     None,
@@ -44,7 +45,6 @@ pub struct Opcode{
     pub gas_cost: i32,
     pub rep_valid: bool,
     pub size_override_valid: bool,
-    pub address_override_valid: bool,
     pub jump_behavior: JumpBehavior
 }
 
@@ -69,7 +69,6 @@ impl Default for Opcode{
             gas_cost: 0,
             rep_valid: false,
             size_override_valid: false,
-            address_override_valid: false,
             jump_behavior: JumpBehavior::None
         }
     }
@@ -107,14 +106,14 @@ fn fill_override_groups(ops: &mut [Opcode; 0x1FFF], op:usize){
 }
 //(Eventually) huge opcode map
 lazy_static! {
-    static ref OPCODES: [Opcode; 0x1FFF] = {
+    pub static ref OPCODES: [Opcode; 0x1FFF] = {
         let mut o: [Opcode; 0x1FFF] = [Opcode::default(); 0x1FFF];
         //nop
         o[0x90].function = nop;
         o[0x90].gas_cost = 0;
         fill_override_groups(&mut o, 0x90);
         
-        
+
 
         o
     };
