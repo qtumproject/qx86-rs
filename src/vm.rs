@@ -310,4 +310,20 @@ mod tests{
         vm.set_arg(arg, SizedValue::Dword(0x99887766)).unwrap();
         assert!(vm.regs[1] == 0x99887766);
     }
+    #[test]
+    fn test_set_arg_readonly(){
+        use SizedValue::*;
+        let mut vm = VM::default();
+        let area = 0x07660000;
+        vm.memory.add_memory(area, 0x100).unwrap();
+        vm.memory.set_u32(area + 10, 0x11223344).unwrap();
+        vm.regs[0] = area + 12; //eax
+        
+        let arg = ArgLocation::Address(area + 10, ValueSize::Dword);
+        //ensure it errors
+        assert!(vm.set_arg(arg, SizedValue::Dword(0xAABBCCDD)).is_err());
+        //and that memory is unchanged
+        assert!(vm.memory.get_u32(area + 10).unwrap() == 0x11223344);
+
+    }
 }
