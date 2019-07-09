@@ -1,34 +1,29 @@
 use crate::structs::*;
 use crate::opcodes::*;
+use crate::vm::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
 
-pub enum DecodeError{
-    MemoryError
-}
-
-
-
-fn u32_from_bytes(bytes: &[u8]) -> Result<u32, DecodeError>{
+fn u32_from_bytes(bytes: &[u8]) -> Result<u32, VMError>{
     use std::convert::TryInto;
     if bytes.len() < 4 {
-        return Err(DecodeError::MemoryError);
+        return Err(VMError::DecodingOverrun);
     }
     let b: [u8; 4] = *(&bytes[0..4].try_into().unwrap());
     Ok(u32::from_le_bytes(b))
 }
 
-fn u16_from_bytes(bytes: &[u8]) -> Result<u16, DecodeError>{
+fn u16_from_bytes(bytes: &[u8]) -> Result<u16, VMError>{
     use std::convert::TryInto;
     if bytes.len() < 2 {
-        return Err(DecodeError::MemoryError);
+        return Err(VMError::DecodingOverrun);
     }
     let b: [u8; 2] = *(&bytes[0..2].try_into().unwrap());
     Ok(u16::from_le_bytes(b))
 }
 
-pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], address_override: bool) -> Result<usize, DecodeError>{
+pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], address_override: bool) -> Result<usize, VMError>{
     use ArgSource::*;
     let opcode_byte = bytestream[0];
     let mut bytes = &bytestream[0..];

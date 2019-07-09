@@ -20,6 +20,26 @@ pub struct VM{
     pub error_eip: u32
 }
 
+#[derive(PartialEq, Debug)]
+#[derive(Copy, Clone)]
+pub enum VMError{
+    None,
+    //memory errors
+    ReadBadMemory(u32),
+    WroteBadMemory(u32),
+    WroteReadOnlyMemory(u32),
+    ReadUnloadedMemory(u32),
+    //caused by add_memory
+    UnalignedMemoryAddition,
+    ConflictingMemoryAddition,
+    
+    //execution error
+    InvalidOpcode,
+
+    //decoding error
+    DecodingOverrun, //needed more bytes for decoding -- about equivalent to ReadBadMemory
+}
+
 #[derive(Default)]
 pub struct BufferMemory{
     pub memory: Vec<u8>,
@@ -31,24 +51,15 @@ pub struct MemorySystem{
     map: HashMap<u32, BufferMemory>
 }
 
-#[derive(PartialEq, Debug)]
-#[derive(Copy, Clone)]
-pub enum MemoryError{
-    NoExist,
-    UnalignedAdd,
-    ConflictingAdd,
-    Overrun
-}
-
 impl MemorySystem{
-    pub fn add_memory(&mut self, address: u32, size: u32, readonly: bool) -> Result<&mut [u8], MemoryError> {
+    pub fn add_memory(&mut self, address: u32, size: u32, readonly: bool) -> Result<&mut [u8], VMError> {
         if address & 0xFFFF != 0{
-            return Err(MemoryError::UnalignedAdd);
+            return Err(VMError::UnalignedMemoryAddition);
         }
         
         let aligned = address & 0xFFFF0000;
         if self.map.contains_key(&aligned) {
-            return Err(MemoryError::ConflictingAdd);
+            return Err(VMError::ConflictingMemoryAddition);
         }
         let mut b = BufferMemory{
             memory: Vec::default(),
@@ -60,72 +71,72 @@ impl MemorySystem{
         Ok(&mut self.map.get_mut(&aligned).unwrap().memory[0..])
     }
 
-    pub fn get_mut_memory(&mut self, address: u32) -> Result<&mut [u8], MemoryError> {
+    pub fn get_mut_memory(&mut self, address: u32) -> Result<&mut [u8], VMError> {
         match self.map.get_mut(&(address & 0xFFFF0000)){
-            Option::None => return Err(MemoryError::NoExist),
+            Option::None => return Err(VMError::ReadUnloadedMemory(address)), //should never happen?
             Option::Some(m) =>  {
                 let local = (address & 0xFFFF) as usize;
                 if m.memory.len() - 1 < local{
-                    return Err(MemoryError::Overrun);
+                    return Err(VMError::WroteBadMemory(address));
                 }
                 return Ok(&mut (&mut m.memory)[local..])
             }
         }
     }
-    pub fn get_memory(&self, address: u32) -> Result<&[u8], MemoryError> {
+    pub fn get_memory(&self, address: u32) -> Result<&[u8], VMError> {
         match self.map.get(&(address & 0xFFFF0000)){
-            Option::None => return Err(MemoryError::NoExist),
+            Option::None => return Err(VMError::ReadUnloadedMemory(address)),
             Option::Some(m) =>  {
                 let local = (address & 0xFFFF) as usize;
                 if m.memory.len() - 1 < local{
-                    return Err(MemoryError::Overrun);
+                    return Err(VMError::ReadBadMemory(address));
                 }
                 return Ok(&(&m.memory)[local..])
             }
         }
     }
-    pub fn get_sized_memory(&self, address: u32, size: u32) -> Result<&[u8], MemoryError>{
+    pub fn get_sized_memory(&self, address: u32, size: u32) -> Result<&[u8], VMError>{
         let m = self.get_memory(address)?;
         if m.len() < size as usize {
-            return Err(MemoryError::Overrun);
+            return Err(VMError::ReadBadMemory(address));
         }
         Ok(m)
     }
-    pub fn get_mut_sized_memory(&mut self, address: u32, size: u32) -> Result<&mut [u8], MemoryError>{
+    pub fn get_mut_sized_memory(&mut self, address: u32, size: u32) -> Result<&mut [u8], VMError>{
         let m = self.get_mut_memory(address)?;
         if m.len() < size as usize {
-            return Err(MemoryError::Overrun);
+            return Err(VMError::ReadBadMemory(address));
         }
         Ok(m)
     }
-    pub fn get_u8(&self, address: u32) -> Result<u8, MemoryError>{
+    pub fn get_u8(&self, address: u32) -> Result<u8, VMError>{
         let m = self.get_sized_memory(address, 1)?;
         Ok(m[0])
     }
-    pub fn get_u16(&self, address: u32) -> Result<u16, MemoryError>{
+    pub fn get_u16(&self, address: u32) -> Result<u16, VMError>{
         use std::convert::TryInto;
         let m = self.get_sized_memory(address, 2)?;
         let v: [u8; 2] = *(&m[0..2].try_into().unwrap());
         Ok(u16::from_le_bytes(v))
     }
-    pub fn get_u32(&self, address: u32) -> Result<u32, MemoryError>{
+    pub fn get_u32(&self, address: u32) -> Result<u32, VMError>{
         use std::convert::TryInto;
         let m = self.get_sized_memory(address, 4)?;
         let v: [u8; 4] = *(&m[0..4].try_into().unwrap());
         Ok(u32::from_le_bytes(v))
     }
-    pub fn set_u8(&mut self, address: u32, v: u8) -> Result<u8, MemoryError>{
+    pub fn set_u8(&mut self, address: u32, v: u8) -> Result<u8, VMError>{
         let m = self.get_mut_sized_memory(address, 1)?;
         m[0] = v;
         Ok(v)
     }
-    pub fn set_u16(&mut self, address: u32, v: u16) -> Result<u16, MemoryError>{
+    pub fn set_u16(&mut self, address: u32, v: u16) -> Result<u16, VMError>{
         let m = self.get_mut_sized_memory(address, 2)?;
         let d = v.to_le_bytes();
         (&mut m[0..2]).copy_from_slice(&d);
         Ok(v)
     }
-    pub fn set_u32(&mut self, address: u32, v: u32) -> Result<u32, MemoryError>{
+    pub fn set_u32(&mut self, address: u32, v: u32) -> Result<u32, VMError>{
         let m = self.get_mut_sized_memory(address, 4)?;
         let d = v.to_le_bytes();
         (&mut m[0..4]).copy_from_slice(&d);
@@ -206,14 +217,14 @@ impl VM{
             }
         }
     }
-    pub fn get_mem(&self, address: u32, size: ValueSize) -> Result<SizedValue, MemoryError>{
+    pub fn get_mem(&self, address: u32, size: ValueSize) -> Result<SizedValue, VMError>{
         use ValueSize::*;
         match size{
             None => Ok(SizedValue::None),
             Byte => {
                 let m = self.memory.get_memory(address)?;
                 match m.get(0){
-                    Option::None => return Err(MemoryError::Overrun),
+                    Option::None => return Err(VMError::ReadBadMemory(address)),
                     Some(b) => return Ok(SizedValue::Byte(*b))
                 }
             },
@@ -265,10 +276,10 @@ mod tests{
     fn test_memory_failures(){
         let mut m = MemorySystem::default();
         let _bytes = m.add_memory(0x10000, 0x100, false).unwrap();
-        assert!(m.add_memory(0x10000, 0x100, false) == Err(MemoryError::ConflictingAdd));
-        assert!(m.add_memory(0x100FF, 0x100, false) == Err(MemoryError::UnalignedAdd));
-        assert!(m.get_memory(0x10200) == Err(MemoryError::Overrun));
-        assert!(m.get_mut_memory(0x10100) == Err(MemoryError::Overrun));
+        assert!(m.add_memory(0x10000, 0x100, false) == Err(VMError::ConflictingMemoryAddition));
+        assert!(m.add_memory(0x100FF, 0x100, false) == Err(VMError::UnalignedMemoryAddition));
+        assert!(m.get_memory(0x10200) == Err(VMError::ReadBadMemory(0x10200)));
+        assert!(m.get_mut_memory(0x10100) == Err(VMError::WroteBadMemory(0x10100)));
     }
 
     #[test]
