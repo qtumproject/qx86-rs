@@ -45,24 +45,59 @@ impl ModRM{
             mode: (b & (0x03 << 6)) >> 6 //top 2 bits
         }
     }
+    //This is pretty dense because Mod R/M is stupidly complicated
+    //Make sure to use this reference to understand why: http://ref.x86asm.net/coder32.html#modrm_byte_32
     fn decode(&self, sib: &SIB, disp: i32, size: ValueSize) -> ArgLocation{
-        match self.mode {
-            0 => {
-                match self.rm{
+        //when mode is 3, actual uses the direct register, and thus will not be an address
+        if self.mode == 3 {
+            return ArgLocation::RegisterValue(self.rm, size);
+        }
+        //special case for [disp32]
+        if self.mode == 0 && self.rm == 5 {
+            return ArgLocation::Address(disp as u32, size);
+        }
+        
+        //exclude rm == 4 as that is SIB option
+        //no disp, just register address
+        if self.mode == 0 && self.rm != 4 {
+            return ArgLocation::RegisterAddress(self.rm, size)
+        }
+        //[reg32 + disp] (where disp can be 8 or 32 bit)
+        if (self.mode == 2 || self.mode == 3) && self.rm != 4{
+            return ArgLocation::ModRMAddress{
+                offset: Some(disp),
+                reg: Some(self.rm),
+                size: size
+            };
+        }
 
-                    5 => {
-                        //[disp32]
-                        return ArgLocation::Address(disp as u32, size);
-                    }
-                    _ => return ArgLocation::RegisterAddress(self.rm, size)
-                }
+        //Only remaining options now is 
+        //[SIB], [SIB+disp8], [SIB+disp32]
 
-            },
-            3 => {
-                return ArgLocation::RegisterValue(self.rm, size);
-                
-            },
-            _ => panic!("This should never be reached")
+        let base = if sib.base == 5 {
+            //either disp32, ebp+disp8, or ebp+disp32 for modrm.mode values 0, 1, 2 respectively
+            if self.mode == 0{
+                Option::None //no register base
+            }else{
+                Some(Reg32::EBP as u8)
+            }
+        }else{
+            Some(sib.base)
+        };
+        //No index if index is 4, otherwise index corresponds to register
+        let index = if sib.index == 4{
+            Option::None
+        }else{
+            Some(sib.index)
+        };
+
+        //effective address form: [offset + base + (scale * index)]
+        return ArgLocation::SIBAddress{
+            offset: disp, //is 0 when not actually used or specified, thus not affecting the effective address calculation
+            base: base, //optional register
+            scale: 1 << sib.scale, //Equates to 1, 2, 4, 8 from values 0, 1, 2, 3 respectively
+            index: index, //optional register]
+            size: size
         };
     }
 }
@@ -128,8 +163,8 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
                 0
             },
             ModRM => {
-
-                1
+                args[n].location = modrm.decode(&sib, modrm_disp, opcode.arg_size[n]);
+                0 //size calculation was done before here, so don't need to advance any
             },
             ModRMReg => {
                 args[n].location = ArgLocation::RegisterAddress(modrm.reg, opcode.arg_size[n]);

@@ -176,12 +176,12 @@ pub enum ArgLocation{
         size: ValueSize
     }, */
     ModRMAddress{
-        offset: Option<u32>,
+        offset: Option<i32>,
         reg: Option<u8>,
         size: ValueSize
     },
     SIBAddress{
-        offset: Option<u32>,
+        offset: i32,
         base: Option<u8>, //register
         scale: u8, //1, 2, 4, 8
         index: Option<u8>,
