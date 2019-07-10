@@ -97,6 +97,17 @@ fn fill_override_groups(ops: &mut [Opcode; OPCODE_TABLE_SIZE], op:usize){
 
 
 
+/*
+Opcode definition convention note:
+This uses the format used by Intel assembly syntax
+Thus, the first argument would be the destination for opcodes which have an explicit destination
+For instance, an opcode like this:
+mov eax, 12345678
+
+Would be defined by saying the first argument is a register (or modrm) and the second argument is an immediate
+In addition, all test code comments and other annotations should use the intel assembly syntax, and NOT the GNU "AT&T" syntax
+*/
+
 
 //(Eventually) huge opcode map
 lazy_static! {
