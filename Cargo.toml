@@ -1,5 +1,5 @@
 [package]
-name = "qx86-rs"
+name = "qx86"
 version = "0.1.0"
 authors = ["Jordan Earls <earlz@earlz.net>"]
 edition = "2018"
