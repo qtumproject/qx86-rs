@@ -45,18 +45,14 @@ pub struct Opcode{
 pub fn nop(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
 Ok(())
 }
-pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline){
-    if vm.errored.is_none() {
-        //if there was a previous error, don't overwrite the info
-        vm.errored = Some(VMError::InvalidOpcode);
-        vm.error_eip = vm.eip;
-    }
+pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+    Err(VMError::InvalidOpcode)
 }
 
 impl Default for Opcode{
     fn default() -> Opcode{
         Opcode{
-            function: nop,
+            function: op_undefined,
             arg_size: [ValueSize::None, ValueSize::None, ValueSize::None],
             arg_source: [ArgSource::None, ArgSource::None, ArgSource::None],
             has_modrm: false,

@@ -15,8 +15,7 @@ pub struct VM{
     //pub pipeline: Vec<Pipeline>,
     //todo: hypervisor to call external code
 
-    //set when an error has occurred within an opcode execution
-    pub errored: Option<VMError>,
+    //set to indicate diagnostic info when an error occurs
     pub error_eip: u32
 }
 
@@ -186,6 +185,7 @@ impl VM{
     //note: errors.len() must be equal to pipeline.len() !! 
     fn cycle(&mut self, pipeline: &mut [Pipeline], errors: &mut [Result<(), VMError>]) -> Result<bool, VMError>{
         fill_pipeline(self, &OPCODES[0..], pipeline)?;
+        let mut error_eip = self.eip;
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
             let p = &pipeline[n];
@@ -196,11 +196,15 @@ impl VM{
         for n in 0..pipeline.len(){
             if errors[n].is_err(){
                 if errors[n].err().unwrap() == VMError::InternalVMStop{
+                    //This is to set eip to the point of the stop, rather than the opcode after
+                    self.eip = error_eip;
                     return Ok(true);
                 } else {
+                    self.error_eip = error_eip; 
                     return Err(errors[n].err().unwrap());
                 }
             }
+            error_eip += pipeline[n].eip_size as u32;
         }
         Ok(false)
     }
