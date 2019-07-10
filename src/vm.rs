@@ -16,7 +16,7 @@ pub struct VM{
     //todo: hypervisor to call external code
 
     //set when an error has occurred within an opcode execution
-    pub errored: Option<OpcodeError>,
+    pub errored: Option<VMError>,
     pub error_eip: u32
 }
 
@@ -44,6 +44,8 @@ pub enum VMError{
     //argument errors
     WrongSizeExpectation,
     TooBigSizeExpectation,
+
+    InternalVMStop, //not an actual error but triggers a stop
 }
 
 
@@ -181,9 +183,47 @@ impl VM{
     }
 
 
-
+    //note: errors.len() must be equal to pipeline.len() !! 
+    fn cycle(&mut self, pipeline: &mut [Pipeline], errors: &mut [Result<(), VMError>]) -> Result<bool, VMError>{
+        fill_pipeline(self, &OPCODES[0..], pipeline)?;
+        //manually unroll loop later if needed?
+        for n in 0..pipeline.len() {
+            let p = &pipeline[n];
+            errors[n] = (p.function)(self, p);
+            self.eip += p.eip_size as u32;
+        }
+        //check for errors
+        for n in 0..pipeline.len(){
+            if errors[n].is_err(){
+                if errors[n].err().unwrap() == VMError::InternalVMStop{
+                    return Ok(true);
+                } else {
+                    return Err(errors[n].err().unwrap());
+                }
+            }
+        }
+        Ok(false)
+    }
+    pub fn execute(&mut self) -> Result<bool, VMError>{
+        //todo: gas handling
+        let mut pipeline = vec![];
+        pipeline.resize(PIPELINE_SIZE, Pipeline::default());
+        let mut errors = vec![];
+        errors.resize(PIPELINE_SIZE, Result::Ok(()));
+        loop{
+            if self.cycle(&mut pipeline, &mut errors)? {
+                return Ok(true);
+            }
+        }
+    }
+    pub fn copy_into_memory(&mut self, address: u32, data: &[u8]) -> Result<(), VMError>{
+        let m = self.memory.get_mut_sized_memory(address, data.len() as u32)?;
+        m[0..data.len()].copy_from_slice(data);
+        Ok(())
+    }
 }
 
+const PIPELINE_SIZE:usize = 8;
 
 #[cfg(test)]
 mod tests{

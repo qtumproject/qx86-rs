@@ -86,9 +86,9 @@ mod tests{
     use super::*;
 
     //just a simple test function for comparison
-    fn test_op(_vm: &mut VM, _pipeline: &Pipeline){}
-    fn test2_op(_vm: &mut VM, _pipeline: &Pipeline){}
-    fn test3_op(_vm: &mut VM, _pipeline: &Pipeline){}
+    fn test_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
+    fn test2_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
+    fn test3_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
 
     /* Opcodes defined:
     0x00 -- undefined (purposefully)

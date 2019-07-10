@@ -4,11 +4,7 @@ use crate::pipeline::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
-pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline);
-
-pub enum OpcodeError{
-    InvalidOpcode,
-}
+pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>;
 
 //Defines how to decode the argument of an opcode
 #[derive(Copy, Clone)]
@@ -46,13 +42,13 @@ pub struct Opcode{
     pub jump_behavior: JumpBehavior
 }
 
-pub fn nop(_vm: &mut VM, _pipeline: &Pipeline){
-
+pub fn nop(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+Ok(())
 }
 pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline){
     if vm.errored.is_none() {
         //if there was a previous error, don't overwrite the info
-        vm.errored = Some(OpcodeError::InvalidOpcode);
+        vm.errored = Some(VMError::InvalidOpcode);
         vm.error_eip = vm.eip;
     }
 }
