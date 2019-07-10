@@ -16,38 +16,7 @@ pub enum ValueSize{
 
 
 
-#[derive(PartialEq)]
-#[derive(Copy, Clone)]
-pub enum Reg32{
-    EAX = 0,
-    ECX,
-    EDX,
-    EBX,
-    ESP,
-    EBP,
-    ESI,
-    EDI
-}
-pub enum Reg16{
-    AX = 0,
-    CX,
-    DX,
-    BX,
-    SP,
-    BP,
-    SI,
-    DI
-}
-pub enum Reg8{
-    AL = 0,
-    CL,
-    DL,
-    BL,
-    AH,
-    CH,
-    DH,
-    BH
-}
+
 
 
 #[derive(PartialEq)]
@@ -223,7 +192,6 @@ pub enum ArgLocation{
 #[derive(Copy, Clone)]
 pub struct OpArgument{
     pub location: ArgLocation,
-    pub size: u8 //size in bytes
 }
 
 
@@ -233,8 +201,7 @@ pub struct OpArgument{
 impl Default for OpArgument{
     fn default() -> OpArgument{
         OpArgument{
-            location: ArgLocation::None,
-            size: 0
+            location: ArgLocation::None
         }
     }
 }

@@ -149,13 +149,11 @@ mod tests{
 
         assert!(pipeline[0].function as usize == test_op as usize);
         assert!(pipeline[0].args[0].location == ArgLocation::None);
-        assert!(pipeline[0].args[0].size == 0);
         assert!(pipeline[0].eip_size == 1);
 
         assert!(pipeline[1].function as usize == nop as usize);
         assert!(pipeline[1].args[0].location == ArgLocation::Immediate(SizedValue::Byte(0x15)));
         assert!(pipeline[1].args[1].location == ArgLocation::None);
-        assert!(pipeline[1].args[0].size == 1);
         assert!(pipeline[1].eip_size == 2);
 
         vm.eip += pipeline[0].eip_size as u32 + pipeline[1].eip_size as u32;
@@ -164,8 +162,6 @@ mod tests{
         assert!(pipeline[0].function as usize == test2_op as usize);
         assert!(pipeline[0].args[0].location == ArgLocation::RegisterValue(2, ValueSize::Dword));
         assert!(pipeline[0].args[1].location == ArgLocation::Address(0x44332211, ValueSize::Dword));
-        assert!(pipeline[0].args[0].size == 0);
-        assert!(pipeline[0].args[1].size == 4);
         assert!(pipeline[0].eip_size == 5); 
     }
 
@@ -187,21 +183,17 @@ mod tests{
 
         assert!(pipeline[0].function as usize == test_op as usize);
         assert!(pipeline[0].args[0].location == ArgLocation::None);
-        assert!(pipeline[0].args[0].size == 0);
         assert!(pipeline[0].eip_size == 1);
 
         assert!(pipeline[1].function as usize == test3_op as usize);
         assert!(pipeline[1].args[0].location == ArgLocation::Immediate(SizedValue::Dword(0x44332211)));
         assert!(pipeline[1].args[1].location == ArgLocation::None);
-        assert!(pipeline[1].args[0].size == 4);
         assert!(pipeline[1].eip_size == 5); 
 
         //ensure next opcode after conditional jump is nop
         assert!(pipeline[2].function as usize == nop as usize);
         assert!(pipeline[2].args[0].location == ArgLocation::None);
         assert!(pipeline[2].args[1].location == ArgLocation::None);
-        assert!(pipeline[2].args[0].size == 0);
-        assert!(pipeline[2].args[1].size == 0);
         assert!(pipeline[2].eip_size == 0);  
         assert!(pipeline[2].gas_cost == 0);  
     }

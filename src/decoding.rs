@@ -22,12 +22,105 @@ fn u16_from_bytes(bytes: &[u8]) -> Result<u16, VMError>{
     let b: [u8; 2] = *(&bytes[0..2].try_into().unwrap());
     Ok(u16::from_le_bytes(b))
 }
+fn u8_from_bytes(bytes: &[u8]) -> Result<u8, VMError>{
+    use std::convert::TryInto;
+    if bytes.len() < 1 {
+        return Err(VMError::DecodingOverrun);
+    }
+    Ok(bytes[0])
+}
+
+#[derive(Default)]
+struct ModRM{
+    rm: u8, //3 bits
+    reg: u8, //3 bits
+    mode: u8, //2 bits
+}
+
+impl ModRM{
+    fn parse(b: u8) -> ModRM{
+        ModRM{
+            rm: b & 0x07, //bottom 3 bits
+            reg: (b & (0x07 << 3)) >> 3, //middle 3 bits
+            mode: (b & (0x03 << 6)) >> 6 //top 2 bits
+        }
+    }
+    fn decode(&self, sib: &SIB, disp: i32, size: ValueSize) -> ArgLocation{
+        match self.mode {
+            0 => {
+                match self.rm{
+
+                    5 => {
+                        //[disp32]
+                        return ArgLocation::Address(disp as u32, size);
+                    }
+                    _ => return ArgLocation::RegisterAddress(self.rm, size)
+                }
+
+            },
+            3 => {
+                return ArgLocation::RegisterValue(self.rm, size);
+                
+            },
+            _ => panic!("This should never be reached")
+        };
+    }
+}
+
+#[derive(Default)]
+struct SIB{
+    base: u8, //3 bits
+    index: u8, //3 bits
+    scale: u8 //2 bits
+}
+
+impl SIB{
+    fn parse(b: u8) -> SIB{
+        SIB{
+            base: b & 0x07, //bottom 3 bits
+            index: (b & (0x07 << 3)) >> 3, //middle 3 bits
+            scale: (b & (0x03 << 6)) >> 6, //top 2 bits
+        }
+    }
+}
 
 pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], address_override: bool) -> Result<usize, VMError>{
     use ArgSource::*;
+    if bytestream.len() < 16{
+        return Err(VMError::DecodingOverrun);
+    }
     let opcode_byte = bytestream[0];
     let mut bytes = &bytestream[1..];
     let mut size:usize = 1; //to count for opcode
+    let mut modrm = self::ModRM::default();
+    let mut sib = SIB::default();
+    //note displacements are treated as signed numbers
+    let mut modrm_disp:i32 = 0;
+
+    if opcode.has_modrm{
+        modrm = self::ModRM::parse(bytes[0]);
+        bytes = &bytes[1..]; //advance to next byte
+        size += 1;
+        if modrm.mode != 3 && (modrm.rm == 4){
+            sib = SIB::parse(bytes[0]);
+            bytes = &bytes[1..];
+            size += 1;
+        }
+        //read in immediate displacement
+        //first do 32 bit displacements
+        if  (modrm.mode == 0 && modrm.rm == 5) ||
+            (modrm.mode == 2) ||
+            (modrm.mode == 0 && sib.base == 5) {
+            
+            modrm_disp = u32_from_bytes(bytes)? as i32;
+            bytes = &bytes[4..];
+            size += 4;
+        } else if modrm.mode == 1 {
+            modrm_disp = u8_from_bytes(bytes)? as i32;
+            bytes = &bytes[1..];
+            size += 1;
+        }
+    }
     //todo: parse modr/m byte here if present, before actually parsing arguments
     for n in 0..3{
         let advance = match opcode.arg_source[n] {
@@ -35,14 +128,15 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
                 0
             },
             ModRM => {
+
                 1
             },
             ModRMReg => {
-                1
+                args[n].location = ArgLocation::RegisterAddress(modrm.reg, opcode.arg_size[n]);
+                0
             },
             ImmediateAddress =>{
                 args[n].location = ArgLocation::Address(u32_from_bytes(bytes)?, opcode.arg_size[n]);
-                args[n].size = 4;
                 4
             }
             ImmediateValue | JumpRel => {
@@ -64,7 +158,6 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
                 0
             }
         };
-        args[n].size = advance;
         bytes = &bytes[(advance as usize)..];
         size += advance as usize;
     }
@@ -98,21 +191,22 @@ mod tests {
     }
     #[test]
     fn decode_immediate_address(){
-        let bytes:&[u8] = &[
+        let mut bytes = vec![
             0xFA, //the opcode
             0x11, //argument begin
             0x22,
             0x33,
             0x44 //argument end
         ];
-        let (arg, size) = decode_arg(ArgSource::ImmediateAddress, ValueSize::Byte, bytes);
+        bytes.resize(bytes.len() + 16, 0);
+        let (arg, size) = decode_arg(ArgSource::ImmediateAddress, ValueSize::Byte, &bytes);
 
         assert!(arg.location == ArgLocation::Address(0x44332211, ValueSize::Byte));
         assert!(size == 5);
     }
     #[test]
     fn decode_immediate_value(){
-        let bytes = [
+        let mut bytes = vec![
             0xFA, //the opcode
             0x11, //argument begin
             0x22,
@@ -120,6 +214,7 @@ mod tests {
             0x44, //argument end
             0x88
         ];
+        bytes.resize(bytes.len() + 16, 0);
         {
             let (arg, size) = decode_arg(ArgSource::ImmediateValue, ValueSize::Byte, &bytes);
             assert!(arg.location == ArgLocation::Immediate(SizedValue::Byte(0x11)));
@@ -138,9 +233,10 @@ mod tests {
     }
     #[test]
     fn decode_register_suffix_value(){
-        let bytes = [
+        let mut bytes = vec![
             0xF3
         ];
+        bytes.resize(bytes.len() + 16, 0);
         let (arg, size) = decode_arg(ArgSource::RegisterSuffix, ValueSize::Dword, &bytes);
         assert!(size == 1);
         assert!(arg.location == ArgLocation::RegisterValue(3, ValueSize::Dword));
