@@ -33,5 +33,21 @@ fn test_simple_nop_hlt(){
     assert_eq!(vm.eip, CODE_MEM + 100);
 }
 
+#[test]
+fn test_mov_hlt(){
+    let mut vm = create_vm();
+    let mut bytes = vec![
+        0xB0, 0x11, //mov al, 0x11
+        0xB4, 0x22, //mov ah, 0x22
+        0xB2, 0x33, //mov dl, 0x33
+        0xB7, 0x44, //mov bh, 0x44
+        0xF4 //hlt
+    ];
+    vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
+    assert!(vm.execute().unwrap());
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00002211);
+    assert_eq!(vm.reg8(Reg8::DL), 0x33);
+    assert_eq!(vm.reg8(Reg8::BH), 0x44);
+}
 
 

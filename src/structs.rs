@@ -18,33 +18,35 @@ pub enum ValueSize{
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
-pub enum Register{
-    EAX,
+pub enum Reg32{
+    EAX = 0,
     ECX,
     EDX,
     EBX,
     ESP,
     EBP,
     ESI,
-    EDI,
-    AX,
+    EDI
+}
+pub enum Reg16{
+    AX = 0,
     CX,
     DX,
     BX,
     SP,
     BP,
     SI,
-    DI,
-    AL,
+    DI
+}
+pub enum Reg8{
+    AL = 0,
     CL,
     DL,
     BL,
     AH,
     CH,
     DH,
-    BH,
-    Segment,
-    Null
+    BH
 }
 
 

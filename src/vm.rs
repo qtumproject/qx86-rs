@@ -19,6 +19,45 @@ pub struct VM{
     pub error_eip: u32
 }
 
+#[derive(PartialEq)]
+#[derive(Copy, Clone)]
+pub enum Reg32{
+    EAX = 0,
+    ECX,
+    EDX,
+    EBX,
+    ESP,
+    EBP,
+    ESI,
+    EDI
+}
+
+#[derive(PartialEq)]
+#[derive(Copy, Clone)]
+pub enum Reg16{
+    AX = 0,
+    CX,
+    DX,
+    BX,
+    SP,
+    BP,
+    SI,
+    DI
+}
+
+#[derive(PartialEq)]
+#[derive(Copy, Clone)]
+pub enum Reg8{
+    AL = 0,
+    CL,
+    DL,
+    BL,
+    AH,
+    CH,
+    DH,
+    BH
+}
+
 #[derive(PartialEq, Debug)]
 #[derive(Copy, Clone)]
 pub enum VMError{
@@ -134,7 +173,7 @@ impl VM{
                     self.regs[r] = (self.regs[r] & 0xFFFFFF00) | (v as u32);
                 }else{
                     //access highs, AH, CH, DH, BH
-                    self.regs[r] = (self.regs[r & 0x03] & 0xFFFF00FF) | ((v as u32) << 8);
+                    self.regs[r & 0x03] = (self.regs[r & 0x03] & 0xFFFF00FF) | ((v as u32) << 8);
                 }
             },
             Word(v) => {
@@ -225,6 +264,24 @@ impl VM{
         m[0..data.len()].copy_from_slice(data);
         Ok(())
     }
+    pub fn reg8(&self, r: Reg8) -> u8{
+        self.get_reg(r as u8, ValueSize::Byte).u8_exact().unwrap()
+    }
+    pub fn reg16(&self, r: Reg16) -> u16{
+        self.get_reg(r as u8, ValueSize::Word).u16_exact().unwrap()
+    }
+    pub fn reg32(&self, r: Reg32) -> u32{
+        self.get_reg(r as u8, ValueSize::Dword).u32_exact().unwrap()
+    }
+    pub fn set_reg8(&mut self, r: Reg8, v: u8){
+        self.set_reg(r as u8, SizedValue::Byte(v));
+    }
+    pub fn set_reg16(&mut self, r: Reg8, v: u16){
+        self.set_reg(r as u8, SizedValue::Word(v));
+    }
+    pub fn set_reg32(&mut self, r: Reg8, v: u32){
+        self.set_reg(r as u8, SizedValue::Dword(v));
+    }
 }
 
 const PIPELINE_SIZE:usize = 8;
@@ -300,7 +357,7 @@ mod tests{
         vm.set_reg(2, Byte(0x55)); //DL
         assert!(vm.regs[2] == 0xAABBCC55);
         vm.set_reg(6, Byte(0x66)); //DH
-        assert!(vm.regs[6] == 0xAABB6655);
+        assert_eq!(vm.regs[2], 0xAABB6655);
     }
 
     #[test]
