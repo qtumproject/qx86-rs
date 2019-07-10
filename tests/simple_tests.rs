@@ -22,13 +22,15 @@ fn test_undefined_opcode(){
 #[test]
 fn test_simple_nop_hlt(){
     let mut vm = common::create_vm();
-    let bytes = vec![
-        0x90, //nop
-        0xF4 //hlt
-    ];
+    let mut bytes = vec![];
+    //use large block of nops to ensure it's larger than the pipeline size
+    for n in 0..100{
+        bytes.push(0x90); //nop
+    }
+    bytes.push(0xF4); //hlt
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
     assert!(vm.execute().unwrap());
-    assert_eq!(vm.eip, CODE_MEM + 1);
+    assert_eq!(vm.eip, CODE_MEM + 100);
 }
 
 
