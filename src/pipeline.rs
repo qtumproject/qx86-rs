@@ -10,7 +10,8 @@ pub struct Pipeline{
     pub function: OpcodeFn,
     pub args: [OpArgument; MAX_ARGS],
     pub gas_cost: i32,
-    pub eip_size: u8
+    pub eip_size: u8,
+    pub size_override: bool
 }
 
 impl Default for Pipeline{
@@ -19,7 +20,8 @@ impl Default for Pipeline{
             function: nop,
             args: [OpArgument::default(), OpArgument::default(), OpArgument::default()],
             gas_cost: 0,
-            eip_size: 1
+            eip_size: 1,
+            size_override: false
         }
     }
 }
