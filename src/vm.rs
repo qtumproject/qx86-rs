@@ -106,10 +106,10 @@ impl VM{
             ModRMAddress16{offset, reg1, reg2, size} => {
                 SizedValue::None
             },*/
-            ModRMAddress{offset, reg, size} => {
+            ModRMAddress{offset: _, reg: _, size: _} => {
                 SizedValue::None
             },
-            SIBAddress{offset, base, scale, index, size} => {
+            SIBAddress{offset: _, base: _, scale: _, index: _, size: _} => {
                 SizedValue::None
             }
         })
@@ -120,7 +120,7 @@ impl VM{
         use ArgLocation::*;
         match arg{
             None => (),
-            Immediate(v) => return Err(VMError::WroteUnwriteableArgumnet), //should never happen, this is an implementation error
+            Immediate(_v) => return Err(VMError::WroteUnwriteableArgumnet), //should never happen, this is an implementation error
             Address(a, s) => {
                 self.set_mem(a, v.convert_size_zx(s)?)?
             },
@@ -130,10 +130,10 @@ impl VM{
             RegisterAddress(r, s) => {
                 self.set_mem(self.get_reg(r, ValueSize::Dword).u32_exact()?, v.convert_size_zx(s)?)?
             },
-            ModRMAddress{offset, reg, size} => {
+            ModRMAddress{offset: _, reg: _, size: _} => {
                 return Err(VMError::NotYetImplemented);
             },
-            SIBAddress{offset, base, scale, index, size} => {
+            SIBAddress{offset: _, base: _, scale: _, index: _, size: _} => {
                 return Err(VMError::NotYetImplemented);
             }
         };
@@ -413,7 +413,6 @@ mod tests{
     }
     #[test]
     fn test_set_arg_readonly(){
-        use SizedValue::*;
         let mut vm = VM::default();
         let area = 0x07660000;
         vm.memory.add_memory(area, 0x100).unwrap();

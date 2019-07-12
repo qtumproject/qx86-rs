@@ -47,7 +47,7 @@ pub struct Opcode{
 pub fn nop(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
 Ok(())
 }
-pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+pub fn op_undefined(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
     Err(VMError::InvalidOpcode)
 }
 
@@ -79,7 +79,7 @@ fn two_byte(op: usize) -> usize{
     op | OP_TWOBYTE
 }
 fn with_group(op:usize, group: usize) -> usize{
-    if(group > 7) {
+    if group > 7 {
         panic!("Group opcode error in opcode initialization");
     }
     op | (group << OP_GROUP_SHIFT)

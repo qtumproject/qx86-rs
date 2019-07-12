@@ -1,3 +1,5 @@
+#![allow(dead_code)] //todo remove later on when this is closer to finished
+
 #[macro_use]
 extern crate lazy_static;
 

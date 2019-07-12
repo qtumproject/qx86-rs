@@ -27,7 +27,7 @@ impl Default for Pipeline{
 }
 
 pub fn clear_pipeline(pipeline: &mut [Pipeline]){
-    for n in 0..pipeline.len(){
+    for _n in 0..pipeline.len(){
         pipeline[0] = Pipeline::default();
     }
 }
@@ -132,9 +132,9 @@ mod tests{
     fn test_simple_pipeline(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
-        let mut vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
+        let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
         vm.eip = 0x10000;
-        let mut bytes = vec![
+        let bytes = vec![
             0x01, //test_op
             0x02, 0x15, //nop, imm8
             0x12, 0x11, 0x22, 0x33, 0x44, //test2_op, EDX, off32
@@ -171,9 +171,9 @@ mod tests{
     fn test_cond_jump_pipeline(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
-        let mut vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
+        let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
         vm.eip = 0x10000;
-        let mut bytes = vec![
+        let bytes = vec![
             0x01, //test_op
             0x03, 0x11, 0x22, 0x33, 0x44, //test3_op, imm32, cond jump
             0x12, 0x11, 0x22, 0x33, 0x44, //test2_op, EDX, off32

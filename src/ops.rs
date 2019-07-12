@@ -1,4 +1,3 @@
-use crate::opcodes::*;
 use crate::vm::*;
 use crate::pipeline::*;
 use crate::structs::*;
@@ -21,7 +20,7 @@ pub fn push(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     Ok(())
 }
 pub fn pop(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
-    //Important edge case
+    //Important edge case:
     /* https://c9x.me/x86/html/file_module_x86_id_248.html
     If the ESP register is used as a base register for addressing a destination operand in memory, 
     the POP instruction computes the effective address of the operand after it increments the ESP register.
@@ -40,6 +39,10 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 }
 
 
-pub fn hlt(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+
+
+
+
+pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
     Err(VMError::InternalVMStop)
 }

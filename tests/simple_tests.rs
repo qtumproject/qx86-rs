@@ -24,7 +24,7 @@ fn test_simple_nop_hlt(){
     let mut vm = common::create_vm();
     let mut bytes = vec![];
     //use large block of nops to ensure it's larger than the pipeline size
-    for n in 0..100{
+    for _n in 0..100{
         bytes.push(0x90); //nop
     }
     bytes.push(0xF4); //hlt
@@ -35,7 +35,7 @@ fn test_simple_nop_hlt(){
 
 #[test]
 fn test_mov_hlt(){
-    let mut vm = execute_vm_asm("
+    let vm = execute_vm_asm("
     mov al, 0x11
     mov ah, 0x22
     mov dl, 0x33

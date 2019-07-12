@@ -62,7 +62,7 @@ impl SizedValue{
             SizedValue::Word(v) => Ok(*v),
             SizedValue::Byte(v) => Ok(*v as u16),
             SizedValue::None => Ok(0),
-            SizedValue::Dword(v) => Err(VMError::TooBigSizeExpectation)
+            SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation)
         }
     }
     //sx = signed extend to fit into integer size
@@ -79,7 +79,7 @@ impl SizedValue{
             SizedValue::Word(v) => Ok(*v),
             SizedValue::Byte(v) => Ok((*v as i16) as u16),
             SizedValue::None => Ok(0),
-            SizedValue::Dword(v) => Err(VMError::TooBigSizeExpectation)
+            SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation)
         }
     }
 

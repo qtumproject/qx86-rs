@@ -23,7 +23,6 @@ fn u16_from_bytes(bytes: &[u8]) -> Result<u16, VMError>{
     Ok(u16::from_le_bytes(b))
 }
 fn u8_from_bytes(bytes: &[u8]) -> Result<u8, VMError>{
-    use std::convert::TryInto;
     if bytes.len() < 1 {
         return Err(VMError::DecodingOverrun);
     }
@@ -119,7 +118,7 @@ impl SIB{
     }
 }
 
-pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], address_override: bool) -> Result<usize, VMError>{
+pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], _address_override: bool) -> Result<usize, VMError>{
     use ArgSource::*;
     if bytestream.len() < 16{
         return Err(VMError::DecodingOverrun);
