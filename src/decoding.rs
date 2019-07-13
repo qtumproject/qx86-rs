@@ -345,7 +345,7 @@ mod tests {
         {
             let mut bytes = vec![
                 0xFA, //opcode
-                0xDD,//mod rm ebp with /r=edx
+                0xDD,//mod rm ebp with /r=ebx
             ];
             bytes.resize(bytes.len() + 16, 0);
             let (arg, size) = decode_arg_modrm(ArgSource::ModRM, ValueSize::Word, &bytes);
