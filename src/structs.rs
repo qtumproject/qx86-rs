@@ -7,6 +7,7 @@ pub const MAX_ARGS:usize = 3;
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
+#[derive(Debug)]
 pub enum ValueSize{
     None,
     Byte,
@@ -21,6 +22,7 @@ pub enum ValueSize{
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
+#[derive(Debug)]
 pub enum SizedValue{
     None,
     Byte(u8),
@@ -163,6 +165,7 @@ impl ToSizedValue for u32{
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
+#[derive(Debug)]
 pub enum ArgLocation{
     None,
     Immediate(SizedValue),
