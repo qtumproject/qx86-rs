@@ -356,4 +356,89 @@ mod tests {
             assert_eq!(arg.location, ArgLocation::RegisterValue(Reg16::BX as u8, ValueSize::Word));
         }
     }
+    #[test]
+    fn decode_sib(){
+        {
+            let mut bytes = vec![
+                0xFA, //opcode
+                0x0C,//modrm [sib] with /r=ecx
+                0xAF, //[EBP*4 + EDI]
+            ];
+            bytes.resize(bytes.len() + 16, 0);
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRM, ValueSize::Dword, &bytes);
+            assert_eq!(size, 3);
+            assert_eq!(arg.location, ArgLocation::SIBAddress{
+                offset: 0,
+                base: Some(Reg32::EDI as u8),
+                scale: 4,
+                index: Some(Reg32::EBP as u8),
+                size: ValueSize::Dword
+            });
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRMReg, ValueSize::Dword, &bytes);
+            assert_eq!(size, 3);
+            assert_eq!(arg.location, ArgLocation::RegisterValue(Reg32::ECX as u8, ValueSize::Dword));
+        }
+        {
+            let mut bytes = vec![
+                0xFA, //opcode
+                0x0C,//modrm [sib] with /r=ecx
+                0x61, //[(none) + ECX]
+            ];
+            bytes.resize(bytes.len() + 16, 0);
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRM, ValueSize::Dword, &bytes);
+            assert_eq!(size, 3);
+            assert_eq!(arg.location, ArgLocation::SIBAddress{
+                offset: 0,
+                base: Some(Reg32::ECX as u8),
+                scale: 2, //this is not actually used, but is set
+                index: None,
+                size: ValueSize::Dword
+            });
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRMReg, ValueSize::Dword, &bytes);
+            assert_eq!(size, 3);
+            assert_eq!(arg.location, ArgLocation::RegisterValue(Reg32::ECX as u8, ValueSize::Dword));
+        }
+        {
+            let mut bytes = vec![
+                0xFA, //opcode
+                0x0C,//modrm [sib] with /r=ecx
+                0xCD, //[(none + disp32) * 8 + ECX]
+                0x11, 0x22, 0x33, 0x44 //disp32
+            ];
+            bytes.resize(bytes.len() + 16, 0);
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRM, ValueSize::Dword, &bytes);
+            assert_eq!(size, 7);
+            assert_eq!(arg.location, ArgLocation::SIBAddress{
+                offset: 0x44332211,
+                base: None,
+                scale: 8, 
+                index: Some(Reg32::ECX as u8),
+                size: ValueSize::Dword
+            });
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRMReg, ValueSize::Dword, &bytes);
+            assert_eq!(size, 7);
+            assert_eq!(arg.location, ArgLocation::RegisterValue(Reg32::ECX as u8, ValueSize::Dword));
+        }
+        {
+            let mut bytes = vec![
+                0xFA, //opcode
+                0x44,//modrm [sib + imm8] with /r=eax
+                0x8D, //[(ecx * 4) + none] (+imm8 from modrm)
+                0x11 //disp8
+            ];
+            bytes.resize(bytes.len() + 16, 0);
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRM, ValueSize::Dword, &bytes);
+            assert_eq!(size, 4);
+            assert_eq!(arg.location, ArgLocation::SIBAddress{
+                offset: 0x11,
+                base: Some(Reg32::EBP as u8),
+                scale: 4, 
+                index: Some(Reg32::ECX as u8),
+                size: ValueSize::Dword
+            });
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRMReg, ValueSize::Dword, &bytes);
+            assert_eq!(size, 4);
+            assert_eq!(arg.location, ArgLocation::RegisterValue(Reg32::EAX as u8, ValueSize::Dword));
+        }
+    }
 }
