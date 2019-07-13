@@ -47,14 +47,14 @@ impl ModRM{
     }
     //This is pretty dense because Mod R/M is stupidly complicated
     //Make sure to use this reference to understand why: http://ref.x86asm.net/coder32.html#modrm_byte_32
-    fn decode(&self, sib: &SIB, disp: i32, size: ValueSize) -> ArgLocation{
+    fn decode(&self, sib: &SIB, disp: u32, size: ValueSize) -> ArgLocation{
         //when mode is 3, actual uses the direct register, and thus will not be an address
         if self.mode == 3 {
             return ArgLocation::RegisterValue(self.rm, size);
         }
         //special case for [disp32]
         if self.mode == 0 && self.rm == 5 {
-            return ArgLocation::Address(disp as u32, size);
+            return ArgLocation::Address(disp, size);
         }
         
         //exclude rm == 4 as that is SIB option
@@ -63,7 +63,6 @@ impl ModRM{
             return ArgLocation::RegisterAddress(self.rm, size)
         }
         //[reg32 + disp] (where disp can be 8 or 32 bit)
-        println!("modrm: {:?}", self);
         if (self.mode == 1 || self.mode == 2) && self.rm != 4{
             return ArgLocation::ModRMAddress{
                 offset: Some(disp),
@@ -131,7 +130,7 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
     let mut modrm = self::ModRM::default();
     let mut sib = SIB::default();
     //note displacements are treated as signed numbers
-    let mut modrm_disp:i32 = 0;
+    let mut modrm_disp:u32 = 0;
 
     if opcode.has_modrm{
         modrm = self::ModRM::parse(bytes[0]);
@@ -148,11 +147,11 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
             (modrm.mode == 2) ||
             (modrm.mode == 0 && sib.base == 5) {
             
-            modrm_disp = u32_from_bytes(bytes)? as i32;
+            modrm_disp = u32_from_bytes(bytes)?;
             bytes = &bytes[4..];
             size += 4;
         } else if modrm.mode == 1 {
-            modrm_disp = u8_from_bytes(bytes)? as i32;
+            modrm_disp = ((u8_from_bytes(bytes)? as i8) as i32) as u32;
             bytes = &bytes[1..];
             size += 1;
         }
@@ -423,7 +422,7 @@ mod tests {
             let mut bytes = vec![
                 0xFA, //opcode
                 0x44,//modrm [sib + imm8] with /r=eax
-                0x8D, //[(ecx * 4) + none] (+imm8 from modrm)
+                0x8D, //[(ecx * 4) + ebp] (+imm8 from modrm)
                 0x11 //disp8
             ];
             bytes.resize(bytes.len() + 16, 0);
@@ -431,6 +430,27 @@ mod tests {
             assert_eq!(size, 4);
             assert_eq!(arg.location, ArgLocation::SIBAddress{
                 offset: 0x11,
+                base: Some(Reg32::EBP as u8),
+                scale: 4, 
+                index: Some(Reg32::ECX as u8),
+                size: ValueSize::Dword
+            });
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRMReg, ValueSize::Dword, &bytes);
+            assert_eq!(size, 4);
+            assert_eq!(arg.location, ArgLocation::RegisterValue(Reg32::EAX as u8, ValueSize::Dword));
+        }
+        {
+            let mut bytes = vec![
+                0xFA, //opcode
+                0x44,//modrm [sib + imm8] with /r=eax
+                0x8D, //[(ecx * 4) + ebp] (+imm8 from modrm)
+                0xEF //disp8 (-0x11)
+            ];
+            bytes.resize(bytes.len() + 16, 0);
+            let (arg, size) = decode_arg_modrm(ArgSource::ModRM, ValueSize::Dword, &bytes);
+            assert_eq!(size, 4);
+            assert_eq!(arg.location, ArgLocation::SIBAddress{
+                offset: (-0x11i32) as u32, //should be -0x11 in an i32
                 base: Some(Reg32::EBP as u8),
                 scale: 4, 
                 index: Some(Reg32::ECX as u8),

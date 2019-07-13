@@ -106,11 +106,29 @@ impl VM{
             ModRMAddress16{offset, reg1, reg2, size} => {
                 SizedValue::None
             },*/
-            ModRMAddress{offset: _, reg: _, size: _} => {
-                SizedValue::None
+            ModRMAddress{offset, reg, size} => {
+                let o = match offset{
+                    Some(x) => x,
+                    Option::None => 0
+                };
+                let r = match reg{
+                    Some(x) => self.regs[x as usize],
+                    Option::None => 0
+                };
+                self.get_mem(o.wrapping_add(r), size)?
             },
-            SIBAddress{offset: _, base: _, scale: _, index: _, size: _} => {
-                SizedValue::None
+            SIBAddress{offset, base, scale, index, size} => {
+                let b = match base{
+                    Some(x) => self.regs[x as usize],
+                    Option::None => 0
+                };
+                let ind = match index{
+                    Some(x) => self.regs[x as usize],
+                    Option::None => 0
+                };
+                //base + (index * scale) + offset
+                let address = b.wrapping_add(ind.wrapping_mul(scale as u32)).wrapping_add(offset);
+                self.get_mem(address, size)?
             }
         })
     }

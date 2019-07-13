@@ -178,13 +178,16 @@ pub enum ArgLocation{
         reg2: Option<u8>,
         size: ValueSize
     }, */
+    
+    //note offset here can be negative (ie, top bit set) but with wrapping_add
+    //the results will be identical without needing to juggle between u32 and i32 with type checks etc
     ModRMAddress{
-        offset: Option<i32>,
+        offset: Option<u32>,
         reg: Option<u8>,
         size: ValueSize
     },
     SIBAddress{
-        offset: i32,
+        offset: u32,
         base: Option<u8>, //register
         scale: u8, //1, 2, 4, 8
         index: Option<u8>,
