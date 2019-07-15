@@ -88,6 +88,36 @@ pub enum VMError{
 
 
 impl VM{
+    fn calculate_modrm_address(&self, arg: &ArgLocation) -> u32{
+        use ArgLocation::*;
+        match arg{
+            ModRMAddress{offset, reg, size: _} => {
+                let o = match offset{
+                    Some(x) => *x,
+                    Option::None => 0
+                };
+                let r = match reg{
+                    Some(x) => self.regs[*x as usize],
+                    Option::None => 0
+                };
+                o.wrapping_add(r)
+            },
+            SIBAddress{offset, base, scale, index, size: _} => {
+                let b = match base{
+                    Some(x) => self.regs[*x as usize],
+                    Option::None => 0
+                };
+                let ind = match index{
+                    Some(x) => self.regs[*x as usize],
+                    Option::None => 0
+                };
+                //base + (index * scale) + offset
+                let address = b.wrapping_add(ind.wrapping_mul(*scale as u32)).wrapping_add(*offset);
+                address
+            },
+            _ => panic!("This should not be reached")
+        }
+    }
     pub fn get_arg(&self, arg: ArgLocation) -> Result<SizedValue, VMError>{
         use ArgLocation::*;
         Ok(match arg{
@@ -106,29 +136,11 @@ impl VM{
             ModRMAddress16{offset, reg1, reg2, size} => {
                 SizedValue::None
             },*/
-            ModRMAddress{offset, reg, size} => {
-                let o = match offset{
-                    Some(x) => x,
-                    Option::None => 0
-                };
-                let r = match reg{
-                    Some(x) => self.regs[x as usize],
-                    Option::None => 0
-                };
-                self.get_mem(o.wrapping_add(r), size)?
+            ModRMAddress{offset: _, reg: _, size} => {
+                self.get_mem(self.calculate_modrm_address(&arg), size)?
             },
-            SIBAddress{offset, base, scale, index, size} => {
-                let b = match base{
-                    Some(x) => self.regs[x as usize],
-                    Option::None => 0
-                };
-                let ind = match index{
-                    Some(x) => self.regs[x as usize],
-                    Option::None => 0
-                };
-                //base + (index * scale) + offset
-                let address = b.wrapping_add(ind.wrapping_mul(scale as u32)).wrapping_add(offset);
-                self.get_mem(address, size)?
+            SIBAddress{offset: _, base: _, scale: _, index: _, size} => {
+                self.get_mem(self.calculate_modrm_address(&arg), size)?
             }
         })
     }
@@ -148,11 +160,13 @@ impl VM{
             RegisterAddress(r, s) => {
                 self.set_mem(self.get_reg(r, ValueSize::Dword).u32_exact()?, v.convert_size_zx(s)?)?
             },
-            ModRMAddress{offset: _, reg: _, size: _} => {
-                return Err(VMError::NotYetImplemented);
+            ModRMAddress{offset: _, reg: _, size} => {
+                let sized = v.convert_size_trunc(size);
+                self.set_mem(self.calculate_modrm_address(&arg), sized)?
             },
-            SIBAddress{offset: _, base: _, scale: _, index: _, size: _} => {
-                return Err(VMError::NotYetImplemented);
+            SIBAddress{offset: _, base: _, scale: _, index: _, size} => {
+                let sized = v.convert_size_trunc(size);
+                self.set_mem(self.calculate_modrm_address(&arg), sized)?
             }
         };
 
@@ -442,6 +456,47 @@ mod tests{
         assert!(vm.set_arg(arg, SizedValue::Dword(0xAABBCCDD)).is_err());
         //and that memory is unchanged
         assert!(vm.memory.get_u32(area + 10).unwrap() == 0x11223344);
+    }
+    #[test]
+    fn test_modrm_address_calculation(){
+        let mut vm = VM::default();
+        let a = ArgLocation::ModRMAddress{
+            offset: None,
+            reg: Some(Reg32::EBX as u8),
+            size: ValueSize::Byte
+        };
+        vm.regs[Reg32::EBX as usize] = 0x88112233;
+        assert_eq!(vm.calculate_modrm_address(&a), 0x88112233);
+        let a = ArgLocation::ModRMAddress{
+            offset: Some(0x11223344),
+            reg: Some(Reg32::EBX as u8),
+            size: ValueSize::Byte
+        };
+        assert_eq!(vm.calculate_modrm_address(&a), 0x99335577);
+        let a = ArgLocation::ModRMAddress{
+            offset: Some(0x11223344),
+            reg: None,
+            size: ValueSize::Byte
+        };
+        assert_eq!(vm.calculate_modrm_address(&a), 0x11223344);
+    }
+    #[test]
+    fn test_sib_address_calculation(){
+        let mut vm = VM::default();
+        let a = ArgLocation::SIBAddress{
+            offset: 1,
+            base: Some(Reg32::EBX as u8),
+            scale: 2,
+            index: Some(Reg32::EDI as u8),
+            size: ValueSize::Byte
+        };
+        vm.regs[Reg32::EBX as usize] = 0x11223344;
+        vm.regs[Reg32::EDI as usize] = 0xFFEEDDCC;
+        //(ffeeddcc * 2) + 11223344 + 1
+        //(ffddbb98) + 11223344 + 1
+        //10ffeddc + 1
+        //10ffeddd
+        assert_eq!(vm.calculate_modrm_address(&a), 0x10FFEEDD);
 
     }
 }

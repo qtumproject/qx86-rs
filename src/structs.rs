@@ -178,7 +178,7 @@ pub enum ArgLocation{
         reg2: Option<u8>,
         size: ValueSize
     }, */
-    
+
     //note offset here can be negative (ie, top bit set) but with wrapping_add
     //the results will be identical without needing to juggle between u32 and i32 with type checks etc
     ModRMAddress{
@@ -192,6 +192,12 @@ pub enum ArgLocation{
         scale: u8, //1, 2, 4, 8
         index: Option<u8>,
         size: ValueSize
+    }
+}
+
+impl Default for ArgLocation{
+    fn default() -> ArgLocation{
+        ArgLocation::None
     }
 }
 
