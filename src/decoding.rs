@@ -136,15 +136,13 @@ impl ParsedModRM{
             return Err(VMError::DecodingOverrun);
         }
         let mut parsed = ParsedModRM::default();
-        let mut sib = SIB::default();
         let mut bytes = &bytestream[1..]; //skip opcode
         let mut size = 0;
         parsed.modrm = self::ModRM::parse(bytes[0]);
         bytes = &bytes[1..]; //advance to next byte
         size += 1;
         if parsed.modrm.mode != 3 && parsed.modrm.rm == 4 {
-            sib = SIB::parse(bytes[0]);
-            parsed.sib = Some(sib);
+            parsed.sib = Some(SIB::parse(bytes[0]));
             bytes = &bytes[1..];
             size += 1;
         }
@@ -155,11 +153,9 @@ impl ParsedModRM{
             (parsed.modrm.mode == 0 && parsed.sib.unwrap_or_default().base == 5) {
             
             parsed.disp = Some(u32_from_bytes(bytes)?);
-            bytes = &bytes[4..];
             size += 4;
         } else if parsed.modrm.mode == 1 {
             parsed.disp = Some(((u8_from_bytes(bytes)? as i8) as i32) as u32);
-            bytes = &bytes[1..];
             size += 1;
         }
         parsed.size = size;

@@ -94,24 +94,6 @@ impl Default for Opcode{
 pub const OPCODE_TABLE_SIZE:usize = 0x1FF;
 const OP_TWOBYTE:usize = 1 << 8;
 
-fn two_byte(op: usize) -> usize{
-    op | OP_TWOBYTE
-}
-fn fill_groups(ops: &mut [Opcode], op:usize){
-    for n in 0..8 {
-        //ops[op].function = ops[op];
-    }
-}
-fn fill_override(ops: &mut [Opcode], op:usize){
-    //ops[with_override(op)] = ops[op];
-}
-fn fill_override_groups(ops: &mut [Opcode], op:usize){
-    fill_groups(ops, op);
-    fill_override(ops, op);
-    //fill_groups(ops, with_override(op));
-}
-
-
 
 #[derive(Default)]
 pub struct OpcodeDefiner{
