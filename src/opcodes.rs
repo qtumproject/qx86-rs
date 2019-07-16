@@ -16,19 +16,23 @@ pub enum ArgSource{
     ImmediateValue,
     ImmediateAddress, //known as an "offset" in docs rather than pointer or address
     RegisterSuffix, //lowest 3 bits of the opcode is used for register
+
     //note: for Jump opcodes, exactly 1 argument is the only valid encoding
+    //This is treated the same as ImmediateValue, but specialized so that the Pipeline can interpret it directly
+    //without requiring a full decode and execution
     JumpRel,
     Literal(SizedValue) //For encoding hard-coded values, such as the `rol modrm8, 1` opcode
 }
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
-pub enum JumpBehavior{
+pub enum PipelineBehavior{
     None,
-    Relative,
-    //any opcode which changes EIP by an amount which can not be predicted at the decoding stage
-    //this includes opcodes like `jne` and also opcodes like `jmp eax` 
-    Conditional 
+    //This is for predictable jumps with a hard coded jump target
+    RelativeJump,
+    //any opcode which changes EIP or execution state and can not be predicted at the decoding stage
+    //this includes opcodes like `jne` and also opcodes like `jmp eax`, as well as system calls using `int`
+    Unpredictable 
 }
 
 //defines an opcode with all the information needed for decoding the opcode and all arguments
@@ -38,7 +42,7 @@ pub struct Opcode{
     pub arg_size: [ValueSize; MAX_ARGS],
     pub arg_source: [ArgSource; MAX_ARGS],
     pub gas_cost: i32,
-    pub pipeline_behavior: JumpBehavior,
+    pub pipeline_behavior: PipelineBehavior,
     pub defined: bool
 }
 
@@ -47,8 +51,10 @@ pub struct OpcodeProperties{
     pub has_modrm: bool,
     pub defined: bool,
     //pub rep_valid: bool, //this is handled in decoding by special case checking -- 0xA4 through 0xAF, excluding 0xA8 and 0xA9
+
     //0 is the normal opcode, while the entire array is used for "group" opcodes which use the reg
     //field of Mod R/M to extend the opcode
+    //For "/r" opcodes which use the reg field as an additional parameter, the opcode is duplicated to fill this entire array
     pub opcodes: [Opcode; 8],
 }
 
@@ -77,11 +83,12 @@ impl Default for Opcode{
             arg_source: [ArgSource::None, ArgSource::None, ArgSource::None],
             gas_cost: 0,
             //this defaults to conditional so that an unknown opcode is considered conditional
-            pipeline_behavior: JumpBehavior::Conditional,
+            pipeline_behavior: PipelineBehavior::Unpredictable,
             defined: false
         }
     }
 }
+
 //index: lower byte is primary opcode
 //upper bit is if 0x0F prefix is used (ie, extended opcode)
 pub const OPCODE_TABLE_SIZE:usize = 0x1FF;
@@ -115,7 +122,7 @@ pub struct OpcodeDefiner{
     gas_level: u32, //todo, make enum?
     args: Vec<(ArgSource, ValueSize)>,
     function: Option<OpcodeFn>,
-    jump: Option<JumpBehavior>,
+    jump: Option<PipelineBehavior>,
     has_modrm: bool,
     reg_suffix: bool
 }
@@ -144,11 +151,11 @@ impl OpcodeDefiner{
         self
     }
     pub fn is_jump(&mut self) -> &mut OpcodeDefiner{
-        self.jump = Some(JumpBehavior::Relative);
+        self.jump = Some(PipelineBehavior::RelativeJump);
         self
     }
-    pub fn is_conditional(&mut self) -> &mut OpcodeDefiner{
-        self.jump = Some(JumpBehavior::Conditional);
+    pub fn is_unpredictable(&mut self) -> &mut OpcodeDefiner{
+        self.jump = Some(PipelineBehavior::Unpredictable);
         self
     }
     pub fn with_gas(&mut self, gas: u32) -> &mut OpcodeDefiner{
@@ -158,7 +165,7 @@ impl OpcodeDefiner{
 
     pub fn into_table(&mut self, table: &mut [OpcodeProperties]){
         if self.jump.is_none(){
-            self.jump = Some(JumpBehavior::None);
+            self.jump = Some(PipelineBehavior::None);
         }
         let limit = if self.reg_suffix{
             8
@@ -230,7 +237,7 @@ lazy_static! {
         define_opcode(0x90).calls(nop).with_gas(0).into_table(&mut ops);
 
         //hlt
-        define_opcode(0xF4).calls(hlt).with_gas(0).is_conditional().into_table(&mut ops);
+        define_opcode(0xF4).calls(hlt).with_gas(0).is_unpredictable().into_table(&mut ops);
 
         //mov r8, imm8
         define_opcode(0xB0).calls(mov).with_gas(10).

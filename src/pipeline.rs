@@ -56,19 +56,19 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
                 &prop.opcodes[0]
             };
             match opcode.pipeline_behavior{
-                JumpBehavior::None => {
+                PipelineBehavior::None => {
                     p.function = opcode.function;
                     p.gas_cost = opcode.gas_cost;
                     p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                 },
-                JumpBehavior::Conditional => {
+                PipelineBehavior::Unpredictable => {
                     p.function = opcode.function;
                     p.gas_cost = opcode.gas_cost;
                     p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                     eip += p.eip_size as u32;
                     stop_filling = true;
                 },
-                JumpBehavior::Relative => {
+                PipelineBehavior::RelativeJump => {
                     //todo: later follow jumps that can be predicted
                     //right now this is just copy-pasted from conditional jumps
                     p.function = opcode.function;
@@ -120,7 +120,7 @@ mod tests{
             .into_table(&mut table);
         define_opcode(0x03)
             .has_arg(ArgSource::JumpRel, ValueSize::Dword)
-            .is_conditional()
+            .is_unpredictable()
             .with_gas(50)
             .calls(test3_op)
             .into_table(&mut table);
