@@ -32,7 +32,7 @@ pub fn clear_pipeline(pipeline: &mut [Pipeline]){
     }
 }
 
-pub fn fill_pipeline(vm: &VM, opcodes: &[Opcode], pipeline: &mut [Pipeline]) -> Result<(), VMError>{
+pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipeline]) -> Result<(), VMError>{
     let mut eip = vm.eip;
     let mut stop_filling = false;
     //writeable if in memory with top bit set
@@ -46,27 +46,34 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[Opcode], pipeline: &mut [Pipeline]) -> 
             p.gas_cost = 0;
         }else{
             let buffer = vm.memory.get_sized_memory(eip, 16)?;
-            //todo: handle the upper bits of opcode
-            let opcode = &opcodes[buffer[0 as usize] as usize];
-            match opcode.jump_behavior{
-                JumpBehavior::None => {
+            //todo: handle 0x0F extension prefix and other prefixes
+            let prop = &opcodes[buffer[0 as usize] as usize];
+            let mut modrm = Option::None;
+            let opcode = if prop.has_modrm{
+                modrm = Some(ParsedModRM::from_bytes(buffer)?);
+                &prop.opcodes[modrm.unwrap().modrm.reg as usize]
+            }else{
+                &prop.opcodes[0]
+            };
+            match opcode.pipeline_behavior{
+                PipelineBehavior::None => {
                     p.function = opcode.function;
                     p.gas_cost = opcode.gas_cost;
-                    p.eip_size = decode_args(opcode, buffer, &mut p.args, false)? as u8;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                 },
-                JumpBehavior::Conditional => {
+                PipelineBehavior::Unpredictable => {
                     p.function = opcode.function;
                     p.gas_cost = opcode.gas_cost;
-                    p.eip_size = decode_args(opcode, buffer, &mut p.args, false)? as u8;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                     eip += p.eip_size as u32;
                     stop_filling = true;
                 },
-                JumpBehavior::Relative => {
+                PipelineBehavior::RelativeJump => {
                     //todo: later follow jumps that can be predicted
                     //right now this is just copy-pasted from conditional jumps
                     p.function = opcode.function;
                     p.gas_cost = opcode.gas_cost;
-                    p.eip_size = decode_args(opcode, buffer, &mut p.args, false)? as u8;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                     eip += p.eip_size as u32;
                     stop_filling = true;
                 }
@@ -99,33 +106,32 @@ mod tests{
     0x03 (imm32), 50 gas -- test3_op, conditional jump behavior
     0x10 + r (reg32, off32), 23 gas -- test2_op
     */
-    fn test_opcodes() -> Vec<Opcode>{
-        let mut opcodes = vec![];
-        opcodes.resize(OPCODE_TABLE_SIZE, Opcode::default());
-        opcodes[0x01].gas_cost = 10;
-        opcodes[0x01].function = test_op;
-        
-        opcodes[0x02].arg_source[0] = ArgSource::ImmediateValue;
-        opcodes[0x02].arg_size[0] = ValueSize::Byte;
-        opcodes[0x02].gas_cost = 2;
-        opcodes[0x02].function = nop;
-        
-        opcodes[0x03].arg_source[0] = ArgSource::JumpRel;
-        opcodes[0x03].arg_size[0] = ValueSize::Dword;
-        opcodes[0x03].jump_behavior = JumpBehavior::Conditional;
-        opcodes[0x03].function = test3_op;
-        opcodes[0x03].gas_cost = 50;
+    fn test_opcodes() -> [OpcodeProperties; OPCODE_TABLE_SIZE]{
+        let mut table = [OpcodeProperties::default(); OPCODE_TABLE_SIZE];
 
-        for n in 0..8{
-            opcodes[0x10 + n].arg_source[0] = ArgSource::RegisterSuffix;
-            opcodes[0x10 + n].arg_source[1] = ArgSource::ImmediateAddress;
-            opcodes[0x10 + n].arg_size[0] = ValueSize::Dword;
-            opcodes[0x10 + n].arg_size[1] = ValueSize::Dword;
-            opcodes[0x10 + n].gas_cost = 23;
-            opcodes[0x10 + n].function = test2_op;
-        }
+        define_opcode(0x01)
+            .with_gas(10)
+            .calls(test_op)
+            .into_table(&mut table);
+        define_opcode(0x02)
+            .has_arg(ArgSource::ImmediateValue, ValueSize::Byte)
+            .with_gas(2)
+            .calls(nop)
+            .into_table(&mut table);
+        define_opcode(0x03)
+            .has_arg(ArgSource::JumpRel, ValueSize::Dword)
+            .is_unpredictable()
+            .with_gas(50)
+            .calls(test3_op)
+            .into_table(&mut table);
+        define_opcode(0x10)
+            .has_arg(ArgSource::RegisterSuffix, ValueSize::Dword)
+            .has_arg(ArgSource::ImmediateAddress, ValueSize::Dword)
+            .with_gas(23)
+            .calls(test2_op)
+            .into_table(&mut table);
 
-        opcodes
+        table
     }
 
     #[test]
@@ -161,7 +167,7 @@ mod tests{
         vm.eip += pipeline[0].eip_size as u32 + pipeline[1].eip_size as u32;
         fill_pipeline(&vm, &opcodes, &mut pipeline).unwrap();
 
-        assert!(pipeline[0].function as usize == test2_op as usize);
+        assert_eq!(pipeline[0].function as usize, test2_op as usize);
         assert!(pipeline[0].args[0].location == ArgLocation::RegisterValue(2, ValueSize::Dword));
         assert!(pipeline[0].args[1].location == ArgLocation::Address(0x44332211, ValueSize::Dword));
         assert!(pipeline[0].eip_size == 5); 

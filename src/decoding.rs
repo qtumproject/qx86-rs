@@ -31,9 +31,10 @@ fn u8_from_bytes(bytes: &[u8]) -> Result<u8, VMError>{
 
 #[derive(Default)]
 #[derive(Debug)]
-struct ModRM{
+#[derive(Clone, Copy)]
+pub struct ModRM{
     rm: u8, //3 bits
-    reg: u8, //3 bits
+    pub reg: u8, //3 bits
     mode: u8, //2 bits
 }
 
@@ -103,7 +104,8 @@ impl ModRM{
 }
 
 #[derive(Default)]
-struct SIB{
+#[derive(Clone, Copy)]
+pub struct SIB{
     base: u8, //3 bits
     index: u8, //3 bits
     scale: u8 //2 bits
@@ -119,7 +121,52 @@ impl SIB{
     }
 }
 
-pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], _address_override: bool) -> Result<usize, VMError>{
+#[derive(Default)]
+#[derive(Clone, Copy)]
+pub struct ParsedModRM{
+    pub modrm: ModRM,
+    pub sib: Option<SIB>,
+    pub disp: Option<u32>,
+    pub size: u8
+}
+
+impl ParsedModRM{
+    pub fn from_bytes(bytestream: &[u8]) -> Result<ParsedModRM, VMError>{
+        if bytestream.len() < 16{
+            return Err(VMError::DecodingOverrun);
+        }
+        let mut parsed = ParsedModRM::default();
+        let mut bytes = &bytestream[1..]; //skip opcode
+        let mut size = 0;
+        parsed.modrm = self::ModRM::parse(bytes[0]);
+        bytes = &bytes[1..]; //advance to next byte
+        size += 1;
+        if parsed.modrm.mode != 3 && parsed.modrm.rm == 4 {
+            parsed.sib = Some(SIB::parse(bytes[0]));
+            bytes = &bytes[1..];
+            size += 1;
+        }
+        //read in immediate displacement
+        //first do 32 bit displacements
+        if  (parsed.modrm.mode == 0 && parsed.modrm.rm == 5) ||
+            (parsed.modrm.mode == 2) ||
+            (parsed.modrm.mode == 0 && parsed.sib.unwrap_or_default().base == 5) {
+            
+            parsed.disp = Some(u32_from_bytes(bytes)?);
+            size += 4;
+        } else if parsed.modrm.mode == 1 {
+            parsed.disp = Some(((u8_from_bytes(bytes)? as i8) as i32) as u32);
+            size += 1;
+        }
+        parsed.size = size;
+        Ok(parsed)
+    }
+}
+
+pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], address_override: bool) -> Result<usize, VMError>{
+    decode_args_with_modrm(opcode, bytestream, args, address_override, None)
+}
+pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], _address_override: bool, parsed_modrm: Option<ParsedModRM>) -> Result<usize, VMError>{
     use ArgSource::*;
     if bytestream.len() < 16{
         return Err(VMError::DecodingOverrun);
@@ -127,35 +174,10 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
     let opcode_byte = bytestream[0];
     let mut bytes = &bytestream[1..];
     let mut size:usize = 1; //to count for opcode
-    let mut modrm = self::ModRM::default();
-    let mut sib = SIB::default();
+    let modrm = parsed_modrm.unwrap_or_default();
+    size += modrm.size as usize;
+    bytes = &bytes[modrm.size as usize..];
     //note displacements are treated as signed numbers
-    let mut modrm_disp:u32 = 0;
-
-    if opcode.has_modrm{
-        modrm = self::ModRM::parse(bytes[0]);
-        bytes = &bytes[1..]; //advance to next byte
-        size += 1;
-        if modrm.mode != 3 && (modrm.rm == 4){
-            sib = SIB::parse(bytes[0]);
-            bytes = &bytes[1..];
-            size += 1;
-        }
-        //read in immediate displacement
-        //first do 32 bit displacements
-        if  (modrm.mode == 0 && modrm.rm == 5) ||
-            (modrm.mode == 2) ||
-            (modrm.mode == 0 && sib.base == 5) {
-            
-            modrm_disp = u32_from_bytes(bytes)?;
-            bytes = &bytes[4..];
-            size += 4;
-        } else if modrm.mode == 1 {
-            modrm_disp = ((u8_from_bytes(bytes)? as i8) as i32) as u32;
-            bytes = &bytes[1..];
-            size += 1;
-        }
-    }
     //todo: parse modr/m byte here if present, before actually parsing arguments
     for n in 0..3{
         let advance = match opcode.arg_source[n] {
@@ -163,11 +185,11 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
                 0
             },
             ModRM => {
-                args[n].location = modrm.decode(&sib, modrm_disp, opcode.arg_size[n]);
+                args[n].location = modrm.modrm.decode(&modrm.sib.unwrap_or_default(), modrm.disp.unwrap_or(0), opcode.arg_size[n]);
                 0 //size calculation was done before here, so don't need to advance any
             },
             ModRMReg => {
-                args[n].location = ArgLocation::RegisterValue(modrm.reg, opcode.arg_size[n]);
+                args[n].location = ArgLocation::RegisterValue(modrm.modrm.reg, opcode.arg_size[n]);
                 0
             },
             ImmediateAddress =>{
@@ -190,6 +212,10 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
             },
             RegisterSuffix =>{
                 args[n].location = ArgLocation::RegisterValue(opcode_byte & 0x7, opcode.arg_size[n]);
+                0
+            }
+            Literal(l) => {
+                args[n].location = ArgLocation::Immediate(l);
                 0
             }
         };
@@ -230,9 +256,10 @@ mod tests {
         let mut opcode:Opcode = Default::default();
         opcode.arg_source[0] = source;
         opcode.arg_size[0] = size;
-        opcode.has_modrm = true;
+
+        let modrm = ParsedModRM::from_bytes(bytecode).unwrap();
         
-        let res = match decode_args(&opcode, bytecode, &mut args, false){
+        let res = match decode_args_with_modrm(&opcode, bytecode, &mut args, false, Some(modrm)){
             Err(_) => {
                 assert!(false, "decode resulted in error");
                 0
