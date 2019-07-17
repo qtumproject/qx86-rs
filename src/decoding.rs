@@ -214,11 +214,16 @@ pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [Op
             RegisterSuffix =>{
                 args[n].location = ArgLocation::RegisterValue(opcode_byte & 0x7, arg_size);
                 0
-            }
+            },
             Literal(l) => {
                 args[n].location = ArgLocation::Immediate(l);
                 0
+            },
+            HardcodedRegister(r) => {
+                args[n].location = ArgLocation::RegisterValue(r, arg_size);
+                0
             }
+            
         };
         bytes = &bytes[(advance as usize)..];
         size += advance as usize;

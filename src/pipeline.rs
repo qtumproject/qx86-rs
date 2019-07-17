@@ -116,19 +116,19 @@ mod tests{
             .calls(test_op)
             .into_table(&mut table);
         define_opcode(0x02)
-            .has_arg(ArgSource::ImmediateValue, Fixed(Byte))
+            .with_arg(ArgSource::ImmediateValue, Fixed(Byte))
             .with_gas(2)
             .calls(nop)
             .into_table(&mut table);
         define_opcode(0x03)
-            .has_arg(ArgSource::JumpRel, Fixed(Dword))
+            .with_arg(ArgSource::JumpRel, Fixed(Dword))
             .is_unpredictable()
             .with_gas(50)
             .calls(test3_op)
             .into_table(&mut table);
         define_opcode(0x10)
-            .has_arg(ArgSource::RegisterSuffix, Fixed(Dword))
-            .has_arg(ArgSource::ImmediateAddress, Fixed(Dword))
+            .with_arg(ArgSource::RegisterSuffix, Fixed(Dword))
+            .with_arg(ArgSource::ImmediateAddress, Fixed(Dword))
             .with_gas(23)
             .calls(test2_op)
             .into_table(&mut table);
