@@ -316,7 +316,7 @@ impl VM{
     }
 }
 
-const PIPELINE_SIZE:usize = 8;
+const PIPELINE_SIZE:usize = 16;
 
 #[cfg(test)]
 mod tests{
