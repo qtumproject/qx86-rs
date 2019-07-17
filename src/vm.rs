@@ -228,7 +228,7 @@ impl VM{
             },
             Dword => {
                 Ok(SizedValue::Dword(self.memory.get_u32(address)?))
-            }
+            },
         }
     }
     pub fn set_mem(&mut self, address: u32, value: SizedValue) -> Result<(), VMError>{

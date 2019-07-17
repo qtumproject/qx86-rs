@@ -12,7 +12,7 @@ pub enum ValueSize{
     None,
     Byte,
     Word,
-    Dword
+    Dword,
 }
 
 

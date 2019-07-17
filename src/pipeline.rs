@@ -107,6 +107,8 @@ mod tests{
     0x10 + r (reg32, off32), 23 gas -- test2_op
     */
     fn test_opcodes() -> [OpcodeProperties; OPCODE_TABLE_SIZE]{
+        use OpcodeValueSize::*;
+        use ValueSize::*;
         let mut table = [OpcodeProperties::default(); OPCODE_TABLE_SIZE];
 
         define_opcode(0x01)
@@ -114,19 +116,19 @@ mod tests{
             .calls(test_op)
             .into_table(&mut table);
         define_opcode(0x02)
-            .has_arg(ArgSource::ImmediateValue, ValueSize::Byte)
+            .has_arg(ArgSource::ImmediateValue, Fixed(Byte))
             .with_gas(2)
             .calls(nop)
             .into_table(&mut table);
         define_opcode(0x03)
-            .has_arg(ArgSource::JumpRel, ValueSize::Dword)
+            .has_arg(ArgSource::JumpRel, Fixed(Dword))
             .is_unpredictable()
             .with_gas(50)
             .calls(test3_op)
             .into_table(&mut table);
         define_opcode(0x10)
-            .has_arg(ArgSource::RegisterSuffix, ValueSize::Dword)
-            .has_arg(ArgSource::ImmediateAddress, ValueSize::Dword)
+            .has_arg(ArgSource::RegisterSuffix, Fixed(Dword))
+            .has_arg(ArgSource::ImmediateAddress, Fixed(Dword))
             .with_gas(23)
             .calls(test2_op)
             .into_table(&mut table);

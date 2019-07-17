@@ -23,6 +23,26 @@ pub enum ArgSource{
     JumpRel,
     Literal(SizedValue) //For encoding hard-coded values, such as the `rol modrm8, 1` opcode
 }
+#[derive(Copy, Clone)]
+pub enum OpcodeValueSize{
+    Fixed(ValueSize),
+    NativeWord //this translates into either Word or Dword depending on if an operand size override prefix is present
+}
+
+impl OpcodeValueSize{
+    pub fn to_fixed(&self, size_override: bool) -> ValueSize{
+        match self{
+            OpcodeValueSize::Fixed(f) => *f,
+            OpcodeValueSize::NativeWord => {
+                if size_override{
+                    ValueSize::Word
+                }else{
+                    ValueSize::Dword
+                }
+            }
+        }
+    }
+}
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
@@ -39,7 +59,7 @@ pub enum PipelineBehavior{
 #[derive(Copy, Clone)]
 pub struct Opcode{
     pub function: OpcodeFn,
-    pub arg_size: [ValueSize; MAX_ARGS],
+    pub arg_size: [OpcodeValueSize; MAX_ARGS],
     pub arg_source: [ArgSource; MAX_ARGS],
     pub gas_cost: i32,
     pub pipeline_behavior: PipelineBehavior,
@@ -79,8 +99,8 @@ impl Default for Opcode{
     fn default() -> Opcode{
         Opcode{
             function: op_undefined,
-            arg_size: [ValueSize::None, ValueSize::None, ValueSize::None],
-            arg_source: [ArgSource::None, ArgSource::None, ArgSource::None],
+            arg_size: [OpcodeValueSize::Fixed(ValueSize::None); 3],
+            arg_source: [ArgSource::None; 3],
             gas_cost: 0,
             //this defaults to conditional so that an unknown opcode is considered conditional
             pipeline_behavior: PipelineBehavior::Unpredictable,
@@ -102,7 +122,7 @@ pub struct OpcodeDefiner{
     two_byte: bool,
     group: Option<u8>,
     gas_level: u32, //todo, make enum?
-    args: Vec<(ArgSource, ValueSize)>,
+    args: Vec<(ArgSource, OpcodeValueSize)>,
     function: Option<OpcodeFn>,
     jump: Option<PipelineBehavior>,
     has_modrm: bool,
@@ -119,7 +139,7 @@ impl OpcodeDefiner{
         self.function = Some(function);
         self
     }
-    pub fn has_arg(&mut self, source: ArgSource, size: ValueSize) -> &mut OpcodeDefiner{
+    pub fn has_arg(&mut self, source: ArgSource, size: OpcodeValueSize) -> &mut OpcodeDefiner{
         
         let hasmodrm = match source{
             ArgSource::ModRMReg | ArgSource::ModRM => true,
@@ -207,6 +227,8 @@ mov eax, 0x12345678
 
 Would be defined by saying the first argument is a register (or modrm) and the second argument is an immediate
 In addition, all test code comments and other annotations should use the intel assembly syntax, and NOT the GNU "AT&T" syntax
+
+
 */
 
 
@@ -214,6 +236,9 @@ In addition, all test code comments and other annotations should use the intel a
 lazy_static! {
     pub static ref OPCODES: [OpcodeProperties; OPCODE_TABLE_SIZE] = {
         use crate::ops::*;
+        use ValueSize::*;
+        use ArgSource::*;
+        use OpcodeValueSize::*;
         let mut ops: [OpcodeProperties; OPCODE_TABLE_SIZE] = [OpcodeProperties::default(); OPCODE_TABLE_SIZE];
         //nop
         define_opcode(0x90).calls(nop).with_gas(0).into_table(&mut ops);
@@ -221,11 +246,19 @@ lazy_static! {
         //hlt
         define_opcode(0xF4).calls(hlt).with_gas(0).is_unpredictable().into_table(&mut ops);
 
-        //mov r8, imm8
-        define_opcode(0xB0).calls(mov).with_gas(10).
-            has_arg(ArgSource::RegisterSuffix, ValueSize::Byte).
-            has_arg(ArgSource::ImmediateValue, ValueSize::Byte).
+        //mov opcodes
+        //0xB0 mov r8, imm8
+        define_opcode(0xB0).calls(mov).with_gas(1).
+            has_arg(RegisterSuffix, Fixed(Byte)).
+            has_arg(ImmediateValue, Fixed(Byte)).
             into_table(&mut ops);
+        //0x88 /r mov rm8, r8
+        define_opcode(0x88).calls(mov).with_gas(1).
+            has_arg(ModRM, Fixed(Byte)).
+            has_arg(ModRMReg, Fixed(Byte)).
+            into_table(&mut ops);
+        //0x89 /r mov rW, rmW       
+
 
 
         ops
