@@ -18,14 +18,28 @@ fn run_exec_test(bytecode: &[u8]){
 
 fn nop_hlt_benchmark(c: &mut Criterion) {
     let mut bytes = vec![];
-    for _n in 0..1000{
+    for _n in 0..2000{
         bytes.push(0x90); //nop
     }
     bytes.push(0xF4); //hlt
-    c.bench_function_over_inputs("nop x1000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
+    c.bench_function_over_inputs("nop x2000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
+}
+fn mov_modrm_benchmark(c: &mut Criterion) {
+    let bytes = asm("
+    mov eax, 0x80000000
+    mov edx, 0x10
+    %assign i 0
+    %rep 1000
+        mov dword [edx + 0x80000020], eax
+        mov ebx, dword [edx * 2 + eax]
+        %assign i i+1
+    %endrep
+    hlt
+    ");
+    c.bench_function_over_inputs("mov modrm x2000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
 }
 
-criterion_group!(benches, nop_hlt_benchmark);
+criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark);
 criterion_main!(benches);
 
 
@@ -36,8 +50,8 @@ criterion_main!(benches);
 pub fn create_vm() -> VM{
     let mut vm = VM::default();
     vm.eip = CODE_MEM;
-    vm.memory.add_memory(CODE_MEM, 0x1000).unwrap();
-    vm.memory.add_memory(DATA_MEM, 0x1000).unwrap();
+    vm.memory.add_memory(CODE_MEM, 0x10000).unwrap();
+    vm.memory.add_memory(DATA_MEM, 0x10000).unwrap();
     vm
 }
 

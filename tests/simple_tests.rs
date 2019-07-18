@@ -3,6 +3,7 @@ mod common;
 
 use qx86::vm::*;
 use common::*;
+use qx86::structs::*;
 
 #[test]
 fn test_undefined_opcode(){
@@ -44,6 +45,34 @@ fn test_mov_hlt(){
     assert_eq!(vm.reg32(Reg32::EAX), 0x00002211);
     assert_eq!(vm.reg8(Reg8::DL), 0x33);
     assert_eq!(vm.reg8(Reg8::BH), 0x44);
+}
+#[test]
+fn test_mov(){
+    //scratch memory: 0x80000000
+    let vm = execute_vm_asm("
+        mov al, 0x11
+        mov ecx, 0x80000000
+        mov dword [ecx], 0x11223344
+        mov edi, 0x10
+        mov dword [edi * 2 + ecx], 0x88776655
+        mov byte [edi * 4 + ecx], 0xFF
+        mov esp, [0x80000000]
+        mov ah, [0x80000020]
+        mov ebp, [edi * 2 + ecx]
+        
+        mov edx, 0x30
+        mov dword [edx + 0x80000000], eax
+        mov esi, 0x80000000
+        mov ebx, dword [edx * 2 + esi]
+        hlt"); 
+    assert_eq!(vm.reg32(Reg32::ECX), DATA_MEM);
+    assert_eq!(vm.reg8(Reg8::AL), 0x11);
+    assert_eq!(vm.reg8(Reg8::AH), 0x55);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x11223344);
+    assert_eq!(vm.reg32(Reg32::EBP), 0x88776655);
+    assert_eq!(vm.get_mem(0x80000000, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x11223344);
+    assert_eq!(vm.get_mem(0x10 * 2 + 0x80000000, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x88776655);
+    assert_eq!(vm.get_mem(0x10 * 4 + 0x80000000, ValueSize::Byte).unwrap().u8_exact().unwrap(), 0xFF);
 }
 
 

@@ -21,7 +21,28 @@ pub enum ArgSource{
     //This is treated the same as ImmediateValue, but specialized so that the Pipeline can interpret it directly
     //without requiring a full decode and execution
     JumpRel,
-    Literal(SizedValue) //For encoding hard-coded values, such as the `rol modrm8, 1` opcode
+    Literal(SizedValue), //For encoding hard-coded values, such as the `rol modrm8, 1` opcode
+    HardcodedRegister(u8) //for encoding hard-coded registers, such as `mov EAX, offs32`
+}
+#[derive(Copy, Clone)]
+pub enum OpcodeValueSize{
+    Fixed(ValueSize),
+    NativeWord //this translates into either Word or Dword depending on if an operand size override prefix is present
+}
+
+impl OpcodeValueSize{
+    pub fn to_fixed(&self, size_override: bool) -> ValueSize{
+        match self{
+            OpcodeValueSize::Fixed(f) => *f,
+            OpcodeValueSize::NativeWord => {
+                if size_override{
+                    ValueSize::Word
+                }else{
+                    ValueSize::Dword
+                }
+            }
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -39,7 +60,7 @@ pub enum PipelineBehavior{
 #[derive(Copy, Clone)]
 pub struct Opcode{
     pub function: OpcodeFn,
-    pub arg_size: [ValueSize; MAX_ARGS],
+    pub arg_size: [OpcodeValueSize; MAX_ARGS],
     pub arg_source: [ArgSource; MAX_ARGS],
     pub gas_cost: i32,
     pub pipeline_behavior: PipelineBehavior,
@@ -79,8 +100,8 @@ impl Default for Opcode{
     fn default() -> Opcode{
         Opcode{
             function: op_undefined,
-            arg_size: [ValueSize::None, ValueSize::None, ValueSize::None],
-            arg_source: [ArgSource::None, ArgSource::None, ArgSource::None],
+            arg_size: [OpcodeValueSize::Fixed(ValueSize::None); 3],
+            arg_source: [ArgSource::None; 3],
             gas_cost: 0,
             //this defaults to conditional so that an unknown opcode is considered conditional
             pipeline_behavior: PipelineBehavior::Unpredictable,
@@ -102,7 +123,7 @@ pub struct OpcodeDefiner{
     two_byte: bool,
     group: Option<u8>,
     gas_level: u32, //todo, make enum?
-    args: Vec<(ArgSource, ValueSize)>,
+    args: Vec<(ArgSource, OpcodeValueSize)>,
     function: Option<OpcodeFn>,
     jump: Option<PipelineBehavior>,
     has_modrm: bool,
@@ -119,7 +140,7 @@ impl OpcodeDefiner{
         self.function = Some(function);
         self
     }
-    pub fn has_arg(&mut self, source: ArgSource, size: ValueSize) -> &mut OpcodeDefiner{
+    pub fn with_arg(&mut self, source: ArgSource, size: OpcodeValueSize) -> &mut OpcodeDefiner{
         
         let hasmodrm = match source{
             ArgSource::ModRMReg | ArgSource::ModRM => true,
@@ -143,6 +164,37 @@ impl OpcodeDefiner{
     pub fn with_gas(&mut self, gas: u32) -> &mut OpcodeDefiner{
         self.gas_level = gas;
         self
+    }
+    //arg helpers to keep sanity when defining opcodes
+    pub fn with_rm8(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Byte))
+    }   
+    pub fn with_rmw(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRM, OpcodeValueSize::NativeWord)
+    }
+    pub fn with_rm_regw(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::NativeWord)
+    }
+    pub fn with_rm_reg8(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::Fixed(ValueSize::Byte))
+    }
+    pub fn with_imm8(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::Fixed(ValueSize::Byte))
+    }
+    pub fn with_immw(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::NativeWord)
+    }
+    pub fn with_offs8(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ImmediateAddress, OpcodeValueSize::Fixed(ValueSize::Byte))
+    }
+    pub fn with_offsw(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ImmediateAddress, OpcodeValueSize::NativeWord)
+    }
+    pub fn with_suffix_reg8(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::RegisterSuffix, OpcodeValueSize::Fixed(ValueSize::Byte))
+    }
+    pub fn with_suffix_regw(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::RegisterSuffix, OpcodeValueSize::NativeWord)
     }
 
     pub fn into_table(&mut self, table: &mut [OpcodeProperties]){
@@ -207,6 +259,9 @@ mov eax, 0x12345678
 
 Would be defined by saying the first argument is a register (or modrm) and the second argument is an immediate
 In addition, all test code comments and other annotations should use the intel assembly syntax, and NOT the GNU "AT&T" syntax
+
+Use a suffix of "W" in comments to indicate that an argument can be either word or dword depending on if there is an operand size override
+
 */
 
 
@@ -214,6 +269,9 @@ In addition, all test code comments and other annotations should use the intel a
 lazy_static! {
     pub static ref OPCODES: [OpcodeProperties; OPCODE_TABLE_SIZE] = {
         use crate::ops::*;
+        use OpcodeValueSize::*;
+        use ValueSize::*;
+        use ArgSource::*;
         let mut ops: [OpcodeProperties; OPCODE_TABLE_SIZE] = [OpcodeProperties::default(); OPCODE_TABLE_SIZE];
         //nop
         define_opcode(0x90).calls(nop).with_gas(0).into_table(&mut ops);
@@ -221,11 +279,67 @@ lazy_static! {
         //hlt
         define_opcode(0xF4).calls(hlt).with_gas(0).is_unpredictable().into_table(&mut ops);
 
-        //mov r8, imm8
-        define_opcode(0xB0).calls(mov).with_gas(10).
-            has_arg(ArgSource::RegisterSuffix, ValueSize::Byte).
-            has_arg(ArgSource::ImmediateValue, ValueSize::Byte).
-            into_table(&mut ops);
+        //mov opcodes
+        //0xB0 mov r8, imm8
+        define_opcode(0xB0).calls(mov).with_gas(1)
+            .with_suffix_reg8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xB8 mov rW, immW
+        define_opcode(0xB8).calls(mov).with_gas(1)
+            .with_suffix_regw()
+            .with_immw()
+            .into_table(&mut ops);
+        //0x88 /r mov rm8, r8
+        define_opcode(0x88).calls(mov).with_gas(1)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0x89 /r mov rmW, rW       
+        define_opcode(0x89).calls(mov).with_gas(1)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0x8A /r mov r8, rm8
+        define_opcode(0x8A).calls(mov).with_gas(1)
+            .with_rm_reg8()
+            .with_rm8()
+            .into_table(&mut ops); 
+        //0x8B /r mov rW, rmW
+        define_opcode(0x8B).calls(mov).with_gas(1)
+            .with_rm_regw()
+            .with_rmw()
+            .into_table(&mut ops);
+        //0xA0 mov AL, offs8
+        define_opcode(0xA0).calls(mov).with_gas(1)
+            .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
+            .with_offs8()
+            .into_table(&mut ops);
+        //0xA1 mov EAX/AX, offsW
+        define_opcode(0xA1).calls(mov).with_gas(1)
+            .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
+            .with_offsw()
+            .into_table(&mut ops);
+        //0xA2 mov offs8, AL
+        define_opcode(0xA2).calls(mov).with_gas(1)
+            .with_offs8()
+            .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
+            .into_table(&mut ops);
+        //0xA3 mov offsW, EAX/AX
+        define_opcode(0xA3).calls(mov).with_gas(1)
+            .with_offsw()
+            .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
+            .into_table(&mut ops);
+        //0xC6 mov rm8, imm8
+        define_opcode(0xC6).calls(mov).with_gas(1)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xC7 mov rmW, immW
+        define_opcode(0xC7).calls(mov).with_gas(1)
+            .with_rmw()
+            .with_immw()
+            .into_table(&mut ops);
 
 
         ops
