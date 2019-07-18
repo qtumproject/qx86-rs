@@ -285,6 +285,11 @@ lazy_static! {
             .with_suffix_reg8()
             .with_imm8()
             .into_table(&mut ops);
+        //0xB8 mov rW, immW
+        define_opcode(0xB8).calls(mov).with_gas(1)
+            .with_suffix_regw()
+            .with_immw()
+            .into_table(&mut ops);
         //0x88 /r mov rm8, r8
         define_opcode(0x88).calls(mov).with_gas(1)
             .with_rm8()
@@ -324,6 +329,16 @@ lazy_static! {
         define_opcode(0xA3).calls(mov).with_gas(1)
             .with_offsw()
             .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
+            .into_table(&mut ops);
+        //0xC6 mov rm8, imm8
+        define_opcode(0xC6).calls(mov).with_gas(1)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xC7 mov rmW, immW
+        define_opcode(0xC7).calls(mov).with_gas(1)
+            .with_rmw()
+            .with_immw()
             .into_table(&mut ops);
 
 
