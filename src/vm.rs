@@ -2,6 +2,7 @@ use crate::pipeline::*;
 use crate::opcodes::*;
 use crate::structs::*;
 use crate::memory::*;
+use crate::flags::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
@@ -10,6 +11,7 @@ pub struct VM{
     pub regs: [u32; 8], //EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
     pub eip: u32,
     pub eflags: u32,
+    pub flags: X86Flags,
 
     pub memory: MemorySystem,
     //pub pipeline: Vec<Pipeline>,

@@ -10,6 +10,7 @@ pub mod opcodes;
 pub mod pipeline;
 pub mod vm;
 pub mod memory;
+pub mod flags;
 mod ops;
 
 

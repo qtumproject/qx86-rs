@@ -38,10 +38,53 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     Ok(())
 }
 
+pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    let (result, overflow) = base.overflowing_add(adder);
+    vm.flags.overflow_flag = overflow;
+    vm.flags.calculate_zero_flag(result as u32);
+    vm.flags.calculate_parity_flag(result as u32);
+    vm.flags.calculate_sign_flag8(result);
+    vm.flags.carry_flag = result < std::cmp::min(base, adder);
+    vm.flags.adjust_flag = (base&0x0F) + (adder&0x0F) > 15;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    Ok(())
+}
 
+pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    match pipeline.args[0] {
+        Word(x) => add_16bit(x)
+    }
+}
 
+pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u16_exact()?;
+    let (result, overflow) = base.overflowing_add(adder);
+    vm.flags.overflow_flag = overflow;
+    vm.flags.calculate_zero_flag(result as u32);
+    vm.flags.calculate_parity_flag(result as u32);
+    vm.flags.calculate_sign_flag16(result);
+    vm.flags.carry_flag = result < std::cmp::min(base, adder);
+    vm.flags.adjust_flag = (base&0x0F) + (adder&0x0F) > 15;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    Ok(())
+}
 
-
+pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
+    let (result, overflow) = base.overflowing_add(adder);
+    vm.flags.overflow_flag = overflow;
+    vm.flags.calculate_zero_flag(result);
+    vm.flags.calculate_parity_flag(result);
+    vm.flags.calculate_sign_flag32(result);
+    vm.flags.carry_flag = result < std::cmp::min(base, adder);
+    vm.flags.adjust_flag = (base&0x0F) + (adder&0x0F) > 15;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    Ok(())
+}
 
 pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
     Err(VMError::InternalVMStop)

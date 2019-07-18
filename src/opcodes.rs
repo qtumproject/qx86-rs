@@ -340,7 +340,31 @@ lazy_static! {
             .with_rmw()
             .with_immw()
             .into_table(&mut ops);
-
+        //add r/m8, r8
+        define_opcode(0x0).calls(add_8bit).with_gas(10).
+            has_arg(ArgSource::ModRM, ValueSize::Byte).
+            has_arg(ArgSource::ModRMReg, ValueSize::Byte).
+            into_table(&mut ops);
+        
+        //add r/m16, r16
+        define_opcode(0x1).calls(add_16bit).with_gas(10).
+            has_arg(ArgSource::ModRM, ValueSize::Word).
+            has_arg(ArgSource::ModRMReg, ValueSize::Word).
+            into_table(&mut ops);
+        
+        //add r/m32, r32
+        define_opcode(0x1).calls(add_32bit).with_gas(10).
+            has_arg(ArgSource::ModRM, ValueSize::Dword).
+            has_arg(ArgSource::ModRMReg, ValueSize::Dword).
+            into_table(&mut ops);
+        
+        define_opcode(0x2).calls(add_8bit).with_gas(10).
+            has_arg(ArgSource::ModRMReg, ValueSize::Byte).
+            has_arg(ArgSource::ModRM, ValueSize::Byte).
+            into_table(&mut ops);
+        
+        define_opcode(0x3).calls(add_8bit).with_gas(10).
+            has_arg(ArgSource::)
 
         ops
     };
