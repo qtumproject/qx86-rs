@@ -18,11 +18,11 @@ fn run_exec_test(bytecode: &[u8]){
 
 fn nop_hlt_benchmark(c: &mut Criterion) {
     let mut bytes = vec![];
-    for _n in 0..1000{
+    for _n in 0..2000{
         bytes.push(0x90); //nop
     }
     bytes.push(0xF4); //hlt
-    c.bench_function_over_inputs("nop x1000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
+    c.bench_function_over_inputs("nop x2000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
 }
 fn mov_modrm_benchmark(c: &mut Criterion) {
     let bytes = asm("
@@ -36,7 +36,7 @@ fn mov_modrm_benchmark(c: &mut Criterion) {
     %endrep
     hlt
     ");
-    c.bench_function_over_inputs("mov modrm x1000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
+    c.bench_function_over_inputs("mov modrm x2000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
 }
 
 criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark);
