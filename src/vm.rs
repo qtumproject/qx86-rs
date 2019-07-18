@@ -2,6 +2,7 @@ use crate::pipeline::*;
 use crate::opcodes::*;
 use crate::structs::*;
 use crate::memory::*;
+use crate::flags::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
@@ -14,6 +15,7 @@ pub struct VM{
     /// The 32bit instruction pointer. This determines where execution of opcodes is happening within memory
     pub eip: u32,
     pub eflags: u32,
+    pub flags: X86Flags,
 
     /// The memory of the VM, controlled by the MemorySystem struct
     pub memory: MemorySystem,

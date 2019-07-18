@@ -20,6 +20,8 @@ pub mod vm;
 pub mod memory;
 /// The actual opcode logic function implementations
 mod ops;
+pub mod flags;
+
 
 
 
