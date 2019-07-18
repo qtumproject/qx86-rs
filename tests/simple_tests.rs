@@ -59,6 +59,11 @@ fn test_mov(){
         mov esp, [0x80000000]
         mov ah, [0x80000020]
         mov ebp, [edi * 2 + ecx]
+        
+        mov edx, 0x30
+        mov dword [edx + 0x80000000], eax
+        mov esi, 0x80000000
+        mov ebx, dword [edx * 2 + esi]
         hlt"); 
     assert_eq!(vm.reg32(Reg32::ECX), DATA_MEM);
     assert_eq!(vm.reg8(Reg8::AL), 0x11);
