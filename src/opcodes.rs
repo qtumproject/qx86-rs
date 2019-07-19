@@ -62,7 +62,7 @@ pub struct Opcode{
     pub function: OpcodeFn,
     pub arg_size: [OpcodeValueSize; MAX_ARGS],
     pub arg_source: [ArgSource; MAX_ARGS],
-    pub gas_cost: i32,
+    pub gas_cost: GasCost,
     pub pipeline_behavior: PipelineBehavior,
     pub defined: bool
 }
@@ -102,7 +102,7 @@ impl Default for Opcode{
             function: op_undefined,
             arg_size: [OpcodeValueSize::Fixed(ValueSize::None); 3],
             arg_source: [ArgSource::None; 3],
-            gas_cost: 0,
+            gas_cost: GasCost::None,
             //this defaults to conditional so that an unknown opcode is considered conditional
             pipeline_behavior: PipelineBehavior::Unpredictable,
             defined: false
@@ -122,7 +122,7 @@ pub struct OpcodeDefiner{
     //None = handle both with/without size override, false = without size override, true = with size override
     two_byte: bool,
     group: Option<u8>,
-    gas_level: u32, //todo, make enum?
+    gas_level: Option<GasCost>,
     args: Vec<(ArgSource, OpcodeValueSize)>,
     function: Option<OpcodeFn>,
     jump: Option<PipelineBehavior>,
@@ -161,8 +161,8 @@ impl OpcodeDefiner{
         self.jump = Some(PipelineBehavior::Unpredictable);
         self
     }
-    pub fn with_gas(&mut self, gas: u32) -> &mut OpcodeDefiner{
-        self.gas_level = gas;
+    pub fn with_gas(&mut self, gas: GasCost) -> &mut OpcodeDefiner{
+        self.gas_level = Some(gas);
         self
     }
     //arg helpers to keep sanity when defining opcodes
@@ -201,6 +201,9 @@ impl OpcodeDefiner{
         if self.jump.is_none(){
             self.jump = Some(PipelineBehavior::None);
         }
+        if self.gas_level.is_none(){
+            self.gas_level = Some(GasCost::Low);
+        }
         let limit = if self.reg_suffix{
             8
         }else{
@@ -232,7 +235,7 @@ impl OpcodeDefiner{
                 }
                 table[op].opcodes[inner].defined = true;
                 table[op].opcodes[inner].function = self.function.unwrap();
-                table[op].opcodes[inner].gas_cost = self.gas_level as i32;
+                table[op].opcodes[inner].gas_cost = self.gas_level.unwrap();
                 table[op].opcodes[inner].pipeline_behavior = self.jump.unwrap();
                 for n in 0..self.args.len(){
                     let (source, size) = self.args[n];
@@ -272,71 +275,72 @@ lazy_static! {
         use OpcodeValueSize::*;
         use ValueSize::*;
         use ArgSource::*;
+        use GasCost::*;
         let mut ops: [OpcodeProperties; OPCODE_TABLE_SIZE] = [OpcodeProperties::default(); OPCODE_TABLE_SIZE];
         //nop
-        define_opcode(0x90).calls(nop).with_gas(0).into_table(&mut ops);
+        define_opcode(0x90).calls(nop).with_gas(GasCost::None).into_table(&mut ops);
 
         //hlt
-        define_opcode(0xF4).calls(hlt).with_gas(0).is_unpredictable().into_table(&mut ops);
+        define_opcode(0xF4).calls(hlt).with_gas(GasCost::None).is_unpredictable().into_table(&mut ops);
 
         //mov opcodes
         //0xB0 mov r8, imm8
-        define_opcode(0xB0).calls(mov).with_gas(1)
+        define_opcode(0xB0).calls(mov).with_gas(VeryLow)
             .with_suffix_reg8()
             .with_imm8()
             .into_table(&mut ops);
         //0xB8 mov rW, immW
-        define_opcode(0xB8).calls(mov).with_gas(1)
+        define_opcode(0xB8).calls(mov).with_gas(VeryLow)
             .with_suffix_regw()
             .with_immw()
             .into_table(&mut ops);
         //0x88 /r mov rm8, r8
-        define_opcode(0x88).calls(mov).with_gas(1)
+        define_opcode(0x88).calls(mov).with_gas(VeryLow)
             .with_rm8()
             .with_rm_reg8()
             .into_table(&mut ops);
         //0x89 /r mov rmW, rW       
-        define_opcode(0x89).calls(mov).with_gas(1)
+        define_opcode(0x89).calls(mov).with_gas(VeryLow)
             .with_rmw()
             .with_rm_regw()
             .into_table(&mut ops);
         //0x8A /r mov r8, rm8
-        define_opcode(0x8A).calls(mov).with_gas(1)
+        define_opcode(0x8A).calls(mov).with_gas(VeryLow)
             .with_rm_reg8()
             .with_rm8()
             .into_table(&mut ops); 
         //0x8B /r mov rW, rmW
-        define_opcode(0x8B).calls(mov).with_gas(1)
+        define_opcode(0x8B).calls(mov).with_gas(VeryLow)
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops);
         //0xA0 mov AL, offs8
-        define_opcode(0xA0).calls(mov).with_gas(1)
+        define_opcode(0xA0).calls(mov).with_gas(VeryLow)
             .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
             .with_offs8()
             .into_table(&mut ops);
         //0xA1 mov EAX/AX, offsW
-        define_opcode(0xA1).calls(mov).with_gas(1)
+        define_opcode(0xA1).calls(mov).with_gas(VeryLow)
             .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
             .with_offsw()
             .into_table(&mut ops);
         //0xA2 mov offs8, AL
-        define_opcode(0xA2).calls(mov).with_gas(1)
+        define_opcode(0xA2).calls(mov).with_gas(VeryLow)
             .with_offs8()
             .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
             .into_table(&mut ops);
         //0xA3 mov offsW, EAX/AX
-        define_opcode(0xA3).calls(mov).with_gas(1)
+        define_opcode(0xA3).calls(mov).with_gas(VeryLow)
             .with_offsw()
             .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
             .into_table(&mut ops);
         //0xC6 mov rm8, imm8
-        define_opcode(0xC6).calls(mov).with_gas(1)
+        define_opcode(0xC6).calls(mov).with_gas(VeryLow)
             .with_rm8()
             .with_imm8()
             .into_table(&mut ops);
         //0xC7 mov rmW, immW
-        define_opcode(0xC7).calls(mov).with_gas(1)
+        define_opcode(0xC7).calls(mov).with_gas(VeryLow)
             .with_rmw()
             .with_immw()
             .into_table(&mut ops);

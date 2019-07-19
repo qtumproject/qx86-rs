@@ -16,8 +16,58 @@ pub struct VM{
     //todo: hypervisor to call external code
 
     //set to indicate diagnostic info when an error occurs
-    pub error_eip: u32
+    pub error_eip: u32,
+    pub error_gas: u64,
+    pub gas_remaining: u64
 }
+
+#[derive(Debug, Copy, Clone, EnumCount, EnumIter)]
+pub enum GasCost{
+    None,
+    VeryLow,
+    Low,
+    Moderate,
+    High,
+    //surcharges (not intended to direct use outside of VM)
+
+    ConditionalBranch, //surcharge to any unpredictable branch
+    MemoryAccess, //surcharge for any memory access
+    WriteableMemoryExec, //surcharge for each opcode executed within writeable memory space
+    ModRMSurcharge
+}
+
+impl Default for GasCost{
+    fn default() -> GasCost{
+        GasCost::Low
+    }
+}
+
+#[derive(Default, Debug)]
+struct GasCharger{
+    pub costs: [u64; GASCOST_COUNT]
+}
+
+impl GasCharger{
+    fn cost(&self, tier: GasCost) -> u64{
+        self.costs[tier as usize]
+    }
+    fn test_schedule() -> GasCharger{
+        use GasCost::*;
+        let mut g = GasCharger::default();
+        g.costs[None as usize] = 0;
+        g.costs[VeryLow as usize] = 1;
+        g.costs[Low as usize] = 4;
+        g.costs[Moderate as usize] = 10;
+        g.costs[High as usize] = 20;
+        g.costs[ConditionalBranch as usize] = 10;
+        g.costs[MemoryAccess as usize] = 1;
+        g.costs[WriteableMemoryExec as usize] = 15;
+        g.costs[ModRMSurcharge as usize] = 1;
+        g
+    }
+}
+
+
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
