@@ -74,6 +74,16 @@ fn test_mov(){
     assert_eq!(vm.get_mem(0x10 * 2 + 0x80000000, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x88776655);
     assert_eq!(vm.get_mem(0x10 * 4 + 0x80000000, ValueSize::Byte).unwrap().u8_exact().unwrap(), 0xFF);
 }
-
+#[test]
+fn test_add(){
+    let vm = execute_vm_asm("
+        add al, 0x33
+        add al, 0x44
+        add eax, 0x11223344
+        add eax, 0x22222222
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x77);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x33445566);
+}
 
 
