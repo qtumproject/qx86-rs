@@ -5,10 +5,13 @@ use qx86::vm::*;
 
 pub const CODE_MEM:u32 = 0x10000;
 pub const DATA_MEM:u32 = 0x80000000;
+pub const INITIAL_GAS:u64 = 10000000;
 
 pub fn create_vm() -> VM{
     let mut vm = VM::default();
     vm.eip = CODE_MEM;
+    vm.charger = GasCharger::test_schedule();
+    vm.gas_remaining = INITIAL_GAS;
     vm.memory.add_memory(CODE_MEM, 0x1000).unwrap();
     vm.memory.add_memory(DATA_MEM, 0x1000).unwrap();
     vm
@@ -21,7 +24,7 @@ pub fn create_vm_with_asm(input: &str) -> VM{
     vm
 }
 
-pub fn execute_vm_asm(input: &str) -> VM{
+pub fn execute_vm_with_asm(input: &str) -> VM{
     let mut vm = create_vm_with_asm(input);
     assert!(vm.execute().unwrap());
     vm

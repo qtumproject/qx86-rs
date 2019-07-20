@@ -18,7 +18,9 @@ pub struct VM{
     //set to indicate diagnostic info when an error occurs
     pub error_eip: u32,
     pub error_gas: u64,
-    pub gas_remaining: u64
+    pub gas_remaining: u64,
+    pub charger: GasCharger,
+
 }
 
 #[derive(Debug, Copy, Clone, EnumCount, EnumIter)]
@@ -33,7 +35,7 @@ pub enum GasCost{
     ConditionalBranch, //surcharge to any unpredictable branch
     MemoryAccess, //surcharge for any memory access
     WriteableMemoryExec, //surcharge for each opcode executed within writeable memory space
-    ModRMSurcharge
+    ModRMSurcharge //Mod R/M is complicated, so there is a tier to charge for decoding
 }
 
 impl Default for GasCost{
@@ -43,15 +45,15 @@ impl Default for GasCost{
 }
 
 #[derive(Default, Debug)]
-struct GasCharger{
+pub struct GasCharger{
     pub costs: [u64; GASCOST_COUNT]
 }
 
 impl GasCharger{
-    fn cost(&self, tier: GasCost) -> u64{
+    pub fn cost(&self, tier: GasCost) -> u64{
         self.costs[tier as usize]
     }
-    fn test_schedule() -> GasCharger{
+    pub fn test_schedule() -> GasCharger{
         use GasCost::*;
         let mut g = GasCharger::default();
         g.costs[None as usize] = 0;
@@ -134,6 +136,7 @@ pub enum VMError{
     TooBigSizeExpectation,
 
     InternalVMStop, //not an actual error but triggers a stop
+    OutOfGas
 }
 
 
@@ -310,8 +313,13 @@ impl VM{
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
             let p = &pipeline[n];
+            self.gas_remaining = self.gas_remaining.saturating_sub(p.gas_cost);
             errors[n] = (p.function)(self, p);
             self.eip += p.eip_size as u32;
+        }
+        //the pipeline will not be filled beyond out of gas, so no worries about inconsistent errored state here
+        if self.gas_remaining == 0{
+            return Err(VMError::OutOfGas);
         }
         //check for errors
         for n in 0..pipeline.len(){

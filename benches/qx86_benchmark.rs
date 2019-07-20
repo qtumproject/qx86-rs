@@ -50,6 +50,8 @@ criterion_main!(benches);
 pub fn create_vm() -> VM{
     let mut vm = VM::default();
     vm.eip = CODE_MEM;
+    vm.gas_remaining = 1000000000;
+    vm.charger = GasCharger::test_schedule();
     vm.memory.add_memory(CODE_MEM, 0x10000).unwrap();
     vm.memory.add_memory(DATA_MEM, 0x10000).unwrap();
     vm

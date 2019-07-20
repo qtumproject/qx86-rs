@@ -9,7 +9,7 @@ use crate::decoding::*;
 pub struct Pipeline{
     pub function: OpcodeFn,
     pub args: [OpArgument; MAX_ARGS],
-    pub gas_cost: GasCost,
+    pub gas_cost: u64,
     pub eip_size: u8,
     pub size_override: bool
 }
@@ -19,7 +19,7 @@ impl Default for Pipeline{
         Pipeline{
             function: nop,
             args: [OpArgument::default(), OpArgument::default(), OpArgument::default()],
-            gas_cost: GasCost::None,
+            gas_cost: 0,
             eip_size: 1,
             size_override: false
         }
@@ -35,35 +35,36 @@ pub fn clear_pipeline(pipeline: &mut [Pipeline]){
 pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipeline]) -> Result<(), VMError>{
     let mut eip = vm.eip;
     let mut stop_filling = false;
+    let mut running_gas = vm.gas_remaining;
     //writeable if in memory with top bit set
-    let writeable = vm.eip & 0x8000000 > 0;
+    let writeable = vm.eip & 0x80000000 > 0;
     clear_pipeline(pipeline);
     for n in 0..pipeline.len(){
         let mut p = &mut pipeline[n];
+        p.gas_cost = 0; //this can be reused, so make sure to clear previous
         if stop_filling {
             p.function = nop;
             p.eip_size = 0;
-            p.gas_cost = GasCost::None;
+            p.gas_cost = 0;
         }else{
             let buffer = vm.memory.get_sized_memory(eip, 16)?;
             //todo: handle 0x0F extension prefix and other prefixes
             let prop = &opcodes[buffer[0 as usize] as usize];
             let mut modrm = Option::None;
             let opcode = if prop.has_modrm{
+                p.gas_cost += vm.charger.cost(GasCost::ModRMSurcharge);
                 modrm = Some(ParsedModRM::from_bytes(buffer)?);
                 &prop.opcodes[modrm.unwrap().modrm.reg as usize]
             }else{
                 &prop.opcodes[0]
             };
+            p.function = opcode.function;
+            p.gas_cost += vm.charger.cost(opcode.gas_cost);
             match opcode.pipeline_behavior{
                 PipelineBehavior::None => {
-                    p.function = opcode.function;
-                    p.gas_cost = opcode.gas_cost;
                     p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                 },
-                PipelineBehavior::Unpredictable => {
-                    p.function = opcode.function;
-                    p.gas_cost = opcode.gas_cost;
+                PipelineBehavior::Unpredictable | PipelineBehavior::UnpredictableNoGas => {
                     p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                     eip += p.eip_size as u32;
                     stop_filling = true;
@@ -71,21 +72,32 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
                 PipelineBehavior::RelativeJump => {
                     //todo: later follow jumps that can be predicted
                     //right now this is just copy-pasted from conditional jumps
-                    p.function = opcode.function;
-                    p.gas_cost = opcode.gas_cost;
                     p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
                     eip += p.eip_size as u32;
                     stop_filling = true;
                 }
             };
+            p.gas_cost += match opcode.pipeline_behavior{
+                PipelineBehavior::Unpredictable => vm.charger.cost(GasCost::ConditionalBranch),
+                _ => 0
+            };
+            for i in 0..MAX_ARGS{
+                p.gas_cost += if p.args[i].is_memory{
+                    vm.charger.cost(GasCost::MemoryAccess)
+                }else{
+                    0
+                };
+            }
             eip += p.eip_size as u32;
         }
         if writeable {
             //if in writeable space, only use one pipeline slot at a time
             //otherwise, the memory we are decoding could be changed by an opcode within the pipeline
+            p.gas_cost += vm.charger.cost(GasCost::WriteableMemoryExec);
             stop_filling = true;
         }
-
+        running_gas = running_gas.saturating_sub(p.gas_cost);
+        stop_filling |= running_gas == 0;
     }
     Ok(())
 }
@@ -140,6 +152,7 @@ mod tests{
     fn test_simple_pipeline(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
+        vm.gas_remaining = 1;
         let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
         vm.eip = 0x10000;
         let bytes = vec![
@@ -179,6 +192,7 @@ mod tests{
     fn test_cond_jump_pipeline(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
+        vm.gas_remaining = 1;
         let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
         vm.eip = 0x10000;
         let bytes = vec![

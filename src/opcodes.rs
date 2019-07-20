@@ -53,7 +53,11 @@ pub enum PipelineBehavior{
     RelativeJump,
     //any opcode which changes EIP or execution state and can not be predicted at the decoding stage
     //this includes opcodes like `jne` and also opcodes like `jmp eax`, as well as system calls using `int`
-    Unpredictable 
+    Unpredictable,
+    //Same behavior as Unpredictable but without a gas penalty
+    //used for int and hlt, where execute state can change so pipelining can't continue,
+    //but they're not really a conditional branch that one would expect to pay an extra gas charge for
+    UnpredictableNoGas,
 }
 
 //defines an opcode with all the information needed for decoding the opcode and all arguments
@@ -159,6 +163,10 @@ impl OpcodeDefiner{
     }
     pub fn is_unpredictable(&mut self) -> &mut OpcodeDefiner{
         self.jump = Some(PipelineBehavior::Unpredictable);
+        self
+    }
+    pub fn is_unpredictable_no_gas(&mut self) -> &mut OpcodeDefiner{
+        self.jump = Some(PipelineBehavior::UnpredictableNoGas);
         self
     }
     pub fn with_gas(&mut self, gas: GasCost) -> &mut OpcodeDefiner{
@@ -281,7 +289,7 @@ lazy_static! {
         define_opcode(0x90).calls(nop).with_gas(GasCost::None).into_table(&mut ops);
 
         //hlt
-        define_opcode(0xF4).calls(hlt).with_gas(GasCost::None).is_unpredictable().into_table(&mut ops);
+        define_opcode(0xF4).calls(hlt).with_gas(GasCost::None).is_unpredictable_no_gas().into_table(&mut ops);
 
         //mov opcodes
         //0xB0 mov r8, imm8

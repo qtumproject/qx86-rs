@@ -36,7 +36,7 @@ fn test_simple_nop_hlt(){
 
 #[test]
 fn test_mov_hlt(){
-    let vm = execute_vm_asm("
+    let vm = execute_vm_with_asm("
     mov al, 0x11
     mov ah, 0x22
     mov dl, 0x33
@@ -49,7 +49,7 @@ fn test_mov_hlt(){
 #[test]
 fn test_mov(){
     //scratch memory: 0x80000000
-    let vm = execute_vm_asm("
+    let vm = execute_vm_with_asm("
         mov al, 0x11
         mov ecx, 0x80000000
         mov dword [ecx], 0x11223344
