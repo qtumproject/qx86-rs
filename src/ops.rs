@@ -77,8 +77,10 @@ pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 }
 
 pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
-    match pipeline.args[0] {
-        Word(x) => add_16bit(x)
+    if pipeline.size_override {
+        return add_16bit(vm, pipeline);
+    } else {
+        return add_32bit(vm, pipeline);
     }
 }
 
