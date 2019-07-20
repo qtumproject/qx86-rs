@@ -16,7 +16,7 @@ fn test_undefined_opcode(){
         0x90
     ];
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
-    assert!(vm.execute().err().unwrap() == VMError::InvalidOpcode);
+    assert_eq!(vm.execute().err().unwrap(), VMError::InvalidOpcode);
     assert_eq!(vm.error_eip, CODE_MEM + 2);
 }
 
