@@ -310,17 +310,24 @@ impl VM{
     fn cycle(&mut self, pipeline: &mut [Pipeline], errors: &mut [Result<(), VMError>]) -> Result<bool, VMError>{
         fill_pipeline(self, &OPCODES[0..], pipeline)?;
         let mut error_eip = self.eip;
+        let mut negative_gas = false;
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
             let p = &pipeline[n];
+            let (_, negative) = self.gas_remaining.overflowing_sub(p.gas_cost);
+            negative_gas |= negative;
             self.gas_remaining = self.gas_remaining.saturating_sub(p.gas_cost);
+
+            //the pipeline will not be filled beyond out of gas, so no worries about inconsistent errored state here
+            //micro optimization note: removing this branch results in ~1% performance increase in naive tests
+            //but changes the result of EIP to be incorrect.. Decide later if inaccurate EIP is worth that 1%
+            if negative_gas {
+                return Err(VMError::OutOfGas);
+            }
             errors[n] = (p.function)(self, p);
             self.eip += p.eip_size as u32;
         }
-        //the pipeline will not be filled beyond out of gas, so no worries about inconsistent errored state here
-        if self.gas_remaining == 0{
-            return Err(VMError::OutOfGas);
-        }
+
         //check for errors
         for n in 0..pipeline.len(){
             if errors[n].is_err(){
