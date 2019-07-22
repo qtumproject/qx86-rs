@@ -34,25 +34,27 @@ pub fn execute_vm_with_asm(input: &str) -> VM{
 pub fn execute_vm_with_diagnostics(vm: &mut VM){
     let r = vm.execute();
     if r.is_err(){
-        println!("VM returned error: {}", r.unwrap_err());
-        println!("EAX: 0x{:08X?}", vm.reg32(Reg32::EAX));
-        println!("ECX: 0x{:08X?}", vm.reg32(Reg32::ECX));
-        println!("EDX: 0x{:08X?}", vm.reg32(Reg32::EDX));
-        println!("EBX: 0x{:08X?}", vm.reg32(Reg32::EBX));
-        println!("ESP: 0x{:08X?}", vm.reg32(Reg32::ESP));
-        println!("EBP: 0x{:08X?}", vm.reg32(Reg32::EBP));
-        println!("ESI: 0x{:08X?}", vm.reg32(Reg32::ESI));
-        println!("EDI: 0x{:08X?}", vm.reg32(Reg32::EDI));
-        println!();
-        println!("Gas remaining: {}", vm.gas_remaining);
-        println!("EIP: 0x{:X?}", vm.eip);
-        println!("Surrounding bytes in opcode stream:");
-        for n in std::cmp::max(vm.eip - 8, 0x10000)..(vm.eip + 8){
-            let b = vm.get_mem(n, ValueSize::Byte).unwrap().u8_exact().unwrap();
-            println!("0x{:X?}: 0x{:02X}, as modrm: {}, as sib: {}", n, b, ModRM::parse(b), SIB::parse(b));
-        }
+        vm_diagnostics(vm);
     }
     r.unwrap();
+}
+pub fn vm_diagnostics(vm: &VM){
+    println!("EAX: 0x{:08X?}", vm.reg32(Reg32::EAX));
+    println!("ECX: 0x{:08X?}", vm.reg32(Reg32::ECX));
+    println!("EDX: 0x{:08X?}", vm.reg32(Reg32::EDX));
+    println!("EBX: 0x{:08X?}", vm.reg32(Reg32::EBX));
+    println!("ESP: 0x{:08X?}", vm.reg32(Reg32::ESP));
+    println!("EBP: 0x{:08X?}", vm.reg32(Reg32::EBP));
+    println!("ESI: 0x{:08X?}", vm.reg32(Reg32::ESI));
+    println!("EDI: 0x{:08X?}", vm.reg32(Reg32::EDI));
+    println!();
+    println!("Gas remaining: {}", vm.gas_remaining);
+    println!("EIP: 0x{:X?}", vm.eip);
+    println!("Surrounding bytes in opcode stream:");
+    for n in std::cmp::max(vm.eip - 8, 0x10000)..(vm.eip + 8){
+        let b = vm.get_mem(n, ValueSize::Byte).unwrap().u8_exact().unwrap();
+        println!("0x{:X?}: 0x{:02X}, as modrm: {}, as sib: {}", n, b, ModRM::parse(b), SIB::parse(b));
+    }
 }
 
 pub fn asm(input: &str) -> Vec<u8>{

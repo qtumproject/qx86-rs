@@ -86,10 +86,13 @@ fn test_push_pop(){
         push dword [ebx]
         pop ecx
         push ebx
+        hlt
     ");
+    vm_diagnostics(&vm);
     assert_eq!(vm.reg32(Reg32::EAX), 0x12345678);
     assert_eq!(vm.reg32(Reg32::ECX), 0xffeeddcc);
-    assert_eq!(vm.reg32(Reg32::ESP), 0x80001000 - 4);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80000100 - 4);
+    assert_eq!(vm.get_mem(0x80000100 - 4, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x80001000);
 }
 
 

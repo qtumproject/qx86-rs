@@ -231,8 +231,12 @@ impl OpcodeDefiner{
 
             //write to all 8 inner opcodes if has_modrm and no group
             //Otherwise write to just the group inner opcode
-            let op_limit = if self.has_modrm && self.group.is_none(){
-                8
+            let op_limit = if self.has_modrm{
+                if self.group.is_none(){
+                    8
+                }else{
+                    self.group.unwrap() as usize + 1
+                }
             }else{
                 1
             };
