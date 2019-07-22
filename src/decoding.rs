@@ -1,6 +1,7 @@
 use crate::structs::*;
 use crate::opcodes::*;
 use crate::vm::*;
+use std::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
@@ -38,8 +39,14 @@ pub struct ModRM{
     mode: u8, //2 bits
 }
 
+impl fmt::Display for ModRM{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[rm: {}, reg: {}, mod: {}]", self.rm, self.reg, self.mode)
+    }
+}
+
 impl ModRM{
-    fn parse(b: u8) -> ModRM{
+    pub fn parse(b: u8) -> ModRM{
         ModRM{
             rm: b & 0x07, //bottom 3 bits
             reg: (b & (0x07 << 3)) >> 3, //middle 3 bits
@@ -127,12 +134,17 @@ pub struct SIB{
 }
 
 impl SIB{
-    fn parse(b: u8) -> SIB{
+    pub fn parse(b: u8) -> SIB{
         SIB{
             base: b & 0x07, //bottom 3 bits
             index: (b & (0x07 << 3)) >> 3, //middle 3 bits
             scale: (b & (0x03 << 6)) >> 6, //top 2 bits
         }
+    }
+}
+impl fmt::Display for SIB{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[base: {}, index: {}, scale: {}]", self.base, self.index, self.scale)
     }
 }
 
@@ -198,7 +210,7 @@ pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [Op
         let arg_size = opcode.arg_size[n].to_fixed(false); //later replace with size prefix.. 
         args[n].is_memory = false; //can be reused, so reset the fields
         args[n].location = ArgLocation::None;
-        
+
         let advance = match opcode.arg_source[n] {
             None => {
                 0

@@ -125,7 +125,7 @@ pub enum VMError{
     ConflictingMemoryAddition,
     
     //execution error
-    InvalidOpcode,
+    InvalidOpcode(u8),
     WroteUnwriteableArgumnet,
 
     //decoding error
