@@ -204,6 +204,7 @@ impl Default for ArgLocation{
 #[derive(Copy, Clone)]
 pub struct OpArgument{
     pub location: ArgLocation,
+    pub is_memory: bool
 }
 
 
@@ -213,7 +214,8 @@ pub struct OpArgument{
 impl Default for OpArgument{
     fn default() -> OpArgument{
         OpArgument{
-            location: ArgLocation::None
+            location: ArgLocation::None,
+            is_memory: false
         }
     }
 }

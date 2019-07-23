@@ -48,27 +48,39 @@ impl ModRM{
     }
     //This is pretty dense because Mod R/M is stupidly complicated
     //Make sure to use this reference to understand why: http://ref.x86asm.net/coder32.html#modrm_byte_32
-    fn decode(&self, sib: &SIB, disp: u32, size: ValueSize) -> ArgLocation{
+    fn decode(&self, sib: &SIB, disp: u32, size: ValueSize) -> OpArgument{
         //when mode is 3, actual uses the direct register, and thus will not be an address
         if self.mode == 3 {
-            return ArgLocation::RegisterValue(self.rm, size);
+            return OpArgument{
+                location: ArgLocation::RegisterValue(self.rm, size),
+                is_memory: false
+            };
         }
         //special case for [disp32]
         if self.mode == 0 && self.rm == 5 {
-            return ArgLocation::Address(disp, size);
+            return OpArgument{
+                location: ArgLocation::Address(disp, size),
+                is_memory: true
+            };
         }
         
         //exclude rm == 4 as that is SIB option
         //no disp, just register address
         if self.mode == 0 && self.rm != 4 {
-            return ArgLocation::RegisterAddress(self.rm, size)
+            return OpArgument{
+                location: ArgLocation::RegisterAddress(self.rm, size),
+                is_memory: true
+            };
         }
         //[reg32 + disp] (where disp can be 8 or 32 bit)
         if (self.mode == 1 || self.mode == 2) && self.rm != 4{
-            return ArgLocation::ModRMAddress{
-                offset: Some(disp),
-                reg: Some(self.rm),
-                size: size
+            return OpArgument{
+                location: ArgLocation::ModRMAddress{
+                    offset: Some(disp),
+                    reg: Some(self.rm),
+                    size: size
+                },
+                is_memory: true
             };
         }
 
@@ -93,12 +105,15 @@ impl ModRM{
         };
 
         //effective address form: [offset + base + (scale * index)]
-        return ArgLocation::SIBAddress{
-            offset: disp, //is 0 when not actually used or specified, thus not affecting the effective address calculation
-            base: base, //optional register
-            scale: 1 << sib.scale, //Equates to 1, 2, 4, 8 from values 0, 1, 2, 3 respectively
-            index: index, //optional register]
-            size: size
+        return OpArgument{
+            location: ArgLocation::SIBAddress{
+                offset: disp, //is 0 when not actually used or specified, thus not affecting the effective address calculation
+                base: base, //optional register
+                scale: 1 << sib.scale, //Equates to 1, 2, 4, 8 from values 0, 1, 2, 3 respectively
+                index: index, //optional register]
+                size: size
+            },
+            is_memory: true
         };
     }
 }
@@ -181,20 +196,25 @@ pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [Op
     //todo: parse modr/m byte here if present, before actually parsing arguments
     for n in 0..3{
         let arg_size = opcode.arg_size[n].to_fixed(false); //later replace with size prefix.. 
+        args[n].is_memory = false; //can be reused, so reset the fields
+        args[n].location = ArgLocation::None;
+        
         let advance = match opcode.arg_source[n] {
             None => {
                 0
             },
             ModRM => {
-                args[n].location = modrm.modrm.decode(&modrm.sib.unwrap_or_default(), modrm.disp.unwrap_or(0), arg_size);
+                args[n] = modrm.modrm.decode(&modrm.sib.unwrap_or_default(), modrm.disp.unwrap_or(0), arg_size);
                 0 //size calculation was done before here, so don't need to advance any
             },
             ModRMReg => {
                 args[n].location = ArgLocation::RegisterValue(modrm.modrm.reg, arg_size);
+                args[n].is_memory = false;
                 0
             },
             ImmediateAddress =>{
                 args[n].location = ArgLocation::Address(u32_from_bytes(bytes)?, arg_size);
+                args[n].is_memory = true;
                 4
             }
             ImmediateValue | JumpRel => {
@@ -209,18 +229,22 @@ pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [Op
                     }
                 };
                 args[n].location = loc;
+                args[n].is_memory = false;
                 sz
             },
             RegisterSuffix =>{
                 args[n].location = ArgLocation::RegisterValue(opcode_byte & 0x7, arg_size);
+                args[n].is_memory = false;
                 0
             },
             Literal(l) => {
                 args[n].location = ArgLocation::Immediate(l);
+                args[n].is_memory = false;
                 0
             },
             HardcodedRegister(r) => {
                 args[n].location = ArgLocation::RegisterValue(r, arg_size);
+                args[n].is_memory = true;
                 0
             }
             

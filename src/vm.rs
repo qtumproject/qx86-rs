@@ -16,8 +16,60 @@ pub struct VM{
     //todo: hypervisor to call external code
 
     //set to indicate diagnostic info when an error occurs
-    pub error_eip: u32
+    pub error_eip: u32,
+    pub error_gas: u64,
+    pub gas_remaining: u64,
+    pub charger: GasCharger,
+
 }
+
+#[derive(Debug, Copy, Clone, EnumCount, EnumIter)]
+pub enum GasCost{
+    None,
+    VeryLow,
+    Low,
+    Moderate,
+    High,
+    //surcharges (not intended to direct use outside of VM)
+
+    ConditionalBranch, //surcharge to any unpredictable branch
+    MemoryAccess, //surcharge for any memory access
+    WriteableMemoryExec, //surcharge for each opcode executed within writeable memory space
+    ModRMSurcharge //Mod R/M is complicated, so there is a tier to charge for decoding
+}
+
+impl Default for GasCost{
+    fn default() -> GasCost{
+        GasCost::Low
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct GasCharger{
+    pub costs: [u64; GASCOST_COUNT]
+}
+
+impl GasCharger{
+    pub fn cost(&self, tier: GasCost) -> u64{
+        self.costs[tier as usize]
+    }
+    pub fn test_schedule() -> GasCharger{
+        use GasCost::*;
+        let mut g = GasCharger::default();
+        g.costs[None as usize] = 0;
+        g.costs[VeryLow as usize] = 1;
+        g.costs[Low as usize] = 4;
+        g.costs[Moderate as usize] = 10;
+        g.costs[High as usize] = 20;
+        g.costs[ConditionalBranch as usize] = 10;
+        g.costs[MemoryAccess as usize] = 1;
+        g.costs[WriteableMemoryExec as usize] = 15;
+        g.costs[ModRMSurcharge as usize] = 1;
+        g
+    }
+}
+
+
 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
@@ -58,7 +110,7 @@ pub enum Reg8{
     BH
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Display)]
 #[derive(Copy, Clone)]
 pub enum VMError{
     None,
@@ -84,6 +136,7 @@ pub enum VMError{
     TooBigSizeExpectation,
 
     InternalVMStop, //not an actual error but triggers a stop
+    OutOfGas
 }
 
 
@@ -254,39 +307,41 @@ impl VM{
 
 
     //note: errors.len() must be equal to pipeline.len() !! 
-    fn cycle(&mut self, pipeline: &mut [Pipeline], errors: &mut [Result<(), VMError>]) -> Result<bool, VMError>{
+    fn cycle(&mut self, pipeline: &mut [Pipeline]) -> Result<bool, VMError>{
         fill_pipeline(self, &OPCODES[0..], pipeline)?;
-        let mut error_eip = self.eip;
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
             let p = &pipeline[n];
-            errors[n] = (p.function)(self, p);
-            self.eip += p.eip_size as u32;
-        }
-        //check for errors
-        for n in 0..pipeline.len(){
-            if errors[n].is_err(){
-                if errors[n].err().unwrap() == VMError::InternalVMStop{
-                    //This is to set eip to the point of the stop, rather than the opcode after
-                    self.eip = error_eip;
+            let (_, negative_gas) = self.gas_remaining.overflowing_sub(p.gas_cost);
+            self.gas_remaining = self.gas_remaining.saturating_sub(p.gas_cost);
+
+            //the pipeline will not be filled beyond out of gas, so no worries about inconsistent errored state here
+            //micro optimization note: removing this branch results in ~1% performance increase in naive tests
+            //but changes the result of EIP to be incorrect.. Decide later if inaccurate EIP is worth that 1%
+            if negative_gas {
+                return Err(VMError::OutOfGas);
+            }
+            //errors[n] = (p.function)(self, p);
+            let r = (p.function)(self,p);
+            if r.is_err(){
+                if r.err().unwrap() == VMError::InternalVMStop{
                     return Ok(true);
-                } else {
-                    self.error_eip = error_eip; 
-                    return Err(errors[n].err().unwrap());
+                }else{
+                    self.error_eip = self.eip;
+                    return Err(r.err().unwrap());
                 }
             }
-            error_eip += pipeline[n].eip_size as u32;
+            self.eip += p.eip_size as u32;
         }
-        Ok(false)
+        return Ok(false);
+
     }
     pub fn execute(&mut self) -> Result<bool, VMError>{
         //todo: gas handling
         let mut pipeline = vec![];
         pipeline.resize(PIPELINE_SIZE, Pipeline::default());
-        let mut errors = vec![];
-        errors.resize(PIPELINE_SIZE, Result::Ok(()));
         loop{
-            if self.cycle(&mut pipeline, &mut errors)? {
+            if self.cycle(&mut pipeline)? {
                 return Ok(true);
             }
         }

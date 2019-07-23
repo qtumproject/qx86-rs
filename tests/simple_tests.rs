@@ -16,7 +16,7 @@ fn test_undefined_opcode(){
         0x90
     ];
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
-    assert!(vm.execute().err().unwrap() == VMError::InvalidOpcode);
+    assert_eq!(vm.execute().err().unwrap(), VMError::InvalidOpcode);
     assert_eq!(vm.error_eip, CODE_MEM + 2);
 }
 
@@ -36,7 +36,7 @@ fn test_simple_nop_hlt(){
 
 #[test]
 fn test_mov_hlt(){
-    let vm = execute_vm_asm("
+    let vm = execute_vm_with_asm("
     mov al, 0x11
     mov ah, 0x22
     mov dl, 0x33
@@ -49,7 +49,7 @@ fn test_mov_hlt(){
 #[test]
 fn test_mov(){
     //scratch memory: 0x80000000
-    let vm = execute_vm_asm("
+    let vm = execute_vm_with_asm("
         mov al, 0x11
         mov ecx, 0x80000000
         mov dword [ecx], 0x11223344
