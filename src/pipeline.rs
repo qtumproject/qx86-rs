@@ -110,6 +110,7 @@ mod tests{
     fn test_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
     fn test2_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
     fn test3_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
+    fn test4_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
 
     /* Opcodes defined:
     0x00 -- undefined (purposefully)
@@ -143,6 +144,11 @@ mod tests{
             .with_arg(ArgSource::ImmediateAddress, Fixed(Dword))
             .with_gas(GasCost::Moderate)
             .calls(test2_op)
+            .into_table(&mut table);
+        define_opcode(0xFF)
+            .is_group(3)
+            .with_rmw()
+            .calls(test4_op)
             .into_table(&mut table);
 
         table
@@ -220,6 +226,25 @@ mod tests{
         assert!(pipeline[2].args[1].location == ArgLocation::None);
         assert!(pipeline[2].eip_size == 0);  
         //assert!(pipeline[2].gas_cost == 0);  
+    }
+    #[test]
+    fn test_group_opcodes(){
+        let opcodes = test_opcodes();
+        let mut vm = VM::default();
+        vm.gas_remaining = 1;
+        let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
+        vm.eip = 0x10000;
+        let bytes = vec![
+            0xFF, 0x1A, //test4_op /3 [EDX]
+        ];
+        (&mut vm_mem[0..bytes.len()]).copy_from_slice(&bytes);
+        let mut pipeline = vec![];
+        pipeline.resize(3, Pipeline::default());
+        fill_pipeline(&vm, &opcodes, &mut pipeline).unwrap();
+
+        assert_eq!(pipeline[0].function as usize, test4_op as usize);
+        assert_eq!(pipeline[0].args[0].location, ArgLocation::RegisterAddress(Reg32::EDX as u8, ValueSize::Dword));
+        assert_eq!(pipeline[0].eip_size, 2);
     }
 }
 

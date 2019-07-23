@@ -86,8 +86,8 @@ pub struct OpcodeProperties{
 pub fn nop(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
 Ok(())
 }
-pub fn op_undefined(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
-    Err(VMError::InvalidOpcode)
+pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+    Err(VMError::InvalidOpcode(vm.get_mem(vm.eip, ValueSize::Byte)?.u8_exact()?))
 }
 
 impl Default for OpcodeProperties{
@@ -231,8 +231,12 @@ impl OpcodeDefiner{
 
             //write to all 8 inner opcodes if has_modrm and no group
             //Otherwise write to just the group inner opcode
-            let op_limit = if self.has_modrm && self.group.is_none(){
-                8
+            let op_limit = if self.has_modrm{
+                if self.group.is_none(){
+                    8
+                }else{
+                    self.group.unwrap() as usize + 1
+                }
             }else{
                 1
             };
@@ -353,6 +357,36 @@ lazy_static! {
             .with_immw()
             .into_table(&mut ops);
 
+        //push opcodes
+        //0x50 +r push rW
+        define_opcode(0x50).calls(push).with_gas(VeryLow)
+            .with_suffix_regw()
+            .into_table(&mut ops);
+        //0x68 push immW
+        define_opcode(0x68).calls(push).with_gas(VeryLow)
+            .with_immw()
+            .into_table(&mut ops);
+        //0x6A push imm8
+        define_opcode(0x6A).calls(push).with_gas(VeryLow)
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xFF /6 push rmW
+        define_opcode(0xFF).calls(push).with_gas(VeryLow)
+            .is_group(6)
+            .with_rmw()
+            .into_table(&mut ops);
+
+        //pop opcodes
+        //0x58 +r pop rW
+        define_opcode(0x58).calls(pop).with_gas(VeryLow)
+            .with_suffix_regw()
+            .into_table(&mut ops);
+        //0x8F /0 pop rmW
+        define_opcode(0x8F).calls(pop).with_gas(VeryLow)
+            .is_group(0)
+            .with_rmw()
+            .into_table(&mut ops);
+        
 
         ops
     };

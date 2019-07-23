@@ -11,12 +11,12 @@ fn test_undefined_opcode(){
     let bytes = vec![
         0x90, //nop
         0x90,
-        0xFF, //eventually this might not be an undefined opcode
+        0xAA, //eventually this might not be an undefined opcode
         0x90,
         0x90
     ];
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
-    assert_eq!(vm.execute().err().unwrap(), VMError::InvalidOpcode);
+    assert_eq!(vm.execute().err().unwrap(), VMError::InvalidOpcode(0xAA));
     assert_eq!(vm.error_eip, CODE_MEM + 2);
 }
 
@@ -75,5 +75,24 @@ fn test_mov(){
     assert_eq!(vm.get_mem(0x10 * 4 + 0x80000000, ValueSize::Byte).unwrap().u8_exact().unwrap(), 0xFF);
 }
 
+#[test]
+fn test_push_pop(){
+    let vm = execute_vm_with_asm("
+        mov esp, 0x80000100
+        push 0x12345678
+        pop eax
+        mov ebx, 0x80001000
+        mov dword [ebx], 0xffeeddcc
+        push dword [ebx]
+        pop ecx
+        push ebx
+        hlt
+    ");
+    vm_diagnostics(&vm);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x12345678);
+    assert_eq!(vm.reg32(Reg32::ECX), 0xffeeddcc);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80000100 - 4);
+    assert_eq!(vm.get_mem(0x80000100 - 4, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x80001000);
+}
 
 

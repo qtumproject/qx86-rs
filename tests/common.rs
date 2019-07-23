@@ -2,6 +2,8 @@ extern crate qx86;
 extern crate tempfile;
 
 use qx86::vm::*;
+use qx86::structs::*;
+use qx86::decoding::*;
 
 pub const CODE_MEM:u32 = 0x10000;
 pub const DATA_MEM:u32 = 0x80000000;
@@ -12,8 +14,8 @@ pub fn create_vm() -> VM{
     vm.eip = CODE_MEM;
     vm.charger = GasCharger::test_schedule();
     vm.gas_remaining = INITIAL_GAS;
-    vm.memory.add_memory(CODE_MEM, 0x1000).unwrap();
-    vm.memory.add_memory(DATA_MEM, 0x1000).unwrap();
+    vm.memory.add_memory(CODE_MEM, 0x10000).unwrap();
+    vm.memory.add_memory(DATA_MEM, 0x10000).unwrap();
     vm
 }
 
@@ -26,8 +28,33 @@ pub fn create_vm_with_asm(input: &str) -> VM{
 
 pub fn execute_vm_with_asm(input: &str) -> VM{
     let mut vm = create_vm_with_asm(input);
-    assert!(vm.execute().unwrap());
+    execute_vm_with_diagnostics(&mut vm);
     vm
+}
+pub fn execute_vm_with_diagnostics(vm: &mut VM){
+    let r = vm.execute();
+    if r.is_err(){
+        vm_diagnostics(vm);
+    }
+    r.unwrap();
+}
+pub fn vm_diagnostics(vm: &VM){
+    println!("EAX: 0x{:08X?}", vm.reg32(Reg32::EAX));
+    println!("ECX: 0x{:08X?}", vm.reg32(Reg32::ECX));
+    println!("EDX: 0x{:08X?}", vm.reg32(Reg32::EDX));
+    println!("EBX: 0x{:08X?}", vm.reg32(Reg32::EBX));
+    println!("ESP: 0x{:08X?}", vm.reg32(Reg32::ESP));
+    println!("EBP: 0x{:08X?}", vm.reg32(Reg32::EBP));
+    println!("ESI: 0x{:08X?}", vm.reg32(Reg32::ESI));
+    println!("EDI: 0x{:08X?}", vm.reg32(Reg32::EDI));
+    println!();
+    println!("Gas remaining: {}", vm.gas_remaining);
+    println!("EIP: 0x{:X?}", vm.eip);
+    println!("Surrounding bytes in opcode stream:");
+    for n in std::cmp::max(vm.eip - 8, 0x10000)..(vm.eip + 8){
+        let b = vm.get_mem(n, ValueSize::Byte).unwrap().u8_exact().unwrap();
+        println!("0x{:X?}: 0x{:02X}, as modrm: {}, as sib: {}", n, b, ModRM::parse(b), SIB::parse(b));
+    }
 }
 
 pub fn asm(input: &str) -> Vec<u8>{
