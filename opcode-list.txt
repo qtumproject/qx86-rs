@@ -1,0 +1,1026 @@
+Priorities in order: Essential opcodes, Common opcodes, Uncommon opcodes, Optional opcodes
+
+Essential opcodes -- These are the opcodes required for most assembly programs and also very often used by compilers
+
+    00 /r       ADD  r/m8,r8
+    01 /r       ADD  r/m16,r16
+    01 /r       ADD  r/m32,r32
+    02 /r       ADD  r8,r/m8
+    03 /r       ADD  r16,r/m16
+    03 /r       ADD  r32,r/m32
+    04 ib       ADD  AL,imm8
+    05 iw       ADD  AX,imm16
+    05 id       ADD  EAX,imm32
+    80 /0 ib    ADD  r/m8,imm8
+    81 /0 iw    ADD  r/m16,imm16
+    81 /0 id    ADD  r/m32,imm32
+    83 /0 ib    ADD  r/m16,imm8
+    83 /0 ib    ADD  r/m32,imm8
+
+    20 /r       AND  r/m8,r8
+    21 /r       AND  r/m16,r16
+    21 /r       AND  r/m32,r32
+    22 /r       AND  r8,r/m8
+    23 /r       AND  r16,r/m16
+    23 /r       AND  r32,r/m32
+    24 ib       AND  AL,imm8
+    25 iw       AND  AX,imm16
+    25 id       AND  EAX,imm32
+    80 /4 ib    AND  r/m8,imm8
+    81 /4 iw    AND  r/m16,imm16
+    81 /4 id    AND  r/m32,imm32
+    83 /4 ib    AND  r/m16,imm8
+    83 /4 ib    AND  r/m32,imm8
+
+    E8 cw       CALL rel16      ; call near relative
+    E8 cd       CALL rel32      ; call near relative
+    FF /2       CALL r/m16      ; call near indirect
+    FF /2       CALL r/m32      ; call near indirect
+
+    38 /r       CMP  r/m8,r8
+    39 /r       CMP  r/m16,r16
+    39 /r       CMP  r/m32,r32
+    3A /r       CMP  r8,r/m8
+    3B /r       CMP  r16,r/m16
+    3B /r       CMP  r32,r/m32
+    3C ib       CMP  AL,imm8
+    3D iw       CMP  AX,imm16
+    3D id       CMP  EAX,imm32
+    80 /7 ib    CMP  r/m8,imm8
+    81 /7 iw    CMP  r/m16,imm16
+    81 /7 id    CMP  r/m32,imm32
+    83 /7 ib    CMP  r/m16,imm8
+    83 /7 ib    CMP  r/m32,imm8
+
+    48 + rw     DEC  r16
+    48 + rd     DEC  r32
+    FE /1       DEC  r/m8
+    FF /1       DEC  r/m16
+    FF /1       DEC  r/m32
+    
+    F6 /6       DIV  r/m8
+    F7 /6       DIV  r/m16
+    F7 /6       DIV  r/m32
+
+    F6 /7       IDIV r/m8
+    F7 /7       IDIV r/m16
+    F7 /7       IDIV r/m32
+
+    F6 /5       IMUL r/m8
+    F7 /5       IMUL r/m16
+    F7 /5       IMUL r/m32              ; 386+
+    0F AF /r    IMUL r16,r/m16          ; 386+
+    0F AF /r    IMUL r32,r/m32          ; 386+
+    69 /r iw    IMUL r16,imm16          ; 186+
+    69 /r iw    IMUL r16,r/m16,imm16    ; 186+
+    69 /r id    IMUL r32,imm32          ; 386+
+    69 /r id    IMUL r32,r/m32,imm32    ; 386+
+    6B /r ib    IMUL r16,imm8           ; 186+
+    6B /r ib    IMUL r16,r/m16,imm8     ; 186+
+    6B /r ib    IMUL r32,imm8           ; 386+
+    6B /r ib    IMUL r32,r/m32,imm8     ; 386+
+
+    40 + rw     INC  r16
+    40 + rd     INC  r32
+    FE /0       INC  r/m8
+    FF /0       INC  r/m16
+    FF /0       INC  r/m32
+
+    70 cb;  0F 80 cw;  0F 80 cd         JO  rel8/rel16/rel32
+    71 cb;  0F 81 cw;  0F 81 cd         JNO rel8/rel16/rel32
+    72 cb;  0F 82 cw;  0F 82 cd         JB  rel8/rel16/rel32
+    73 cb;  0F 83 cw;  0F 83 cd         JAE rel8/rel16/rel32
+    74 cb;  0F 84 cw;  0F 84 cd         JE  rel8/rel16/rel32
+    75 cb;  0F 85 cw;  0F 85 cd         JNE rel8/rel16/rel32
+    76 cb;  0F 86 cw;  0F 86 cd         JBE rel8/rel16/rel32
+    77 cb;  0F 87 cw;  0F 87 cd         JA  rel8/rel16/rel32
+    78 cb;  0F 88 cw;  0F 88 cd         JS  rel8/rel16/rel32
+    79 cb;  0F 89 cw;  0F 89 cd         JNS rel8/rel16/rel32
+    7A cb;  0F 8A cw;  0F 8A cd         JP  rel8/rel16/rel32
+    7B cb;  0F 8B cw;  0F 8B cd         JNP rel8/rel16/rel32
+    7C cb;  0F 8C cw;  0F 8C cd         JL  rel8/rel16/rel32
+    7D cb;  0F 8D cw;  0F 8D cd         JGE rel8/rel16/rel32
+    7E cb;  0F 8E cw;  0F 8E cd         JLE rel8/rel16/rel32
+    7F cb;  0F 8F cw;  0F 8F cd         JG  rel8/rel16/rel32
+
+    E3 cb       JCXZ rel8
+    E3 cb       JECXZ rel8
+
+    EB cb       JMP  rel8
+    FF /4       JMP  r/m16
+    FF /4       JMP  r/m32
+    E9 cw       JMP  rel16
+    E9 cd       JMP  rel32
+
+    88 /r       MOV  r/m8,r8
+    89 /r       MOV  r/m16,r16
+    89 /r       MOV  r/m32,r32
+    8A /r       MOV  r8,r/m8
+    8B /r       MOV  r16,r/m16
+    8B /r       MOV  r32,r/m32
+    A0          MOV  AL,moffs8
+    A1          MOV  AX,moffs16
+    A1          MOV  EAX,moffs32
+    A2          MOV  moffs8,AL
+    A3          MOV  moffs16,AX
+    A3          MOV  moffs32,EAX
+    B0 + rb     MOV  r8,imm8
+    B8 + rw     MOV  r16,imm16
+    B8 + rd     MOV  r32,imm32
+    C6          MOV  m8,imm8
+    C7          MOV  m16,imm16
+    C7          MOV  m32,imm32
+
+    F6 /4       MUL  r/m8
+    F7 /4       MUL  r/m16
+    F7 /4       MUL  r/m32
+
+    F6 /3       NEG  r/m8,r8
+    F7 /3       NEG  r/m16,r16
+    F7 /3       NEG  r/m32,r32
+
+    90          NOP
+
+    F6 /2       NOT  r/m8,r8
+    F7 /2       NOT  r/m16,r16
+    F7 /2       NOT  r/m32,r32
+
+    08 /r       OR   r/m8,r8
+    09 /r       OR   r/m16,r16
+    09 /r       OR   r/m32,r32
+    0A /r       OR   r8,r/m8
+    0B /r       OR   r16,r/m16
+    0B /r       OR   r32,r/m32
+    0C ib       OR   AL,imm8
+    0D iw       OR   AX,imm16
+    0D id       OR   EAX,imm32
+    80 /1 ib    OR   r/m8,imm8
+    81 /1 iw    OR   r/m16,imm16
+    81 /1 id    OR   r/m32,imm32
+    83 /1 ib    OR   r/m16,imm8
+    83 /1 ib    OR   r/m32,imm8
+
+    58 + rw     POP  r16
+    58 + rd     POP  r32
+    8F /0       POP  m16
+    8F /0       POP  m32
+
+    50+rw       PUSH r16
+    50+rd       PUSH r32
+    68          PUSH imm16
+    68          PUSH imm32
+    6A          PUSH imm8
+    FF /6       PUSH m16
+    FF /6       PUSH m32
+
+    C2 iw       RETN imm16
+    C3          RETN
+
+    C0 /4 ib    SHL  r/m8,imm8
+    C1 /4 ib    SHL  r/m16,imm8
+    C1 /4 ib    SHL  r/m32,imm8
+    D0 /4       SHL  r/m8,1
+    D1 /4       SHL  r/m16,1
+    D1 /4       SHL  r/m32,1
+    D2 /4       SHL  r/m8,CL
+    D3 /4       SHL  r/m16,CL
+    D3 /4       SHL  r/m32,CL
+
+    C0 /5 ib    SHR  r/m8,imm8
+    C1 /5 ib    SHR  r/m16,imm8
+    C1 /5 ib    SHR  r/m32,imm8
+    D0 /5       SHR  r/m8,1
+    D1 /5       SHR  r/m16,1
+    D1 /5       SHR  r/m32,1
+    D2 /5       SHR  r/m8,CL
+    D3 /5       SHR  r/m16,CL
+    D3 /5       SHR  r/m32,CL
+
+    28 /r       SUB  r/m8,r8
+    29 /r       SUB  r/m16,r16
+    29 /r       SUB  r/m32,r32
+    2A /r       SUB  r8,r/m8
+    2B /r       SUB  r16,r/m16
+    2B /r       SUB  r32,r/m32
+    2C ib       SUB  AL,imm8
+    2D iw       SUB  AX,imm16
+    2D id       SUB  EAX,imm32
+    80 /5 ib    SUB  r/m8,imm8
+    81 /5 iw    SUB  r/m16,imm16
+    81 /5 id    SUB  r/m32,imm32
+    83 /5 ib    SUB  r/m16,imm8
+    83 /5 ib    SUB  r/m32,imm8
+
+    30 /r       XOR  r/m8,r8
+    31 /r       XOR  r/m16,r16
+    31 /r       XOR  r/m32,r32
+    32 /r       XOR  r8,r/m8
+    33 /r       XOR  r16,r/m16
+    33 /r       XOR  r32,r/m32
+    34 ib       XOR  AL,imm8
+    35 iw       XOR  AX,imm16
+    35 id       XOR  EAX,imm32
+    80 /6 ib    XOR  r/m8,imm8
+    81 /6 iw    XOR  r/m16,imm16
+    81 /6 id    XOR  r/m32,imm32
+    83 /6 ib    XOR  r/m16,imm8
+    83 /6 ib    XOR  r/m32,imm8
+
+Common opcodes -- These are opcodes which are often used by compilers, even if there are ways to avoid using them in writing assembly programs
+
+    10 /r       ADC  r/m8,r8
+    11 /r       ADC  r/m16,r16
+    11 /r       ADC  r/m32,r32
+    12 /r       ADC  r8,r/m8
+    13 /r       ADC  r16,r/m16
+    13 /r       ADC  r32,r/m32
+    14 ib       ADC  AL,imm8
+    15 iw       ADC  AX,imm16
+    15 id       ADC  EAX,imm32
+    80 /2 ib    ADC  r/m8,imm8
+    81 /2 iw    ADC  r/m16,imm16
+    81 /2 id    ADC  r/m32,imm32
+    83 /2 ib    ADC  r/m16,imm8
+    83 /2 ib    ADC  r/m32,imm8
+
+    0F BC       BSF  r16,r/m16
+    0F BC       BSF  r32,r/m32
+    0F BD       BSR  r16,r/m16
+    0F BD       BSR  r32,r/m32
+    0F C8 /r    BSWAP r32
+    0F A3       BT  r/m16,r16
+    0F A3       BT  r/m32,r32
+    0F BA /4 ib BT  r/m16,imm8
+    0F BA /4 ib BT  r/m32,imm8
+
+    0F BB       BTC r/m16,r16
+    0F BB       BTC r/m32,r32
+    0F BA /7 ib BTC r/m16,imm8
+    0F BA /7 ib BTC r/m32,imm8
+
+    0F B3       BTR r/m16,r16
+    0F B3       BTR r/m32,r32
+    0F BA /6 ib BTR r/m16,imm8
+    0F BA /6 ib BTR r/m32,imm8
+
+    0F AB       BTS r/m16,r16
+    0F AB       BTS r/m32,r32
+    0F BA /5 ib BTS r/m16,imm8
+    0F BA /5 ib BTS r/m32,imm8
+
+    98          CBW
+    99          CDQ
+    99          CWD
+    98          CWDE
+
+    0F 40 cw    CMOVO  r16, r/m16
+    0F 40 cd    CMOVO  r32, r/m32
+    0F 41 cw    CMOVNO r16, r/m16
+    0F 41 cd    CMOVNO r32, r/m32
+    0F 42 cw    CMOVB  r16, r/m16
+    0F 42 cd    CMOVB  r32, r/m32
+    0F 43 cw    CMOVAE r16, r/m16
+    0F 43 cd    CMOVAE r32, r/m32
+    0F 44 cw    CMOVE  r16, r/m16
+    0F 44 cd    CMOVE  r32, r/m32
+    0F 45 cw    CMOVNE r16, r/m16
+    0F 45 cd    CMOVNE r32, r/m32
+    0F 46 cw    CMOVBE r16, r/m16
+    0F 46 cd    CMOVBE r32, r/m32
+    0F 47 cw    CMOVA  r16, r/m16
+    0F 47 cd    CMOVA  r32, r/m32
+    0F 48 cw    CMOVS  r16, r/m16
+    0F 48 cd    CMOVS  r32, r/m32
+    0F 49 cw    CMOVNS r16, r/m16
+    0F 49 cd    CMOVNS r32, r/m32
+    0F 4A cw    CMOVP  r16, r/m16
+    0F 4A cd    CMOVP  r32, r/m32
+    0F 4B cw    CMOVNP r16, r/m16
+    0F 4B cd    CMOVNP r32, r/m32
+    0F 4C cw    CMOVL  r16, r/m16
+    0F 4C cd    CMOVL  r32, r/m32
+    0F 4D cw    CMOVGE r16, r/m16
+    0F 4D cd    CMOVGE r32, r/m32
+    0F 4E cw    CMOVLE r16, r/m16
+    0F 4E cd    CMOVLE r32, r/m32
+    0F 4F cw    CMOVG  r16, r/m16
+    0F 4F cd    CMOVG  r32, r/m32
+
+    A6          CMPS m8,m8              ; = CMPSB
+    A7          CMPS m16,m16            ; = CMPSW
+    A7          CMPS m32,m32            ; = CMPSD
+
+    0F A6 /r    CMPXCHG r/m8,r8         ; i486 pre-B step only
+    0F A7 /r    CMPXCHG r/m16,r16       ; i486 pre-B step only
+    0F A7 /r    CMPXCHG r/m32,r32       ; i486 pre-B step only
+    0F B0 /r    CMPXCHG r/m8,r8
+    0F B1 /r    CMPXCHG r/m16,r16
+    0F B1 /r    CMPXCHG r/m32,r32
+
+    0F C7 /r    CMPXCHG8B mem64 ---note: requires 64bit pipeline addition
+
+    C8 iw ib    ENTER imm16,imm8
+
+    8D /r       LEA  r16,m
+    8D /r       LEA  r32,m ----note: Both ModR/M16 and ModRM/M32 is valid here and is the only place address size override is valid
+
+    AC          LODS m8                 ; = LODSB
+    AD          LODS m16                ; = LODSW
+    AD          LODS m32                ; = LODSD
+
+    A4          MOVS m8,m8              ; = MOVSB
+    A5          MOVS m16,m16            ; = MOVSW
+    A5          MOVS m32,m32            ; = MOVSD
+
+    0F BE /r    MOVSX r16,r/m8
+    0F BE /r    MOVSX r32,r/m8
+    0F BF /r    MOVSX r32,r/m16
+
+    0F B6 /r    MOVZX r16,r/m8
+    0F B6 /r    MOVZX r32,r/m8
+    0F B7 /r    MOVZX r32,r/m16
+
+    F2 ...      REPNE ...               ; Prefix
+    F3 ...      REPE ...
+    F3 ...      REP ...                 ; REP = REPE
+
+    18 /r       SBB  r/m8,r8
+    19 /r       SBB  r/m16,r16
+    19 /r       SBB  r/m32,r32
+    1A /r       SBB  r8,r/m8
+    1B /r       SBB  r16,r/m16
+    1B /r       SBB  r32,r/m32
+    1C ib       SBB  AL,imm8
+    1D iw       SBB  AX,imm16
+    1D id       SBB  EAX,imm32
+    80 /3 ib    SBB  r/m8,imm8
+    81 /3 iw    SBB  r/m16,imm16
+    81 /3 id    SBB  r/m32,imm32
+    83 /3 ib    SBB  r/m16,imm8
+    83 /3 ib    SBB  r/m32,imm8
+
+    AE          SCAS m8                 ; = SCASB
+    AF          SCAS m16                ; = SCASW
+    AF          SCAS m32                ; = SCASD
+
+    0F 90 cb     SETO  r/m8
+    0F 91 cb     SETNO r/m8
+    0F 92 cb     SETB  r/m8
+    0F 93 cb     SETAE r/m8
+    0F 94 cb     SETE  r/m8
+    0F 95 cb     SETNE r/m8
+    0F 96 cb     SETBE r/m8
+    0F 97 cb     SETA  r/m8
+    0F 98 cb     SETS  r/m8
+    0F 99 cb     SETNS r/m8
+    0F 9A cb     SETP  r/m8
+    0F 9B cb     SETNP r/m8
+    0F 9C cb     SETL  r/m8
+    0F 9D cb     SETGE r/m8
+    0F 9E cb     SETLE r/m8
+    0F 9F cb     SETG  r/m8
+
+    AA          STOS m8                 ; = STOSB
+    AB          STOS m16                ; = STOSW
+    AB          STOS m32                ; = STOSD
+
+    84 /r       TEST r/m8,r8
+    85 /r       TEST r/m16,r16
+    85 /r       TEST r/m32,r32
+    A8 ib       TEST AL,imm8
+    A9 iw       TEST AX,imm16
+    A9 id       TEST EAX,imm32
+    F6 /0 ib    TEST r/m8,imm8
+    F7 /0 iw    TEST r/m16,imm16
+    F7 /0 id    TEST r/m32,imm32
+
+    0F C0 /r    XADD r/m8,r8
+    0F C1 /r    XADD r/m16,r16
+    0F C1 /r    XADD r/m32,r32
+
+    86 /r       XCHG r/m8,r8
+    86 /r       XCHG r8,r/m8
+    87 /r       XCHG r/m16,r16
+    87 /r       XCHG r16,r/m16
+    87 /r       XCHG r/m32,r32
+    87 /r       XCHG r32,r/m32
+    90 + rw     XCHG AX,r16
+    90 + rw     XCHG r16,AX
+    90 + rd     XCHG EAX,r32
+    90 + rd     XCHG r32,EAX
+
+
+Uncommon opcodes -- These are opcodes seldom, if ever, used by compilers. They are typically slow and "deprecated", but also required to attain "i686" compatibility
+
+    37          AAA
+    D5 0A       AAD
+    D4 0A       AAM
+    3F          AAS
+    27          DAA
+    2F          DAS
+    C9          LEAVE
+    9F          LAHF
+    F0 ...      LOCK ...                ; Prefix ----note: Ignored, equates to NOP and will NOT trigger invalid opcode on inappropriate instructions
+    E0 cb       LOOPNE rel8
+    E1 cb       LOOPE rel8
+    E2 cb       LOOP rel8
+    61          POPA
+    61          POPAD
+    9D          POPF
+    9D          POPFD
+    60          PUSHA
+    60          PUSHAD
+    9C          PUSHF
+    9C          PUSHFD
+
+    C0 /2 ib    RCL  r/m8,imm8
+    C1 /2 ib    RCL  r/m16,imm8
+    C1 /2 ib    RCL  r/m32,imm8
+    D0 /2       RCL  r/m8,1
+    D1 /2       RCL  r/m16,1
+    D1 /2       RCL  r/m32,1
+    D2 /2       RCL  r/m8,CL
+    D3 /2       RCL  r/m16,CL
+    D3 /2       RCL  r/m32,CL
+
+    C0 /3 ib    RCR  r/m8,imm8
+    C1 /3 ib    RCR  r/m16,imm8
+    C1 /3 ib    RCR  r/m32,imm8
+    D0 /3       RCR  r/m8,1
+    D1 /3       RCR  r/m16,1
+    D1 /3       RCR  r/m32,1
+    D2 /3       RCR  r/m8,CL
+    D3 /3       RCR  r/m16,CL
+    D3 /3       RCR  r/m32,CL
+
+    C0 /0 ib    ROL  r/m8,imm8
+    C1 /0 ib    ROL  r/m16,imm8
+    C1 /0 ib    ROL  r/m32,imm8
+    D0 /0       ROL  r/m8,1
+    D1 /0       ROL  r/m16,1
+    D1 /0       ROL  r/m32,1
+    D2 /0       ROL  r/m8,CL
+    D3 /0       ROL  r/m16,CL
+    D3 /0       ROL  r/m32,CL
+
+    C0 /1 ib    ROR  r/m8,imm8
+    C1 /1 ib    ROR  r/m16,imm8
+    C1 /1 ib    ROR  r/m32,imm8
+    D0 /1       ROR  r/m8,1
+    D1 /1       ROR  r/m16,1
+    D1 /1       ROR  r/m32,1
+    D2 /1       ROR  r/m8,CL
+    D3 /1       ROR  r/m16,CL
+    D3 /1       ROR  r/m32,CL
+
+    C0 /7 ib    SAR  r/m8,imm8
+    C1 /7 ib    SAR  r/m16,imm8
+    C1 /7 ib    SAR  r/m32,imm8
+    D0 /7       SAR  r/m8,1
+    D1 /7       SAR  r/m16,1
+    D1 /7       SAR  r/m32,1
+    D2 /7       SAR  r/m8,CL
+    D3 /7       SAR  r/m16,CL
+    D3 /7       SAR  r/m32,CL
+
+    9E          SAHF
+
+    F9          STC
+    FD          STD
+    F8          CLC
+    FC          CLD
+    F5          CMC
+
+    D7          XLAT m8
+    D7          XLATB
+
+Optional opcodes -- These are opcodes never used by compilers, but can be used to provide features to qx86
+
+    0F A2       CPUID
+    F4          HLT ---note: method of terminating program
+
+    CC          INT 3 --ignored, but may be used later for debugging
+    CD ib       INT imm8
+    CE          INTO --needed?
+    0F 31       RDTSC ----Note: rather than returning a timestamp, returns the current gas used by execution
+    0F 0B       UD2 ----note: official undefined instruciton
+
+
+
+
+
+
+
+
+
+
+Entire Supported opcode list:
+
+See also: http://www.x-hacker.org/ng/iapx86/ng2e5.html
+
+    37          AAA
+    D5 0A       AAD
+    D4 0A       AAM
+    3F          AAS
+
+    10 /r       ADC  r/m8,r8
+    11 /r       ADC  r/m16,r16
+    11 /r       ADC  r/m32,r32
+    12 /r       ADC  r8,r/m8
+    13 /r       ADC  r16,r/m16
+    13 /r       ADC  r32,r/m32
+    14 ib       ADC  AL,imm8
+    15 iw       ADC  AX,imm16
+    15 id       ADC  EAX,imm32
+    80 /2 ib    ADC  r/m8,imm8
+    81 /2 iw    ADC  r/m16,imm16
+    81 /2 id    ADC  r/m32,imm32
+    83 /2 ib    ADC  r/m16,imm8
+    83 /2 ib    ADC  r/m32,imm8
+
+    00 /r       ADD  r/m8,r8
+    01 /r       ADD  r/m16,r16
+    01 /r       ADD  r/m32,r32
+    02 /r       ADD  r8,r/m8
+    03 /r       ADD  r16,r/m16
+    03 /r       ADD  r32,r/m32
+    04 ib       ADD  AL,imm8
+    05 iw       ADD  AX,imm16
+    05 id       ADD  EAX,imm32
+    80 /0 ib    ADD  r/m8,imm8
+    81 /0 iw    ADD  r/m16,imm16
+    81 /0 id    ADD  r/m32,imm32
+    83 /0 ib    ADD  r/m16,imm8
+    83 /0 ib    ADD  r/m32,imm8
+
+    20 /r       AND  r/m8,r8
+    21 /r       AND  r/m16,r16
+    21 /r       AND  r/m32,r32
+    22 /r       AND  r8,r/m8
+    23 /r       AND  r16,r/m16
+    23 /r       AND  r32,r/m32
+    24 ib       AND  AL,imm8
+    25 iw       AND  AX,imm16
+    25 id       AND  EAX,imm32
+    80 /4 ib    AND  r/m8,imm8
+    81 /4 iw    AND  r/m16,imm16
+    81 /4 id    AND  r/m32,imm32
+    83 /4 ib    AND  r/m16,imm8
+    83 /4 ib    AND  r/m32,imm8
+
+    0F BC       BSF  r16,r/m16
+    0F BC       BSF  r32,r/m32
+    0F BD       BSR  r16,r/m16
+    0F BD       BSR  r32,r/m32
+    0F C8 /r    BSWAP r32
+    0F A3       BT  r/m16,r16
+    0F A3       BT  r/m32,r32
+    0F BA /4 ib BT  r/m16,imm8
+    0F BA /4 ib BT  r/m32,imm8
+
+    0F BB       BTC r/m16,r16
+    0F BB       BTC r/m32,r32
+    0F BA /7 ib BTC r/m16,imm8
+    0F BA /7 ib BTC r/m32,imm8
+
+    0F B3       BTR r/m16,r16
+    0F B3       BTR r/m32,r32
+    0F BA /6 ib BTR r/m16,imm8
+    0F BA /6 ib BTR r/m32,imm8
+
+    0F AB       BTS r/m16,r16
+    0F AB       BTS r/m32,r32
+    0F BA /5 ib BTS r/m16,imm8
+    0F BA /5 ib BTS r/m32,imm8
+
+    E8 cw       CALL rel16      ; call near relative
+    E8 cd       CALL rel32      ; call near relative
+    FF /2       CALL r/m16      ; call near indirect
+    FF /2       CALL r/m32      ; call near indirect
+    98          CBW
+    99          CDQ
+    F8          CLC
+    FC          CLD
+    F5          CMC
+
+    0F 40 cw    CMOVO  r16, r/m16
+    0F 40 cd    CMOVO  r32, r/m32
+    0F 41 cw    CMOVNO r16, r/m16
+    0F 41 cd    CMOVNO r32, r/m32
+    0F 42 cw    CMOVB  r16, r/m16
+    0F 42 cd    CMOVB  r32, r/m32
+    0F 43 cw    CMOVAE r16, r/m16
+    0F 43 cd    CMOVAE r32, r/m32
+    0F 44 cw    CMOVE  r16, r/m16
+    0F 44 cd    CMOVE  r32, r/m32
+    0F 45 cw    CMOVNE r16, r/m16
+    0F 45 cd    CMOVNE r32, r/m32
+    0F 46 cw    CMOVBE r16, r/m16
+    0F 46 cd    CMOVBE r32, r/m32
+    0F 47 cw    CMOVA  r16, r/m16
+    0F 47 cd    CMOVA  r32, r/m32
+    0F 48 cw    CMOVS  r16, r/m16
+    0F 48 cd    CMOVS  r32, r/m32
+    0F 49 cw    CMOVNS r16, r/m16
+    0F 49 cd    CMOVNS r32, r/m32
+    0F 4A cw    CMOVP  r16, r/m16
+    0F 4A cd    CMOVP  r32, r/m32
+    0F 4B cw    CMOVNP r16, r/m16
+    0F 4B cd    CMOVNP r32, r/m32
+    0F 4C cw    CMOVL  r16, r/m16
+    0F 4C cd    CMOVL  r32, r/m32
+    0F 4D cw    CMOVGE r16, r/m16
+    0F 4D cd    CMOVGE r32, r/m32
+    0F 4E cw    CMOVLE r16, r/m16
+    0F 4E cd    CMOVLE r32, r/m32
+    0F 4F cw    CMOVG  r16, r/m16
+    0F 4F cd    CMOVG  r32, r/m32
+
+    38 /r       CMP  r/m8,r8
+    39 /r       CMP  r/m16,r16
+    39 /r       CMP  r/m32,r32
+    3A /r       CMP  r8,r/m8
+    3B /r       CMP  r16,r/m16
+    3B /r       CMP  r32,r/m32
+    3C ib       CMP  AL,imm8
+    3D iw       CMP  AX,imm16
+    3D id       CMP  EAX,imm32
+    80 /7 ib    CMP  r/m8,imm8
+    81 /7 iw    CMP  r/m16,imm16
+    81 /7 id    CMP  r/m32,imm32
+    83 /7 ib    CMP  r/m16,imm8
+    83 /7 ib    CMP  r/m32,imm8
+
+    A6          CMPS m8,m8              ; = CMPSB
+    A7          CMPS m16,m16            ; = CMPSW
+    A7          CMPS m32,m32            ; = CMPSD
+
+    0F A6 /r    CMPXCHG r/m8,r8         ; i486 pre-B step only
+    0F A7 /r    CMPXCHG r/m16,r16       ; i486 pre-B step only
+    0F A7 /r    CMPXCHG r/m32,r32       ; i486 pre-B step only
+    0F B0 /r    CMPXCHG r/m8,r8
+    0F B1 /r    CMPXCHG r/m16,r16
+    0F B1 /r    CMPXCHG r/m32,r32
+
+    0F C7 /r    CMPXCHG8B mem64 ---note: requires 64bit pipeline addition
+    0F A2       CPUID
+
+    99          CWD
+    98          CWDE
+    27          DAA
+    2F          DAS
+
+    48 + rw     DEC  r16
+    48 + rd     DEC  r32
+    FE /1       DEC  r/m8
+    FF /1       DEC  r/m16
+    FF /1       DEC  r/m32
+
+    F6 /6       DIV  r/m8
+    F7 /6       DIV  r/m16
+    F7 /6       DIV  r/m32
+
+    C8 iw ib    ENTER imm16,imm8
+    F4          HLT ---note: method of terminating program
+
+    F6 /7       IDIV r/m8
+    F7 /7       IDIV r/m16
+    F7 /7       IDIV r/m32
+
+    F6 /5       IMUL r/m8
+    F7 /5       IMUL r/m16
+    F7 /5       IMUL r/m32              ; 386+
+    0F AF /r    IMUL r16,r/m16          ; 386+
+    0F AF /r    IMUL r32,r/m32          ; 386+
+    69 /r iw    IMUL r16,imm16          ; 186+
+    69 /r iw    IMUL r16,r/m16,imm16    ; 186+
+    69 /r id    IMUL r32,imm32          ; 386+
+    69 /r id    IMUL r32,r/m32,imm32    ; 386+
+    6B /r ib    IMUL r16,imm8           ; 186+
+    6B /r ib    IMUL r16,r/m16,imm8     ; 186+
+    6B /r ib    IMUL r32,imm8           ; 386+
+    6B /r ib    IMUL r32,r/m32,imm8     ; 386+
+
+    40 + rw     INC  r16
+    40 + rd     INC  r32
+    FE /0       INC  r/m8
+    FF /0       INC  r/m16
+    FF /0       INC  r/m32
+
+    CC          INT 3 --ignored, but may be used later for debugging
+    CD ib       INT imm8
+    CE          INTO --needed?
+
+    70 cb;  0F 80 cw;  0F 80 cd         JO  rel8/rel16/rel32
+    71 cb;  0F 81 cw;  0F 81 cd         JNO rel8/rel16/rel32
+    72 cb;  0F 82 cw;  0F 82 cd         JB  rel8/rel16/rel32
+    73 cb;  0F 83 cw;  0F 83 cd         JAE rel8/rel16/rel32
+    74 cb;  0F 84 cw;  0F 84 cd         JE  rel8/rel16/rel32
+    75 cb;  0F 85 cw;  0F 85 cd         JNE rel8/rel16/rel32
+    76 cb;  0F 86 cw;  0F 86 cd         JBE rel8/rel16/rel32
+    77 cb;  0F 87 cw;  0F 87 cd         JA  rel8/rel16/rel32
+    78 cb;  0F 88 cw;  0F 88 cd         JS  rel8/rel16/rel32
+    79 cb;  0F 89 cw;  0F 89 cd         JNS rel8/rel16/rel32
+    7A cb;  0F 8A cw;  0F 8A cd         JP  rel8/rel16/rel32
+    7B cb;  0F 8B cw;  0F 8B cd         JNP rel8/rel16/rel32
+    7C cb;  0F 8C cw;  0F 8C cd         JL  rel8/rel16/rel32
+    7D cb;  0F 8D cw;  0F 8D cd         JGE rel8/rel16/rel32
+    7E cb;  0F 8E cw;  0F 8E cd         JLE rel8/rel16/rel32
+    7F cb;  0F 8F cw;  0F 8F cd         JG  rel8/rel16/rel32
+
+    E3 cb       JCXZ rel8
+    E3 cb       JECXZ rel8
+
+    EB cb       JMP  rel8
+    FF /4       JMP  r/m16
+    FF /4       JMP  r/m32
+    E9 cw       JMP  rel16
+    E9 cd       JMP  rel32
+
+    9F          LAHF
+    C9          LEAVE
+
+    8D /r       LEA  r16,m
+    8D /r       LEA  r32,m ----note: Both ModR/M16 and ModRM/M32 is valid here and is the only place address size override is valid
+
+    F0 ...      LOCK ...                ; Prefix ----note: Ignored, equates to NOP and will NOT trigger invalid opcode on inappropriate instructions
+
+    AC          LODS m8                 ; = LODSB
+    AD          LODS m16                ; = LODSW
+    AD          LODS m32                ; = LODSD
+
+    E0 cb       LOOPNE rel8
+    E1 cb       LOOPE rel8
+    E2 cb       LOOP rel8
+
+    88 /r       MOV  r/m8,r8
+    89 /r       MOV  r/m16,r16
+    89 /r       MOV  r/m32,r32
+    8A /r       MOV  r8,r/m8
+    8B /r       MOV  r16,r/m16
+    8B /r       MOV  r32,r/m32
+    A0          MOV  AL,moffs8
+    A1          MOV  AX,moffs16
+    A1          MOV  EAX,moffs32
+    A2          MOV  moffs8,AL
+    A3          MOV  moffs16,AX
+    A3          MOV  moffs32,EAX
+    B0 + rb     MOV  r8,imm8
+    B8 + rw     MOV  r16,imm16
+    B8 + rd     MOV  r32,imm32
+    C6          MOV  m8,imm8
+    C7          MOV  m16,imm16
+    C7          MOV  m32,imm32
+
+    A4          MOVS m8,m8              ; = MOVSB
+    A5          MOVS m16,m16            ; = MOVSW
+    A5          MOVS m32,m32            ; = MOVSD
+
+    0F BE /r    MOVSX r16,r/m8
+    0F BE /r    MOVSX r32,r/m8
+    0F BF /r    MOVSX r32,r/m16
+
+    0F B6 /r    MOVZX r16,r/m8
+    0F B6 /r    MOVZX r32,r/m8
+    0F B7 /r    MOVZX r32,r/m16
+
+    F6 /4       MUL  r/m8
+    F7 /4       MUL  r/m16
+    F7 /4       MUL  r/m32
+
+    F6 /3       NEG  r/m8,r8
+    F7 /3       NEG  r/m16,r16
+    F7 /3       NEG  r/m32,r32
+
+    90          NOP
+
+    F6 /2       NOT  r/m8,r8
+    F7 /2       NOT  r/m16,r16
+    F7 /2       NOT  r/m32,r32
+
+    08 /r       OR   r/m8,r8
+    09 /r       OR   r/m16,r16
+    09 /r       OR   r/m32,r32
+    0A /r       OR   r8,r/m8
+    0B /r       OR   r16,r/m16
+    0B /r       OR   r32,r/m32
+    0C ib       OR   AL,imm8
+    0D iw       OR   AX,imm16
+    0D id       OR   EAX,imm32
+    80 /1 ib    OR   r/m8,imm8
+    81 /1 iw    OR   r/m16,imm16
+    81 /1 id    OR   r/m32,imm32
+    83 /1 ib    OR   r/m16,imm8
+    83 /1 ib    OR   r/m32,imm8
+
+    58 + rw     POP  r16
+    58 + rd     POP  r32
+    8F /0       POP  m16
+    8F /0       POP  m32
+
+    61          POPA
+    61          POPAD
+    9D          POPF
+    9D          POPFD
+
+    50+rw       PUSH r16
+    50+rd       PUSH r32
+    68          PUSH imm16
+    68          PUSH imm32
+    6A          PUSH imm8
+    FF /6       PUSH m16
+    FF /6       PUSH m32
+
+    60          PUSHA
+    60          PUSHAD
+    9C          PUSHF
+    9C          PUSHFD
+
+    C0 /2 ib    RCL  r/m8,imm8
+    C1 /2 ib    RCL  r/m16,imm8
+    C1 /2 ib    RCL  r/m32,imm8
+    D0 /2       RCL  r/m8,1
+    D1 /2       RCL  r/m16,1
+    D1 /2       RCL  r/m32,1
+    D2 /2       RCL  r/m8,CL
+    D3 /2       RCL  r/m16,CL
+    D3 /2       RCL  r/m32,CL
+
+    C0 /3 ib    RCR  r/m8,imm8
+    C1 /3 ib    RCR  r/m16,imm8
+    C1 /3 ib    RCR  r/m32,imm8
+    D0 /3       RCR  r/m8,1
+    D1 /3       RCR  r/m16,1
+    D1 /3       RCR  r/m32,1
+    D2 /3       RCR  r/m8,CL
+    D3 /3       RCR  r/m16,CL
+    D3 /3       RCR  r/m32,CL
+
+    0F 31       RDTSC ----Note: rather than returning a timestamp, returns the current gas used by execution
+
+    F2 ...      REPNE ...               ; Prefix
+    F3 ...      REPE ...
+    F3 ...      REP ...                 ; REP = REPE
+
+    C2 iw       RETN imm16
+    C3          RETN
+
+    C0 /0 ib    ROL  r/m8,imm8
+    C1 /0 ib    ROL  r/m16,imm8
+    C1 /0 ib    ROL  r/m32,imm8
+    D0 /0       ROL  r/m8,1
+    D1 /0       ROL  r/m16,1
+    D1 /0       ROL  r/m32,1
+    D2 /0       ROL  r/m8,CL
+    D3 /0       ROL  r/m16,CL
+    D3 /0       ROL  r/m32,CL
+
+    C0 /1 ib    ROR  r/m8,imm8
+    C1 /1 ib    ROR  r/m16,imm8
+    C1 /1 ib    ROR  r/m32,imm8
+    D0 /1       ROR  r/m8,1
+    D1 /1       ROR  r/m16,1
+    D1 /1       ROR  r/m32,1
+    D2 /1       ROR  r/m8,CL
+    D3 /1       ROR  r/m16,CL
+    D3 /1       ROR  r/m32,CL
+
+    9E          SAHF
+
+    C0 /7 ib    SAR  r/m8,imm8
+    C1 /7 ib    SAR  r/m16,imm8
+    C1 /7 ib    SAR  r/m32,imm8
+    D0 /7       SAR  r/m8,1
+    D1 /7       SAR  r/m16,1
+    D1 /7       SAR  r/m32,1
+    D2 /7       SAR  r/m8,CL
+    D3 /7       SAR  r/m16,CL
+    D3 /7       SAR  r/m32,CL
+
+    C0 /4 ib    SHL  r/m8,imm8
+    C1 /4 ib    SHL  r/m16,imm8
+    C1 /4 ib    SHL  r/m32,imm8
+    D0 /4       SHL  r/m8,1
+    D1 /4       SHL  r/m16,1
+    D1 /4       SHL  r/m32,1
+    D2 /4       SHL  r/m8,CL
+    D3 /4       SHL  r/m16,CL
+    D3 /4       SHL  r/m32,CL
+
+    18 /r       SBB  r/m8,r8
+    19 /r       SBB  r/m16,r16
+    19 /r       SBB  r/m32,r32
+    1A /r       SBB  r8,r/m8
+    1B /r       SBB  r16,r/m16
+    1B /r       SBB  r32,r/m32
+    1C ib       SBB  AL,imm8
+    1D iw       SBB  AX,imm16
+    1D id       SBB  EAX,imm32
+    80 /3 ib    SBB  r/m8,imm8
+    81 /3 iw    SBB  r/m16,imm16
+    81 /3 id    SBB  r/m32,imm32
+    83 /3 ib    SBB  r/m16,imm8
+    83 /3 ib    SBB  r/m32,imm8
+
+    AE          SCAS m8                 ; = SCASB
+    AF          SCAS m16                ; = SCASW
+    AF          SCAS m32                ; = SCASD
+
+    0F 90 cb     SETO  r/m8
+    0F 91 cb     SETNO r/m8
+    0F 92 cb     SETB  r/m8
+    0F 93 cb     SETAE r/m8
+    0F 94 cb     SETE  r/m8
+    0F 95 cb     SETNE r/m8
+    0F 96 cb     SETBE r/m8
+    0F 97 cb     SETA  r/m8
+    0F 98 cb     SETS  r/m8
+    0F 99 cb     SETNS r/m8
+    0F 9A cb     SETP  r/m8
+    0F 9B cb     SETNP r/m8
+    0F 9C cb     SETL  r/m8
+    0F 9D cb     SETGE r/m8
+    0F 9E cb     SETLE r/m8
+    0F 9F cb     SETG  r/m8
+
+    C0 /5 ib    SHR  r/m8,imm8
+    C1 /5 ib    SHR  r/m16,imm8
+    C1 /5 ib    SHR  r/m32,imm8
+    D0 /5       SHR  r/m8,1
+    D1 /5       SHR  r/m16,1
+    D1 /5       SHR  r/m32,1
+    D2 /5       SHR  r/m8,CL
+    D3 /5       SHR  r/m16,CL
+    D3 /5       SHR  r/m32,CL
+
+    F9          STC
+    FD          STD
+
+    AA          STOS m8                 ; = STOSB
+    AB          STOS m16                ; = STOSW
+    AB          STOS m32                ; = STOSD
+
+    28 /r       SUB  r/m8,r8
+    29 /r       SUB  r/m16,r16
+    29 /r       SUB  r/m32,r32
+    2A /r       SUB  r8,r/m8
+    2B /r       SUB  r16,r/m16
+    2B /r       SUB  r32,r/m32
+    2C ib       SUB  AL,imm8
+    2D iw       SUB  AX,imm16
+    2D id       SUB  EAX,imm32
+    80 /5 ib    SUB  r/m8,imm8
+    81 /5 iw    SUB  r/m16,imm16
+    81 /5 id    SUB  r/m32,imm32
+    83 /5 ib    SUB  r/m16,imm8
+    83 /5 ib    SUB  r/m32,imm8
+
+    84 /r       TEST r/m8,r8
+    85 /r       TEST r/m16,r16
+    85 /r       TEST r/m32,r32
+    A8 ib       TEST AL,imm8
+    A9 iw       TEST AX,imm16
+    A9 id       TEST EAX,imm32
+    F6 /0 ib    TEST r/m8,imm8
+    F7 /0 iw    TEST r/m16,imm16
+    F7 /0 id    TEST r/m32,imm32
+
+    0F 0B       UD2 ----note: official undefined instruciton
+
+    0F C0 /r    XADD r/m8,r8
+    0F C1 /r    XADD r/m16,r16
+    0F C1 /r    XADD r/m32,r32
+
+    86 /r       XCHG r/m8,r8
+    86 /r       XCHG r8,r/m8
+    87 /r       XCHG r/m16,r16
+    87 /r       XCHG r16,r/m16
+    87 /r       XCHG r/m32,r32
+    87 /r       XCHG r32,r/m32
+    90 + rw     XCHG AX,r16
+    90 + rw     XCHG r16,AX
+    90 + rd     XCHG EAX,r32
+    90 + rd     XCHG r32,EAX
+
+    D7          XLAT m8
+    D7          XLATB
+
+    30 /r       XOR  r/m8,r8
+    31 /r       XOR  r/m16,r16
+    31 /r       XOR  r/m32,r32
+    32 /r       XOR  r8,r/m8
+    33 /r       XOR  r16,r/m16
+    33 /r       XOR  r32,r/m32
+    34 ib       XOR  AL,imm8
+    35 iw       XOR  AX,imm16
+    35 id       XOR  EAX,imm32
+    80 /6 ib    XOR  r/m8,imm8
+    81 /6 iw    XOR  r/m16,imm16
+    81 /6 id    XOR  r/m32,imm32
+    83 /6 ib    XOR  r/m16,imm8
+    83 /6 ib    XOR  r/m32,imm8
+
+
+
+
+
