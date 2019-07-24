@@ -95,4 +95,30 @@ fn test_push_pop(){
     assert_eq!(vm.get_mem(0x80000100 - 4, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x80001000);
 }
 
+#[test]
+fn test_jmp(){
+    //This is hard to follow, but order is _a,_b,_c,_d,_e
+    //This uses both long and short positive/negative jumps as well as an absolute jump
+    let vm = execute_vm_with_asm("
+    jmp short _a
+    ud2 ;shouldn't reach here
+    ud2
+    _e:
+    hlt ;EIP = org+7
+    ud2 ;shouldn't reach here
+    _c:
+    mov dword [eax], _e
+    jmp long _d
+    _b:
+    mov eax, 0x80000100
+    jmp short _c
+
+    _a:
+    jmp long _b
+    _d:
+    jmp [eax]
+    ud2 ;shouldn't reach here
+    ");
+    assert_eq!(vm.eip, CODE_MEM + 7);
+}
 
