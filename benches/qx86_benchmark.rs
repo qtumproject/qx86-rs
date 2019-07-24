@@ -64,10 +64,9 @@ fn indirect_infinite_loop_oog_benchmark(c: &mut Criterion) {
     //note this appears to execute faster than the infinite loop benchmark, 
     //but this is due to gas costs being higher for this execution and ending the execution sooner
     let bytes = asm("
-    mov eax, 0x80000000
-    mov dword [eax], _a
+    mov eax, _a
     _a:
-    jmp [eax]
+    jmp eax
     ");
     c.bench_function_over_inputs("oog - indirect infinite loop", | i, bytecode | i.iter(|| run_oog_test(bytecode)), vec![bytes]);
 }
