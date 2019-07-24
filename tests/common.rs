@@ -33,9 +33,7 @@ pub fn execute_vm_with_asm(input: &str) -> VM{
 }
 pub fn execute_vm_with_diagnostics(vm: &mut VM){
     let r = vm.execute();
-    if r.is_err(){
-        vm_diagnostics(vm);
-    }
+    vm_diagnostics(vm);
     r.unwrap();
 }
 pub fn vm_diagnostics(vm: &VM){

@@ -38,7 +38,21 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     Ok(())
 }
 
-
+pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    //relative jumps are calculated from the EIP value AFTER the jump would've executed, ie, after EIP is advanced by the size of the instruction
+    let future_eip = vm.eip + (pipeline.eip_size as u32);
+    //rel must be sign extended, but is otherwise treated as a u32 for simplicity
+    //an i32 and a u32 will behave the same way for wrapping_addition like this
+    let rel = vm.get_arg(pipeline.args[0].location)?.u32_sx()?;
+    //subtract out the eip_size that'll be advanced in the cycle() main loop
+    vm.eip = future_eip.wrapping_add(rel) - (pipeline.eip_size as u32);
+    Ok(())
+}
+pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    //must subtract the size of this opcode to correct for the automatic eip_size advance in the cycle() main loop
+    vm.eip = vm.get_arg(pipeline.args[0].location)?.u32_zx()? - (pipeline.eip_size as u32);
+    Ok(())
+}
 
 
 

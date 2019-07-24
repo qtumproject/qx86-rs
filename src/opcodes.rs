@@ -387,7 +387,23 @@ lazy_static! {
             .with_rmw()
             .into_table(&mut ops);
         
-
+        //jmp opcodes
+        //EB       JMP  rel8
+        define_opcode(0xEB).calls(jmp_rel).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //FF /4    JMP  r/mW
+        define_opcode(0xFF).is_group(4).calls(jmp_abs).with_gas(Moderate)
+            .with_rmw()
+            .is_unpredictable()
+            .into_table(&mut ops);
+        //E9       JMP  relW
+        define_opcode(0xE9).calls(jmp_rel).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        
         ops
     };
 }
