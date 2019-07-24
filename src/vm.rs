@@ -5,37 +5,55 @@ use crate::memory::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
+/// The primary controlling VM class holding all state of the machine 
 #[derive(Default)]
 pub struct VM{
-    pub regs: [u32; 8], //EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
+    /// 32bit registers for x86-32
+    /// In the order of: EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
+    pub regs: [u32; 8], 
+    /// The 32bit instruction pointer. This determines where execution of opcodes is happening within memory
     pub eip: u32,
     pub eflags: u32,
 
+    /// The memory of the VM, controlled by the MemorySystem struct
     pub memory: MemorySystem,
-    //pub pipeline: Vec<Pipeline>,
+
     //todo: hypervisor to call external code
 
-    //set to indicate diagnostic info when an error occurs
+    /// set to the EIP value when an error has occurred
     pub error_eip: u32,
-    pub error_gas: u64,
+    /// The amount of gas remaining for execution
     pub gas_remaining: u64,
+    /// The struct which determines how the GasCost tiers resolve into actual numbers
     pub charger: GasCharger,
 
 }
 
+/// The gas cost of an operation
 #[derive(Debug, Copy, Clone, EnumCount, EnumIter)]
 pub enum GasCost{
+    /// This operation is free. Used only for nop-like operations
     None,
+    /// This operation is of very low cost. Used for operations with very little or simple actual logic
     VeryLow,
+    /// This operation is of low cost. Used for operations with some logic, though not a lot of complexity
     Low,
+    /// This operation is of moderate cost. Used for somewhat complex operations
     Moderate,
+    /// This operation is of high cost. Used for very complex or slow operations
     High,
+
     //surcharges (not intended to direct use outside of VM)
 
-    ConditionalBranch, //surcharge to any unpredictable branch
-    MemoryAccess, //surcharge for any memory access
-    WriteableMemoryExec, //surcharge for each opcode executed within writeable memory space
-    ModRMSurcharge //Mod R/M is complicated, so there is a tier to charge for decoding
+    /// A surcharge for any branch which can not be predicted. This includes conditional branches and also indirect branches
+    ConditionalBranch,
+    /// A surcharge for any operation which accesses memory
+    MemoryAccess,
+    /// A surcharge for every opcode executed within writeable memory space.
+    /// Pipelining can not be properly done within writeable memory space due to the risk of the opcodes which are pipelined being changed before execution
+    WriteableMemoryExec,
+    /// A surcharge for any ModRM argument which must be decoded. This is a relatively complex operation, though can be done fairly efficiently
+    ModRMSurcharge
 }
 
 impl Default for GasCost{
@@ -43,16 +61,20 @@ impl Default for GasCost{
         GasCost::Low
     }
 }
-
+/// Maps the tiers of GasCost to a numerical value
 #[derive(Default, Debug)]
 pub struct GasCharger{
     pub costs: [u64; GASCOST_COUNT]
 }
 
 impl GasCharger{
+    /// Resolve the GasCost value to a numerical value
     pub fn cost(&self, tier: GasCost) -> u64{
         self.costs[tier as usize]
     }
+
+    /// This is a simple default schedule for testing
+    /// This is used within integration and benchmarking tests
     pub fn test_schedule() -> GasCharger{
         use GasCost::*;
         let mut g = GasCharger::default();
@@ -70,7 +92,7 @@ impl GasCharger{
 }
 
 
-
+/// The 32 bit x86 registers, encoded in the respective order for how the registers are encoded into opcodes and their arguments
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum Reg32{
@@ -84,6 +106,7 @@ pub enum Reg32{
     EDI
 }
 
+/// The 16 bit x86 registers, encoded in the respective order for how the registers are encoded into opcodes and their arguments
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum Reg16{
@@ -97,6 +120,7 @@ pub enum Reg16{
     DI
 }
 
+/// The 8 bit x86 registers, encoded in the respective order for how the registers are encoded into opcodes and their arguments
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum Reg8{
@@ -110,32 +134,58 @@ pub enum Reg8{
     BH
 }
 
+/// All of the types of errors which can be thrown by the qx86 VM
 #[derive(PartialEq, Debug, Display)]
 #[derive(Copy, Clone)]
 pub enum VMError{
+    /// Indicates no error
     None,
-    NotYetImplemented, //ideally throw none of these when finished
+    /// Indicates this functionality is currently not yet implemented
+    /// This will be removed when the qx86 is finished per specifications
+    NotYetImplemented,
+
     //memory errors
+
+    /// Indicates that an access to non-existent memory was attempted
     ReadBadMemory(u32),
+    /// Indicates that a write operation to non-existent memory was attempted
     WroteBadMemory(u32),
+    /// Indicates that a write operation to read-only memory space was attempted
     WroteReadOnlyMemory(u32),
+    /// ???
     ReadUnloadedMemory(u32),
-    //caused by add_memory
+
+    /// An error thrown by MemorySystem::add_memory which indicates that an address added was not aligned to an 0x10000 byte border
     UnalignedMemoryAddition,
+    /// An error thrown by MemorySystem::add_memory which indicates that memory added conflicts with existing memory
     ConflictingMemoryAddition,
     
     //execution error
+
+    /// Indicates that execution of an invalid opcode was attempted. The u8 attached is the primary opcode byte of the opcode
     InvalidOpcode(u8),
+    /// This is thrown when writing (ie, using set_arg) a read-only argument is attempted.
+    /// This can be triggered for instance by using set_arg on an argument which has a location of ImmediateValue
     WroteUnwriteableArgumnet,
 
     //decoding error
-    DecodingOverrun, //needed more bytes for decoding -- about equivalent to ReadBadMemory
+    /// More bytes were needed for filling the pipeline and decoding opcodes
+    /// This can indicate either an overrun into unloaded memory or that there were instructions executed less than 16 bytes before the 0x10000 border of memory
+    DecodingOverrun, 
     
     //argument errors
+
+    /// This is thrown when a particular size was expected to be different than the actual size.
+    /// This should never be thrown in a completed and bug free VM
     WrongSizeExpectation,
+    /// This is thrown when an attempt to convert a particular SizedValue to a particular integer type is attempted and the value will not fit. 
+    /// Thsi should never be thrown in a completed and bug free VM
     TooBigSizeExpectation,
 
-    InternalVMStop, //not an actual error but triggers a stop
+    /// This is not an actual error, but rather an "escape" which should stop the VM immediately.
+    InternalVMStop,
+    /// This indicates that the execution reached the end of its' gas limit
+    /// This is not an actual execution error per-se, and resuming afterwards is possible if desired.
     OutOfGas
 }
 
@@ -171,6 +221,7 @@ impl VM{
             _ => panic!("This should not be reached")
         }
     }
+    /// Resolves an argument location into a SizedValue 
     pub fn get_arg(&self, arg: ArgLocation) -> Result<SizedValue, VMError>{
         use ArgLocation::*;
         Ok(match arg{
@@ -197,8 +248,9 @@ impl VM{
             }
         })
     }
-    //When the specified ArgLocation does not match the size of SizedValue, the SizedValue will be zero extended to fit
-    //If the SizedValue is larger than can fit, then an error will be returned
+    /// Resolves an argument location and stores the specified SizedValue in it.
+    /// If the specified ArgLocation is of a larger size than the SizedValue, the SizedValue will be zero extended to fit.
+    /// If the SizedValue is larger than can fit, then an error will be returned
     pub fn set_arg(&mut self, arg: ArgLocation, v: SizedValue) -> Result<(), VMError>{
         use ArgLocation::*;
         match arg{
@@ -225,6 +277,7 @@ impl VM{
 
         Ok(())
     }
+    /// Resolves a numerical register index and ValueSize to a SizedValue indicating the value of that particular register
     pub fn get_reg(&self, reg: u8, size: ValueSize) -> SizedValue{
         use ValueSize::*;
         let r = reg as usize;
@@ -247,6 +300,8 @@ impl VM{
             }
         }
     }
+    /// Resolves a numerical register index and using the size of the SizedValue determiens which 
+    /// register to set and sets appropriately to the SizedValue.
     pub fn set_reg(&mut self, reg: u8, value: SizedValue){
         use SizedValue::*;
         let r = reg as usize;
@@ -269,6 +324,7 @@ impl VM{
             }
         }
     }
+    /// Retreives a SizedValue from VM memory which matches the specified ValueSize
     pub fn get_mem(&self, address: u32, size: ValueSize) -> Result<SizedValue, VMError>{
         use ValueSize::*;
         match size{
@@ -284,6 +340,7 @@ impl VM{
             },
         }
     }
+    /// Sets an area in VM memory to the specified SizedValue
     pub fn set_mem(&mut self, address: u32, value: SizedValue) -> Result<(), VMError>{
         use SizedValue::*;
         if address & 0x80000000 == 0{
@@ -305,8 +362,9 @@ impl VM{
         Ok(())
     }
 
-
-    //note: errors.len() must be equal to pipeline.len() !! 
+    /// This will execute one "cycle" of the VM
+    /// A cycle includes filling the pipeline, executing the filled pipeline, and then handling any errors present
+    /// Will return a result of true if an InternalVMStop was received, otherwise will return false
     fn cycle(&mut self, pipeline: &mut [Pipeline]) -> Result<bool, VMError>{
         fill_pipeline(self, &OPCODES[0..], pipeline)?;
         //manually unroll loop later if needed?
@@ -336,6 +394,7 @@ impl VM{
         return Ok(false);
 
     }
+    /// Executes the VM either until there is no remaining gas, an error occurs, or the `hlt` instruction is executed
     pub fn execute(&mut self) -> Result<bool, VMError>{
         //todo: gas handling
         let mut pipeline = vec![];
@@ -346,6 +405,7 @@ impl VM{
             }
         }
     }
+    /// Helper function to simplify copying a set of data into VM memory
     pub fn copy_into_memory(&mut self, address: u32, data: &[u8]) -> Result<(), VMError>{
         let m = self.memory.get_mut_sized_memory(address, data.len() as u32)?;
         m[0..data.len()].copy_from_slice(data);
@@ -371,6 +431,21 @@ impl VM{
     }
 }
 
+/// The size of the pipeline is fixed in order to avoid unnecessary allocation in the main loop of the VM, 
+/// as well as to give Rust additional information for optimizations.
+/// This constant determines the size of that pipeline.
+/// This does not affect the actual behavior or results of the VM, and only causes a performance change.
+/// 
+/// Performance tuning guidance:
+/// 
+/// Too small and predictable runs of instructions become slower than needed by requiring
+/// unnecessary (host CPU) cache switching between the execution logic and decoding logic of VM instructions
+/// 
+/// Too large and the cost of unpredictable instructions becomes greater due to 
+/// requiring execution of a greater number of simple, but still time consuming "nop"s 
+/// 
+/// Somewhere in between 10 and 30 seems to be about right judging from reverse engineered programs, but ultimately
+/// it will require extensive benchmarking to be completely sure about the final value.
 const PIPELINE_SIZE:usize = 16;
 
 #[cfg(test)]

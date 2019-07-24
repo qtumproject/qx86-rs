@@ -2,12 +2,12 @@ use crate::vm::*;
 use crate::pipeline::*;
 use crate::structs::*;
 
-
+/// The logic function for the `mov` opcode
 pub fn mov(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.set_arg(pipeline.args[0].location, vm.get_arg(pipeline.args[1].location)?)?;
     Ok(())
 }
-
+/// The logic function for the `push` opcode
 pub fn push(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let v = vm.get_arg(pipeline.args[0].location)?;
     if pipeline.size_override{
@@ -19,6 +19,7 @@ pub fn push(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     };
     Ok(())
 }
+/// The logic function for the `pop` opcode
 pub fn pop(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     //Important edge case:
     /* https://c9x.me/x86/html/file_module_x86_id_248.html
@@ -37,7 +38,7 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     };
     Ok(())
 }
-
+/// The logic function for the `jmp` opcodes with a relative argument
 pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     //relative jumps are calculated from the EIP value AFTER the jump would've executed, ie, after EIP is advanced by the size of the instruction
     let future_eip = vm.eip + (pipeline.eip_size as u32);
@@ -48,6 +49,7 @@ pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.eip = future_eip.wrapping_add(rel) - (pipeline.eip_size as u32);
     Ok(())
 }
+/// The logic function for the `jmp` opcodes with an absolute argument
 pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     //must subtract the size of this opcode to correct for the automatic eip_size advance in the cycle() main loop
     vm.eip = vm.get_arg(pipeline.args[0].location)?.u32_zx()? - (pipeline.eip_size as u32);
@@ -56,7 +58,7 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 
 
 
-
+/// The logic function for the `hlt` opcode
 pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
     Err(VMError::InternalVMStop)
 }

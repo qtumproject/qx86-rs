@@ -6,31 +6,50 @@ use crate::pipeline::*;
 
 pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>;
 
-//Defines how to decode the argument of an opcode
+/// Defines how to decode an argument of an opcode
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum ArgSource{
+    /// Specifies that there is no argument
     None,
+    /// Specifies that the argument is a Mod R/M byte. This can resolve to simple or complex addressing forms, as well as register values
     ModRM,
-    ModRMReg, //the /r field
+    /// Specifies that the argument is a register corresponding to the "reg" field of the Mod R/M byte.
+    /// This is often described in x86 reference documents as being a `/r` opcode
+    ModRMReg, 
+    /// Specifies that the argument is an immeidate value within the opcode stream
     ImmediateValue,
-    ImmediateAddress, //known as an "offset" in docs rather than pointer or address
-    RegisterSuffix, //lowest 3 bits of the opcode is used for register
+    /// Specifies that the argument is an immediate address within the opcode stream
+    /// This is often described as an "offset" in x86 reference documents
+    ImmediateAddress,
+    /// Specifies that the argument is a register chosen by the bottom 3 bits of the current opcode
+    /// This is often described as a "+r" opcode in x86 reference documents
+    RegisterSuffix,
 
-    //note: for Jump opcodes, exactly 1 argument is the only valid encoding
-    //This is treated the same as ImmediateValue, but specialized so that the Pipeline can interpret it directly
-    //without requiring a full decode and execution
+    /// This is treated the same as an ImmediateValue but explicitly specified so that the pipeline building process can interpret it directly
+    /// This allows the pipeline process to follow these easy to predict jumps rather than causing a pipeline termination
     JumpRel,
-    Literal(SizedValue), //For encoding hard-coded values, such as the `rol modrm8, 1` opcode
-    HardcodedRegister(u8) //for encoding hard-coded registers, such as `mov EAX, offs32`
+    /// This indicates that the argument should be treated as a hard coded value
+    /// This is needed to avoid special case logic functions in some instructions, such as `rol modrm8, 1` 
+    Literal(SizedValue), 
+    /// This indicates that the argument should be treated as a hard coded register
+    /// This is needed to avoid special case logic functions in some instructions, such as `mov EAX, offs32`
+    HardcodedRegister(u8)
 }
+
+/// This is similar to the ValueSize enum, but allows for specifyng that a value is of either fixed size, 
+/// or a size dependent on the presence of an operand size override prefix.
+/// After decoding within the pipeline building process, this will be resolved to a fixed ValueSize
 #[derive(Copy, Clone)]
 pub enum OpcodeValueSize{
+    /// Indicates the opcode argument is of a fixed size
     Fixed(ValueSize),
-    NativeWord //this translates into either Word or Dword depending on if an operand size override prefix is present
+    /// Indicates that the opcode argument is a word if there is an operand size override prefix present, otherwise is a dword
+    NativeWord
 }
 
 impl OpcodeValueSize{
+    /// Resolves the OpcodeValueSize to a fixed ValueSize
     pub fn to_fixed(&self, size_override: bool) -> ValueSize{
         match self{
             OpcodeValueSize::Fixed(f) => *f,
@@ -45,22 +64,25 @@ impl OpcodeValueSize{
     }
 }
 
+/// This specifies if an instruction requires special handling within the pipeline building process
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum PipelineBehavior{
+    /// This is for normal behavior indicating no special treatment is needed
     None,
-    //This is for predictable jumps with a hard coded jump target
+    /// This is for predictable jumps with a hard coded jump target.
+    /// The pipeline building process will follow these jumps since they are static and can be predicted
     RelativeJump,
-    //any opcode which changes EIP or execution state and can not be predicted at the decoding stage
-    //this includes opcodes like `jne` and also opcodes like `jmp eax`, as well as system calls using `int`
+    /// This is for any opcode which changes EIP or execution state that may affect opcodes later in the pipeline and can not easily be predicted
+    /// this includes opcodes like `jne` and also opcodes like `jmp [eax]`, as well as system calls using `int`
     Unpredictable,
-    //Same behavior as Unpredictable but without a gas penalty
-    //used for int and hlt, where execute state can change so pipelining can't continue,
-    //but they're not really a conditional branch that one would expect to pay an extra gas charge for
+    /// This is for the same behavior as Unpredictable but without a gas penalty
+    /// used for int and hlt, where execute state can change so pipelining can't continue,
+    /// but they're not really a conditional branch that one would expect to pay an extra gas charge for
     UnpredictableNoGas,
 }
 
-//defines an opcode with all the information needed for decoding the opcode and all arguments
+/// Defines an opcode with all the information needed for decoding the opcode and its arguments
 #[derive(Copy, Clone)]
 pub struct Opcode{
     pub function: OpcodeFn,
@@ -71,21 +93,27 @@ pub struct Opcode{
     pub defined: bool
 }
 
+/// This is a "super-opcode" which may have multiple child opcodes.
+/// One OpcodeProperties refers to exactly one opcode byte.
+/// The exact opcode is then determined by (potentially) parsing a Mod R/M byte
 #[derive(Copy, Clone)]
 pub struct OpcodeProperties{
+    /// This super opcode has a Mod R/M byte which requires decoding
     pub has_modrm: bool,
+    /// This super opcode is explicitly defined (not directly used for execution)
     pub defined: bool,
     //pub rep_valid: bool, //this is handled in decoding by special case checking -- 0xA4 through 0xAF, excluding 0xA8 and 0xA9
 
-    //0 is the normal opcode, while the entire array is used for "group" opcodes which use the reg
-    //field of Mod R/M to extend the opcode
-    //For "/r" opcodes which use the reg field as an additional parameter, the opcode is duplicated to fill this entire array
+    /// 0 is the normal opcode, while the entire array is used for "group" opcodes which use the reg
+    /// field of Mod R/M to extend the opcode
+    /// For "/r" opcodes which use the reg field as an additional parameter, the opcode is duplicated to fill this entire array
     pub opcodes: [Opcode; 8],
 }
 
 pub fn nop(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
 Ok(())
 }
+
 pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
     Err(VMError::InvalidOpcode(vm.get_mem(vm.eip, ValueSize::Byte)?.u8_exact()?))
 }
@@ -114,16 +142,17 @@ impl Default for Opcode{
     }
 }
 
-//index: lower byte is primary opcode
-//upper bit is if 0x0F prefix is used (ie, extended opcode)
+/// The master opcode table.
+/// index: lower byte is primary opcode.
+/// upper bit is set if 0x0F prefix is used (ie, extended opcode)
 pub const OPCODE_TABLE_SIZE:usize = 0x1FF;
 const OP_TWOBYTE:usize = 1 << 8;
 
-
+/// This is a helper structure and set of functions for defining opcodes
+/// Basically it provides sane defaults for how opcodes are typically defined and saves a lot of typing and potential errors on the programmer's part
 #[derive(Default)]
 pub struct OpcodeDefiner{
     opcode: u8,
-    //None = handle both with/without size override, false = without size override, true = with size override
     two_byte: bool,
     group: Option<u8>,
     gas_level: Option<GasCost>,
@@ -135,15 +164,19 @@ pub struct OpcodeDefiner{
 }
 
 impl OpcodeDefiner{
+    /// Specifies that the opcode is a group opcode.
+    /// Example: to encode `0xFF /0` one would use define_opcode(0xFF).is_group(0)
     pub fn is_group(&mut self, group: u8) -> &mut OpcodeDefiner{
         self.group = Some(group);
         self.has_modrm = true;
         self
     }
+    /// Specifies which function pointer to call when the opcode is executed
     pub fn calls(&mut self, function: OpcodeFn) -> &mut OpcodeDefiner{
         self.function = Some(function);
         self
     }
+    /// Specifies that the next argument for the opcode is from a particular source and of a particular size
     pub fn with_arg(&mut self, source: ArgSource, size: OpcodeValueSize) -> &mut OpcodeDefiner{
         
         let hasmodrm = match source{
@@ -157,54 +190,69 @@ impl OpcodeDefiner{
         self.args.push((source, size));
         self
     }
+    /// Specifies that the opcode should use the RelativeJump pipeline behavior
     pub fn is_jump(&mut self) -> &mut OpcodeDefiner{
         self.jump = Some(PipelineBehavior::RelativeJump);
         self
     }
+    /// Specifies that the opcode is unpredictable and pipeline filling should stop upon encountering it 
     pub fn is_unpredictable(&mut self) -> &mut OpcodeDefiner{
         self.jump = Some(PipelineBehavior::Unpredictable);
         self
     }
+    /// Specifies that the opcode is unpredictable, but to not charge the unpredictable gas surcharge
     pub fn is_unpredictable_no_gas(&mut self) -> &mut OpcodeDefiner{
         self.jump = Some(PipelineBehavior::UnpredictableNoGas);
         self
     }
+    /// Specifies the gas tier of the opcode
     pub fn with_gas(&mut self, gas: GasCost) -> &mut OpcodeDefiner{
         self.gas_level = Some(gas);
         self
     }
-    //arg helpers to keep sanity when defining opcodes
+    /// Specifies that the next argument is a ModRM argument of byte size
     pub fn with_rm8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Byte))
     }   
+    /// Specifies that the next argument is a ModRM argument of NativeWord size
     pub fn with_rmw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRM, OpcodeValueSize::NativeWord)
     }
+    /// Specifies that the next argument is a ModRM /r argument of NativeWord size
     pub fn with_rm_regw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::NativeWord)
     }
+    /// Specifies that the next argument is a ModRM /r argument of byte size
     pub fn with_rm_reg8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::Fixed(ValueSize::Byte))
     }
+    /// Specifies that the next argument is an immediate byte value
     pub fn with_imm8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::Fixed(ValueSize::Byte))
     }
+    /// Specifies that the next argument is an immeidate NativeWord value
     pub fn with_immw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::NativeWord)
     }
+    /// Specifies that the next argument is an immediate address pointing to a byte size value
     pub fn with_offs8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateAddress, OpcodeValueSize::Fixed(ValueSize::Byte))
     }
+    /// Specifies that the next argument is an immediate address pointing to a NativeWord size value
     pub fn with_offsw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateAddress, OpcodeValueSize::NativeWord)
     }
+    /// Specifies that the next argument is a +r register opcode suffix chosen from the byte sized register set
     pub fn with_suffix_reg8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::RegisterSuffix, OpcodeValueSize::Fixed(ValueSize::Byte))
     }
+    /// Specifies that the next argument is a +r register opcode suffix chosen from the dword or word sized register set
     pub fn with_suffix_regw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::RegisterSuffix, OpcodeValueSize::NativeWord)
     }
-
+    /// Condenses the current opcode description into the faster to execute OpcodeProperties/Opcode structures.
+    /// Depending on the exact opcode description, this can fill multiple slots within the opcode table.
+    /// Simple error checking is included to ensure that the same opcode is not specified twice
     pub fn into_table(&mut self, table: &mut [OpcodeProperties]){
         if self.jump.is_none(){
             self.jump = Some(PipelineBehavior::None);
@@ -258,9 +306,9 @@ impl OpcodeDefiner{
         }
     }
 }
+/// Defines a new opcode and creates a new OpcodeDefiner helper struct
 pub fn define_opcode(opcode: u8) -> OpcodeDefiner{
     let mut d = OpcodeDefiner::default();
-    //d.args.resize(3, (ArgSource::None, ValueSize::None));
     d.opcode = opcode;
     d
 }
@@ -280,8 +328,9 @@ Use a suffix of "W" in comments to indicate that an argument can be either word 
 */
 
 
-//(Eventually) huge opcode map
 lazy_static! {
+    /// The master qx86 subset opcode map definition.
+    /// Note this uses lazy_static so that the definitions can be constructed more simply while not incurring a runtime execution cost
     pub static ref OPCODES: [OpcodeProperties; OPCODE_TABLE_SIZE] = {
         use crate::ops::*;
         use OpcodeValueSize::*;

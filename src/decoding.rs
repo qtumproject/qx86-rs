@@ -30,6 +30,8 @@ fn u8_from_bytes(bytes: &[u8]) -> Result<u8, VMError>{
     Ok(bytes[0])
 }
 
+/// The ModRM byte structure used within x86.
+/// These are encoded as u8 fields here, but are actually bit fields
 #[derive(Default)]
 #[derive(Debug)]
 #[derive(Clone, Copy)]
@@ -46,6 +48,7 @@ impl fmt::Display for ModRM{
 }
 
 impl ModRM{
+    /// Encodes a byte into a ModRM struct
     pub fn parse(b: u8) -> ModRM{
         ModRM{
             rm: b & 0x07, //bottom 3 bits
@@ -53,8 +56,9 @@ impl ModRM{
             mode: (b & (0x03 << 6)) >> 6 //top 2 bits
         }
     }
-    //This is pretty dense because Mod R/M is stupidly complicated
-    //Make sure to use this reference to understand why: http://ref.x86asm.net/coder32.html#modrm_byte_32
+    /// This will accept a ModRM and SIB struct as well as an (optional) displacement value and decode it into an OpArgument with appropriate location.
+    /// This is pretty dense because Mod R/M is stupidly complicated.
+    /// Make sure to use this reference to understand why: http://ref.x86asm.net/coder32.html#modrm_byte_32
     fn decode(&self, sib: &SIB, disp: u32, size: ValueSize) -> OpArgument{
         //when mode is 3, actual uses the direct register, and thus will not be an address
         if self.mode == 3 {
@@ -125,6 +129,8 @@ impl ModRM{
     }
 }
 
+/// The SIB (scale-index-base) byte structure used within x86.
+/// These are encoded as u8 fields here, but are actually bit fields
 #[derive(Default)]
 #[derive(Clone, Copy)]
 pub struct SIB{
@@ -134,6 +140,7 @@ pub struct SIB{
 }
 
 impl SIB{
+    /// Encodes a byte as an SIB struct
     pub fn parse(b: u8) -> SIB{
         SIB{
             base: b & 0x07, //bottom 3 bits
@@ -147,7 +154,8 @@ impl fmt::Display for SIB{
         write!(f, "[base: {}, index: {}, scale: {}]", self.base, self.index, self.scale)
     }
 }
-
+/// This is a parsed ModRM argument with attached (optional) SIB and displacement values.
+/// With this data the struct can be used to completely decode the addressing to be used for the argument
 #[derive(Default)]
 #[derive(Clone, Copy)]
 pub struct ParsedModRM{
@@ -158,6 +166,7 @@ pub struct ParsedModRM{
 }
 
 impl ParsedModRM{
+    /// Decodes the current byte stream (starting at the ModRM byte) into a fully formed ParsedModRM struct
     pub fn from_bytes(bytestream: &[u8]) -> Result<ParsedModRM, VMError>{
         if bytestream.len() < 16{
             return Err(VMError::DecodingOverrun);
@@ -190,9 +199,11 @@ impl ParsedModRM{
     }
 }
 
+/// Decodes the set of arguments for an opcode assuming that no ModRM value is needed (this is used primarily for simpler unit testing)
 pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], address_override: bool) -> Result<usize, VMError>{
     decode_args_with_modrm(opcode, bytestream, args, address_override, None)
 }
+/// Decodes the set of arguments for a given opcode within a given byte stream. This returns the total size of the arguments in opcode bytes
 pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], _address_override: bool, parsed_modrm: Option<ParsedModRM>) -> Result<usize, VMError>{
     use ArgSource::*;
     if bytestream.len() < 16{
