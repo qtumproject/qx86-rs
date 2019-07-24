@@ -10,10 +10,23 @@ use criterion::Criterion;
 pub const CODE_MEM:u32 = 0x10000;
 pub const DATA_MEM:u32 = 0x80000000;
 
+pub const OOG_GAS_LIMIT:u64 = 10000;
+
 fn run_exec_test(bytecode: &[u8]){
     let mut vm = create_vm();
     vm.copy_into_memory(CODE_MEM, bytecode).unwrap();
     vm.execute().unwrap();
+}
+
+fn run_oog_test(bytecode: &[u8]){
+    let mut vm = create_vm();
+    vm.gas_remaining = OOG_GAS_LIMIT;
+    vm.copy_into_memory(CODE_MEM, bytecode).unwrap();
+    let r = vm.execute().unwrap_err();
+    match r{
+        VMError::OutOfGas => return,
+        _ => panic!("Unexpected error instead of Out Of Gas")
+    };
 }
 
 fn nop_hlt_benchmark(c: &mut Criterion) {
@@ -39,7 +52,15 @@ fn mov_modrm_benchmark(c: &mut Criterion) {
     c.bench_function_over_inputs("mov modrm x2000", | i, bytecode | i.iter(|| run_exec_test(bytecode)), vec![bytes]);
 }
 
-criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark);
+fn infinite_loop_oog_benchmark(c: &mut Criterion) {
+    let bytes = asm("
+    _a:
+    jmp _a
+    ");
+    c.bench_function_over_inputs("oog - infinite loop", | i, bytecode | i.iter(|| run_oog_test(bytecode)), vec![bytes]);
+}
+
+criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark, infinite_loop_oog_benchmark);
 criterion_main!(benches);
 
 
