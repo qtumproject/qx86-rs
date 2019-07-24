@@ -44,7 +44,6 @@ pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     //rel must be sign extended, but is otherwise treated as a u32 for simplicity
     //an i32 and a u32 will behave the same way for wrapping_addition like this
     let rel = vm.get_arg(pipeline.args[0].location)?.u32_sx()?;
-    println!("future_eip: {:X?}, rel: {:X?}", future_eip, rel);
     //subtract out the eip_size that'll be advanced in the cycle() main loop
     vm.eip = future_eip.wrapping_add(rel) - (pipeline.eip_size as u32);
     Ok(())
