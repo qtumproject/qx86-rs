@@ -71,15 +71,15 @@ impl SizedValue{
     pub fn u32_sx(&self) ->  Result<u32, VMError>{
         match self{
             SizedValue::Dword(v) => Ok(*v),
-            SizedValue::Word(v) => Ok((*v as i32) as u32),
-            SizedValue::Byte(v) => Ok((*v as i8 as i32) as u32),
+            SizedValue::Word(v) => Ok(*v as i16 as i32 as u32),
+            SizedValue::Byte(v) => Ok(*v as i8 as i32 as u32),
             SizedValue::None => Ok(0),
         }
     }
     pub fn u16_sx(&self) ->  Result<u16, VMError>{
         match self{
             SizedValue::Word(v) => Ok(*v),
-            SizedValue::Byte(v) => Ok((*v as i16) as u16),
+            SizedValue::Byte(v) => Ok(*v as i8 as i16 as u16),
             SizedValue::None => Ok(0),
             SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation)
         }
