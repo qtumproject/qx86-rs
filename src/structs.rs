@@ -5,13 +5,18 @@ use crate::vm::*;
 
 pub const MAX_ARGS:usize = 3;
 
+/// ValueSize is an enum to indicate literally the sized of a value 
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 #[derive(Debug)]
 pub enum ValueSize{
+    /// No value size, this resolves to 0 or an error depending on context
     None,
+    /// Byte value size, this is 1 byte
     Byte,
+    /// Word value size, this is 2 bytes
     Word,
+    /// Dword value size, this is 4 bytes
     Dword,
 }
 
@@ -19,38 +24,46 @@ pub enum ValueSize{
 
 
 
-
+/// SizedValue is a fixed size value of a determined size
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 #[derive(Debug)]
 pub enum SizedValue{
+    /// No value present, this resolves to 0 or an error depending on context
     None,
+    /// A byte value
     Byte(u8),
+    /// A word value of 2 bytes
     Word(u16),
+    /// A dword value of 4 bytes
     Dword(u32)
 }
 
 impl SizedValue{
+    /// Unwraps the value expecting it to be exactly a Dword. Returns an error if not
     pub fn u32_exact(&self) -> Result<u32, VMError>{
         match self{
             SizedValue::Dword(v) => Ok(*v),
             _ => Err(VMError::WrongSizeExpectation)
         }
     }
+    /// Unwraps the value expecting it to be exactly a Word. Returns an error if not
     pub fn u16_exact(&self) -> Result<u16, VMError>{
         match self{
             SizedValue::Word(v) => Ok(*v),
             _ => Err(VMError::WrongSizeExpectation)
         }
     }
+    /// Unwraps the value expecting it to be exactly a Byte. Returns an error if not
     pub fn u8_exact(&self) -> Result<u8, VMError>{
         match self{
             SizedValue::Byte(v) => Ok(*v),
             _ => Err(VMError::WrongSizeExpectation)
         }
     }
-    
-    //zx = zero extend to fit into integer size
+
+    /// Unwraps the value as a u32 by zero-extending smaller values.
+    /// Returns an error if the present value is too large to fit within a u32
     pub fn u32_zx(&self) ->  Result<u32, VMError>{
         match self{
             SizedValue::Dword(v) => Ok(*v),
@@ -59,6 +72,9 @@ impl SizedValue{
             SizedValue::None => Ok(0),
         }
     }
+
+    /// Unwraps the value as a u16 by zero-extending smaller values.
+    /// Returns an error if the present value is too large to fit within a u16
     pub fn u16_zx(&self) ->  Result<u16, VMError>{
         match self{
             SizedValue::Word(v) => Ok(*v),
@@ -67,7 +83,9 @@ impl SizedValue{
             SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation)
         }
     }
-    //sx = signed extend to fit into integer size
+
+    /// Unwraps the value as a u32 by sign-extending smaller values.
+    /// Returns an error if the present value is too large to fit within a u32
     pub fn u32_sx(&self) ->  Result<u32, VMError>{
         match self{
             SizedValue::Dword(v) => Ok(*v),
@@ -76,6 +94,9 @@ impl SizedValue{
             SizedValue::None => Ok(0),
         }
     }
+
+    /// Unwraps the value as a u16 by sign-extending smaller values.
+    /// Returns an error if the present value is too large to fit within a u16
     pub fn u16_sx(&self) ->  Result<u16, VMError>{
         match self{
             SizedValue::Word(v) => Ok(*v),
@@ -85,10 +106,7 @@ impl SizedValue{
         }
     }
 
-    //trunc = make fit into the specified type even if data is lost
-    //If the type is larger then equivalent to zero-extend
-    //top bytes will be cut when casting to a smaller type
-    //Note these can not error
+    /// Unwraps the value as a u32 by zero-extending smaller values and truncating larger values to keep only the least significant bits that will fit
     pub fn u32_trunc(&self) ->  u32{
         match self{
             SizedValue::Dword(v) => *v,
@@ -97,6 +115,7 @@ impl SizedValue{
             SizedValue::None => 0,
         }
     }
+    /// Unwraps the value as a u16 by zero-extending smaller values and truncating larger values to keep only the least significant bits that will fit
     pub fn u16_trunc(&self) ->  u16{
         match self{
             SizedValue::Word(v) => *v as u16,
@@ -105,6 +124,7 @@ impl SizedValue{
             SizedValue::Dword(v) => *v as u16
         }
     }
+    /// Unwraps the value as a u8 by zero-extending smaller values and truncating larger values to keep only the least significant bits that will fit
     pub fn u8_trunc(&self) -> u8{
         match self{
             SizedValue::Word(v) => *v as u8,
@@ -114,6 +134,8 @@ impl SizedValue{
         }
     }
 
+    /// This will convert the current SizedValue to the specified ValueSize by zero-extending smaller values
+    /// This will return an error if the current value will not fit into the target ValueSize
     pub fn convert_size_zx(&self, s: ValueSize) -> Result<SizedValue, VMError>{
         use ValueSize::*;
         match s{
@@ -123,6 +145,8 @@ impl SizedValue{
             None => Err(VMError::WrongSizeExpectation)
         }
     }
+    /// This will convert the current SizedValue to the specified ValueSize by sign-extending smaller values
+    /// This will return an error if the current value will not fit into the target ValueSize
     pub fn convert_size_sx(&self, s: ValueSize) -> Result<SizedValue, VMError>{
         use ValueSize::*;
         match s{
@@ -132,6 +156,7 @@ impl SizedValue{
             None => Err(VMError::WrongSizeExpectation)
         }
     }
+    /// This will convert the current SizedValue to the specified ValueSize by zero-extending smaller values and truncating larger values than will fit
     pub fn convert_size_trunc(&self, s: ValueSize) -> SizedValue{
         use ValueSize::*;
         match s{
@@ -144,6 +169,8 @@ impl SizedValue{
 }
 
 trait ToSizedValue{
+    /// Will convert the current value to a SizedValue of appropriate size
+    /// This trait should not be implemented on types which may not fit within a SizedValue
     fn to_sized(&self) -> SizedValue;
 }
 impl ToSizedValue for u8{
@@ -162,7 +189,9 @@ impl ToSizedValue for u32{
     }
 }
 
-
+/// ArgLocation is used to specify how to locate an opcode's argument
+/// It is a rich enum which specifies everything from different forms of addressing, to immediate values and register values
+/// It is difficult to use directly, so a SizedValue can be retreived by using `VM::get_arg` to resolve the location
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
 #[derive(Debug)]
@@ -201,6 +230,7 @@ impl Default for ArgLocation{
     }
 }
 
+/// Specifies information about an opcode's argument within execution such as the location and if that location is within memory 
 #[derive(Copy, Clone)]
 pub struct OpArgument{
     pub location: ArgLocation,

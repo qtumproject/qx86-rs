@@ -5,12 +5,19 @@ use crate::decoding::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
+/// This is a single execution unit of a pipeline
+/// This includes all decoded information that the logic of an opcode would need to execute
 #[derive(Copy, Clone)]
 pub struct Pipeline{
+    /// The function pointer to the opcode logic function
     pub function: OpcodeFn,
+    /// The decoded arguments to be sent to the opcode logic function
     pub args: [OpArgument; MAX_ARGS],
+    /// The gas cost of the current operation
     pub gas_cost: u64,
+    /// The size of the current opcode
     pub eip_size: u8,
+    /// Set to true if an operand size override prefix is present
     pub size_override: bool
 }
 
@@ -26,12 +33,16 @@ impl Default for Pipeline{
     }
 }
 
+/// Clears the pipeline. 
+/// Note the pipeline is expected to be of fixed size and to not incur any allocation within the main loop of the VM
 pub fn clear_pipeline(pipeline: &mut [Pipeline]){
     for _n in 0..pipeline.len(){
         pipeline[0] = Pipeline::default();
     }
 }
 
+/// Decode the stream of opcodes and fill the pipeline with decoded opcodes for later execution
+/// Note the pipeline is expected to be of fixed size and to not incur any allocation within the main loop of the VM
 pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipeline]) -> Result<(), VMError>{
     let mut eip = vm.eip;
     let mut stop_filling = false;
