@@ -104,21 +104,33 @@ fn test_jmp(){
     ud2 ;shouldn't reach here
     ud2
     _e:
-    hlt ;EIP = org+7
+    mov ebp, 3
+    hlt ;EIP = org+7 + 5
     ud2 ;shouldn't reach here
     _c:
+    mov esp, 4
     mov dword [eax], _e
     jmp long _d
     _b:
+    mov esi, 5
     mov eax, 0x80000100
     jmp short _c
 
     _a:
+    mov ecx, 1
     jmp long _b
     _d:
+    mov edx, 2
     jmp [eax]
     ud2 ;shouldn't reach here
     ");
-    assert_eq!(vm.eip, CODE_MEM + 7);
+    vm_diagnostics(&vm);
+    assert_eq!(vm.eip, CODE_MEM + 11);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x80000100);
+    assert_eq!(vm.reg32(Reg32::ECX), 1);
+    assert_eq!(vm.reg32(Reg32::EDX), 2);
+    assert_eq!(vm.reg32(Reg32::EBP), 3);
+    assert_eq!(vm.reg32(Reg32::ESP), 4);
+    assert_eq!(vm.reg32(Reg32::ESI), 5);
 }
 

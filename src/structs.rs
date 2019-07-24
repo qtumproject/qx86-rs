@@ -72,7 +72,7 @@ impl SizedValue{
         match self{
             SizedValue::Dword(v) => Ok(*v),
             SizedValue::Word(v) => Ok((*v as i32) as u32),
-            SizedValue::Byte(v) => Ok((*v as i32) as u32),
+            SizedValue::Byte(v) => Ok((*v as i8 as i32) as u32),
             SizedValue::None => Ok(0),
         }
     }

@@ -331,7 +331,7 @@ impl VM{
                     return Err(r.err().unwrap());
                 }
             }
-            self.eip += p.eip_size as u32;
+            self.eip = self.eip.wrapping_add(p.eip_size as u32);
         }
         return Ok(false);
 
