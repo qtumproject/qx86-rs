@@ -64,14 +64,12 @@ fn test_mov(){
         mov dword [edx + 0x80000000], eax
         mov esi, 0x80000000
         mov ebx, dword [edx * 2 + esi]
-        mov dx, 0x5566
         hlt"); 
     assert_eq!(vm.reg32(Reg32::ECX), DATA_MEM);
     assert_eq!(vm.reg8(Reg8::AL), 0x11);
     assert_eq!(vm.reg8(Reg8::AH), 0x55);
     assert_eq!(vm.reg32(Reg32::ESP), 0x11223344);
     assert_eq!(vm.reg32(Reg32::EBP), 0x88776655);
-    assert_eq!(vm.reg16(Reg16::DX), 0x5566);
     assert_eq!(vm.get_mem(0x80000000, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x11223344);
     assert_eq!(vm.get_mem(0x10 * 2 + 0x80000000, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x88776655);
     assert_eq!(vm.get_mem(0x10 * 4 + 0x80000000, ValueSize::Byte).unwrap().u8_exact().unwrap(), 0xFF);
@@ -88,14 +86,13 @@ fn test_push_pop(){
         push dword [ebx]
         pop ecx
         push ebx
-        push ax
         hlt
     ");
+    vm_diagnostics(&vm);
     assert_eq!(vm.reg32(Reg32::EAX), 0x12345678);
     assert_eq!(vm.reg32(Reg32::ECX), 0xffeeddcc);
-    assert_eq!(vm.reg32(Reg32::ESP), 0x80000100 - 6);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80000100 - 4);
     assert_eq!(vm.get_mem(0x80000100 - 4, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x80001000);
-    assert_eq!(vm.get_mem(0x80000100 - 6, ValueSize::Word).unwrap().u16_exact().unwrap(), 0x5678);
 }
 
 #[test]
@@ -117,7 +114,7 @@ fn test_jmp(){
     _b:
     mov esi, 5
     mov eax, 0x80000100
-    jmp word _c
+    jmp short _c
 
     _a:
     mov ecx, 1
@@ -127,6 +124,7 @@ fn test_jmp(){
     jmp [eax]
     ud2 ;shouldn't reach here
     ");
+    vm_diagnostics(&vm);
     assert_eq!(vm.eip, CODE_MEM + 11);
     assert_eq!(vm.reg32(Reg32::EAX), 0x80000100);
     assert_eq!(vm.reg32(Reg32::ECX), 1);
@@ -134,5 +132,14 @@ fn test_jmp(){
     assert_eq!(vm.reg32(Reg32::EBP), 3);
     assert_eq!(vm.reg32(Reg32::ESP), 4);
     assert_eq!(vm.reg32(Reg32::ESI), 5);
+}
+
+#[test]
+fn test_override_jmp_error(){
+    let mut vm = create_vm_with_asm("
+    jmp word _a
+    _a:
+    hlt");
+    let _ = execute_vm_with_error(&mut vm);
 }
 
