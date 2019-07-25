@@ -60,7 +60,18 @@ fn infinite_loop_oog_benchmark(c: &mut Criterion) {
     c.bench_function_over_inputs("oog - infinite loop", | i, bytecode | i.iter(|| run_oog_test(bytecode)), vec![bytes]);
 }
 
-criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark, infinite_loop_oog_benchmark);
+fn indirect_infinite_loop_oog_benchmark(c: &mut Criterion) {
+    //note this appears to execute faster than the infinite loop benchmark, 
+    //but this is due to gas costs being higher for this execution and ending the execution sooner
+    let bytes = asm("
+    mov eax, _a
+    _a:
+    jmp eax
+    ");
+    c.bench_function_over_inputs("oog - indirect infinite loop", | i, bytecode | i.iter(|| run_oog_test(bytecode)), vec![bytes]);
+}
+
+criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark, infinite_loop_oog_benchmark, indirect_infinite_loop_oog_benchmark);
 criterion_main!(benches);
 
 

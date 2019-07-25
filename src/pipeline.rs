@@ -90,11 +90,17 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
                     stop_filling = true;
                 },
                 PipelineBehavior::RelativeJump => {
-                    //todo: later follow jumps that can be predicted
-                    //right now this is just copy-pasted from conditional jumps
                     p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, size_override, false, modrm)? as u8 + prefix_size;
-                    eip += p.eip_size as u32;
-                    stop_filling = true;
+                    //relative jumps are calculated from the EIP value AFTER the jump would've executed, ie, after EIP is advanced by the size of the instruction
+                    let future_eip = eip + (p.eip_size as u32);
+                    //rel must be sign extended, but is otherwise treated as a u32 for simplicity
+                    //an i32 and a u32 will behave the same way for wrapping_addition like this
+                    let rel = vm.get_arg(p.args[0].location)?.u32_sx()?;
+                    //subtract out the eip_size that'll be advanced in the main loop
+                    eip = future_eip.wrapping_add(rel) - (p.eip_size as u32);
+                    if p.size_override{
+                        return Err(VMError::ReadBadMemory(eip));
+                    }
                 }
             };
             p.gas_cost += match opcode.pipeline_behavior{
