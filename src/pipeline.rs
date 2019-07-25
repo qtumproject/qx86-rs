@@ -99,7 +99,7 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
                     //subtract out the eip_size that'll be advanced in the main loop
                     eip = future_eip.wrapping_add(rel) - (p.eip_size as u32);
                     if p.size_override{
-                        return Err(VMError::ReadBadMemory(eip));
+                        return Err(VMError::ReadBadMemory(eip & 0xFFFF));
                     }
                 }
             };
