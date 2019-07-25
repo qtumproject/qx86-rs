@@ -47,12 +47,18 @@ pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let rel = vm.get_arg(pipeline.args[0].location)?.u32_sx()?;
     //subtract out the eip_size that'll be advanced in the cycle() main loop
     vm.eip = future_eip.wrapping_add(rel) - (pipeline.eip_size as u32);
+    if pipeline.size_override{
+        vm.eip &= 0xFFFF;
+    }
     Ok(())
 }
 /// The logic function for the `jmp` opcodes with an absolute argument
 pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     //must subtract the size of this opcode to correct for the automatic eip_size advance in the cycle() main loop
     vm.eip = vm.get_arg(pipeline.args[0].location)?.u32_zx()? - (pipeline.eip_size as u32);
+    if pipeline.size_override{
+        vm.eip &= 0xFFFF;
+    }
     Ok(())
 }
 

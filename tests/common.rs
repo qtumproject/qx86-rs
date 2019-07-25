@@ -5,10 +5,15 @@ use qx86::vm::*;
 use qx86::structs::*;
 use qx86::decoding::*;
 
+
+#[cfg(test)]
 pub const CODE_MEM:u32 = 0x10000;
+#[cfg(test)]
 pub const DATA_MEM:u32 = 0x80000000;
+#[cfg(test)]
 pub const INITIAL_GAS:u64 = 10000000;
 
+#[cfg(test)]
 pub fn create_vm() -> VM{
     let mut vm = VM::default();
     vm.eip = CODE_MEM;
@@ -19,6 +24,7 @@ pub fn create_vm() -> VM{
     vm
 }
 
+#[cfg(test)]
 pub fn create_vm_with_asm(input: &str) -> VM{
     let mut vm = create_vm();
     let bytes = asm(input);
@@ -26,16 +32,27 @@ pub fn create_vm_with_asm(input: &str) -> VM{
     vm
 }
 
+#[cfg(test)]
 pub fn execute_vm_with_asm(input: &str) -> VM{
     let mut vm = create_vm_with_asm(input);
     execute_vm_with_diagnostics(&mut vm);
     vm
 }
+#[cfg(test)]
 pub fn execute_vm_with_diagnostics(vm: &mut VM){
     let r = vm.execute();
     vm_diagnostics(vm);
     r.unwrap();
 }
+
+#[allow(dead_code)]
+#[cfg(test)]
+pub fn execute_vm_with_error(vm: &mut VM) -> VMError{
+    let r = vm.execute();
+    vm_diagnostics(vm);
+    r.unwrap_err()
+}
+
 pub fn vm_diagnostics(vm: &VM){
     println!("EAX: 0x{:08X?}", vm.reg32(Reg32::EAX));
     println!("ECX: 0x{:08X?}", vm.reg32(Reg32::ECX));
@@ -49,12 +66,15 @@ pub fn vm_diagnostics(vm: &VM){
     println!("Gas remaining: {}", vm.gas_remaining);
     println!("EIP: 0x{:X?}", vm.eip);
     println!("Surrounding bytes in opcode stream:");
-    for n in std::cmp::max(vm.eip - 8, 0x10000)..(vm.eip + 8){
-        let b = vm.get_mem(n, ValueSize::Byte).unwrap().u8_exact().unwrap();
-        println!("0x{:X?}: 0x{:02X}, as modrm: {}, as sib: {}", n, b, ModRM::parse(b), SIB::parse(b));
+    if vm.eip >= 0x10000 {
+        for n in std::cmp::max(vm.eip - 8, 0x10000)..(vm.eip + 8){
+            let b = vm.get_mem(n, ValueSize::Byte).unwrap().u8_exact().unwrap();
+            println!("0x{:X?}: 0x{:02X}, as modrm: {}, as sib: {}", n, b, ModRM::parse(b), SIB::parse(b));
+        }
     }
 }
 
+#[cfg(test)]
 pub fn asm(input: &str) -> Vec<u8>{
     use tempfile::*;
     use std::io::Write;

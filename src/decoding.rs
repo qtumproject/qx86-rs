@@ -200,11 +200,11 @@ impl ParsedModRM{
 }
 
 /// Decodes the set of arguments for an opcode assuming that no ModRM value is needed (this is used primarily for simpler unit testing)
-pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], address_override: bool) -> Result<usize, VMError>{
-    decode_args_with_modrm(opcode, bytestream, args, address_override, None)
+pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], size_override: bool) -> Result<usize, VMError>{
+    decode_args_with_modrm(opcode, bytestream, args, size_override, false, None)
 }
 /// Decodes the set of arguments for a given opcode within a given byte stream. This returns the total size of the arguments in opcode bytes
-pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], _address_override: bool, parsed_modrm: Option<ParsedModRM>) -> Result<usize, VMError>{
+pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], size_override: bool, _address_override: bool, parsed_modrm: Option<ParsedModRM>) -> Result<usize, VMError>{
     use ArgSource::*;
     if bytestream.len() < 16{
         return Err(VMError::DecodingOverrun);
@@ -218,7 +218,7 @@ pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [Op
     //note displacements are treated as signed numbers
     //todo: parse modr/m byte here if present, before actually parsing arguments
     for n in 0..3{
-        let arg_size = opcode.arg_size[n].to_fixed(false); //later replace with size prefix.. 
+        let arg_size = opcode.arg_size[n].to_fixed(size_override); 
         args[n].is_memory = false; //can be reused, so reset the fields
         args[n].location = ArgLocation::None;
 
@@ -312,7 +312,7 @@ mod tests {
 
         let modrm = ParsedModRM::from_bytes(bytecode).unwrap();
         
-        let res = match decode_args_with_modrm(&opcode, bytecode, &mut args, false, Some(modrm)){
+        let res = match decode_args_with_modrm(&opcode, bytecode, &mut args, false, false, Some(modrm)){
             Err(_) => {
                 assert!(false, "decode resulted in error");
                 0
