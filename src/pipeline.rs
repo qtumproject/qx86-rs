@@ -58,8 +58,16 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             p.eip_size = 0;
             p.gas_cost = 0;
         }else{
-            let buffer = vm.memory.get_sized_memory(eip, 16)?;
+            let mut prefix_size = 0;
+            let mut buffer = vm.memory.get_sized_memory(eip, 16)?;
             //todo: handle 0x0F extension prefix and other prefixes
+            let size_override = if buffer[0] == 0x66{ //operand size override
+                buffer = &buffer[1..]; //advance to next opcode
+                prefix_size += 1;
+                true
+            }else{
+                false
+            };
             let prop = &opcodes[buffer[0 as usize] as usize];
             let mut modrm = Option::None;
             let opcode = if prop.has_modrm{
@@ -71,19 +79,20 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             };
             p.function = opcode.function;
             p.gas_cost += vm.charger.cost(opcode.gas_cost);
+            p.size_override = size_override;
             match opcode.pipeline_behavior{
                 PipelineBehavior::None => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, size_override, false, modrm)? as u8 + prefix_size;
                 },
                 PipelineBehavior::Unpredictable | PipelineBehavior::UnpredictableNoGas => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, size_override, false, modrm)? as u8 + prefix_size;
                     eip += p.eip_size as u32;
                     stop_filling = true;
                 },
                 PipelineBehavior::RelativeJump => {
                     //todo: later follow jumps that can be predicted
                     //right now this is just copy-pasted from conditional jumps
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, false, modrm)? as u8;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, size_override, false, modrm)? as u8 + prefix_size;
                     eip += p.eip_size as u32;
                     stop_filling = true;
                 }

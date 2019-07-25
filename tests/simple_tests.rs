@@ -134,3 +134,12 @@ fn test_jmp(){
     assert_eq!(vm.reg32(Reg32::ESI), 5);
 }
 
+#[test]
+fn test_override_jmp_error(){
+    let mut vm = create_vm_with_asm("
+    jmp word _a
+    _a:
+    hlt");
+    let _ = execute_vm_with_error(&mut vm);
+}
+
