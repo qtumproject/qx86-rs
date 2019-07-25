@@ -98,6 +98,9 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
                     let rel = vm.get_arg(p.args[0].location)?.u32_sx()?;
                     //subtract out the eip_size that'll be advanced in the main loop
                     eip = future_eip.wrapping_add(rel) - (p.eip_size as u32);
+                    if p.size_override{
+                        return Err(VMError::ReadBadMemory(eip));
+                    }
                 }
             };
             p.gas_cost += match opcode.pipeline_behavior{
