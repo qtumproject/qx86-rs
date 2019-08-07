@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct X86Flags {
 	pub carry: bool,
 	pub parity: bool,

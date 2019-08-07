@@ -4,6 +4,8 @@ mod common;
 use qx86::vm::*;
 use common::*;
 use qx86::structs::*;
+use qx86::flags::*;
+use std::default::*;
 
 #[test]
 fn test_undefined_opcode(){
@@ -94,17 +96,6 @@ fn test_push_pop(){
     assert_eq!(vm.reg32(Reg32::ESP), 0x80000100 - 4);
     assert_eq!(vm.get_mem(0x80000100 - 4, ValueSize::Dword).unwrap().u32_exact().unwrap(), 0x80001000);
 }
-#[test]
-fn test_add(){
-    let vm = execute_vm_asm("
-        add al, 0x33
-        add al, 0x44
-        add eax, 0x11223344
-        add eax, 0x22222222
-        hlt");
-    assert_eq!(vm.reg8(Reg8::AL), 0x77);
-    assert_eq!(vm.reg32(Reg32::EAX), 0x33445566);
-}
 
 #[test]
 fn test_jmp(){
@@ -154,3 +145,32 @@ fn test_override_jmp_error(){
     let _ = execute_vm_with_error(&mut vm);
 }
 
+#[test]
+fn test_signed_carry_add32(){
+    let vm = execute_vm_asm("
+        mov eax, 0xF00090FF
+        mov ebx, 0xF00121FA
+        add eax, ebx
+        hlt");
+    //assert_eq!(vm.reg8(Reg8::AL), 0x77);
+    assert_eq!(vm.reg32(Reg32::EAX), 0xE001B2F9);
+    assert_eq!(vm.flags, X86Flags{carry: true, parity: true, adjust: true, sign: true, ..Default::default()});
+}
+
+#[test]
+fn test_32bit_8bit_add(){
+    let vm = execute_vm_asm("
+        add eax, byte -1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFFFFF);
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_16bit_8bit_add() {
+    let vm = execute_vm_asm("
+        add ax, byte -1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xFFFF);
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
+}
