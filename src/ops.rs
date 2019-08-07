@@ -90,7 +90,7 @@ pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
 }
 pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-    let adder = vm.get_arg(pipeline.args[1].location)?.u16_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let (result, overflow) = base.overflowing_add(adder);
     vm.flags.overflow = overflow;
     vm.flags.calculate_zero(result as u32);
@@ -104,7 +104,7 @@ pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 
 pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-    let adder = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let (result, overflow) = base.overflowing_add(adder);
     vm.flags.overflow = overflow;
     vm.flags.calculate_zero(result);

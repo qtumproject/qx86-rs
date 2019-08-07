@@ -8,21 +8,13 @@ pub struct X86Flags {
 	pub trap: bool,
 	pub interrupt: bool,
 	pub direction: bool,
-	pub overflow: bool,
-	pub iopl: bool,
-	pub nested_task: bool,
-	pub resume: bool,
-	pub virtual_8086_mode: bool,
-	pub alignment_check: bool,
-	pub id_capability: bool,
-	pub vif: bool,
-	pub vip: bool
+	pub overflow: bool
 }
 
 impl X86Flags {
 	pub fn calculate_parity(&mut self, val: u32) {
 		let mut count = 0;
-		for i in 0..7 {
+		for i in 0..31 {
 			if (val&((1<<i)))!=0{
 				count+=1;
 			}
@@ -30,21 +22,21 @@ impl X86Flags {
 		self.parity = (count % 2) == 0;
 	}
 	pub fn calculate_sign8(&mut self, val: u8) {
-		if (val & 0x80) == 0 {
+		if (val & 0x80) != 0 {
 			self.sign = true;
 		} else {
 			self.sign = false;
 		}
 	}
 	pub fn calculate_sign16(&mut self, val: u16) {
-		if (val & 0x8000) == 0 {
+		if (val & 0x8000) != 0 {
 			self.sign = true;
 		} else {
 			self.sign = false;
 		}
 	}
 	pub fn calculate_sign32(&mut self, val: u32) {
-		if (val & 0x80000000) == 0 {
+		if (val & 0x80000000) != 0 {
 			self.sign = true;
 		} else {
 			self.sign = false;
