@@ -65,12 +65,13 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
-    let (result, overflow) = base.overflowing_add(adder);
-    vm.flags.overflow = overflow;
+    let (result, _carry) = base.overflowing_add(adder);
+    let (_, _overflow) = (base as i8).overflowing_add(adder as i8);
+    vm.flags.overflow = _overflow;
+    vm.flags.carry = _carry;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
-    vm.flags.carry = result < std::cmp::min(base, adder);
     vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
     Ok(())
@@ -91,12 +92,13 @@ pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
 pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-    let (result, overflow) = base.overflowing_add(adder);
-    vm.flags.overflow = overflow;
+    let (result, _carry) = base.overflowing_add(adder);
+    let (_, _overflow) = (base as i16).overflowing_add(adder as i16);
+    vm.flags.overflow = _overflow;
+    vm.flags.carry = _carry;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign16(result);
-    vm.flags.carry = result < std::cmp::min(base, adder);
     vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
     Ok(())
@@ -105,12 +107,13 @@ pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-    let (result, overflow) = base.overflowing_add(adder);
-    vm.flags.overflow = overflow;
+    let (result, _carry) = base.overflowing_add(adder);
+    let (_, _overflow) = (base as i32).overflowing_add(adder as i32);
+    vm.flags.overflow = _overflow;
+    vm.flags.carry = _carry;
     vm.flags.calculate_zero(result);
     vm.flags.calculate_parity(result);
     vm.flags.calculate_sign32(result);
-    vm.flags.carry = result < std::cmp::min(base, adder);
     vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
     Ok(())

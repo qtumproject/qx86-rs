@@ -14,7 +14,7 @@ pub struct X86Flags {
 impl X86Flags {
 	pub fn calculate_parity(&mut self, val: u32) {
 		let mut count = 0;
-		for i in 0..31 {
+		for i in 0..8 {
 			if (val&((1<<i)))!=0{
 				count+=1;
 			}
