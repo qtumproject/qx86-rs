@@ -423,32 +423,6 @@ lazy_static! {
             .is_group(6)
             .with_rmw()
             .into_table(&mut ops);
-        //add r/m8, r8
-        define_opcode(0x0).calls(add_8bit).with_gas(10).
-            has_arg(ArgSource::ModRM, ValueSize::Byte).
-            has_arg(ArgSource::ModRMReg, ValueSize::Byte).
-            into_table(&mut ops);
-        
-        //add r/m16, r16
-        define_opcode(0x1).calls(add_16bit).with_gas(10).
-            has_arg(ArgSource::ModRM, ValueSize::Word).
-            has_arg(ArgSource::ModRMReg, ValueSize::Word).
-            into_table(&mut ops);
-        
-        //add r/m32, r32
-        define_opcode(0x1).calls(add_32bit).with_gas(10).
-            has_arg(ArgSource::ModRM, ValueSize::Dword).
-            has_arg(ArgSource::ModRMReg, ValueSize::Dword).
-            into_table(&mut ops);
-        
-        define_opcode(0x2).calls(add_8bit).with_gas(10).
-            has_arg(ArgSource::ModRMReg, ValueSize::Byte).
-            has_arg(ArgSource::ModRM, ValueSize::Byte).
-            into_table(&mut ops);
-        
-        define_opcode(0x3).calls(add_8bit).with_gas(10).
-            has_arg(ArgSource::)
-
         //pop opcodes
         //0x58 +r pop rW
         define_opcode(0x58).calls(pop).with_gas(VeryLow)
@@ -479,52 +453,52 @@ lazy_static! {
         
         //Begin maths....
         //0x00 add r/m8, r8
-        define_opcode(0x00).calls(add_8bit).with_gas(1)
+        define_opcode(0x00).calls(add_8bit).with_gas(Low)
             .with_rm8()
             .with_rm_reg8()
             .into_table(&mut ops);
         //0x01 add r/m16, r16
         //0x01 add r/m32, r32
-        define_opcode(0x01).calls(add_native_word).with_gas(1)
+        define_opcode(0x01).calls(add_native_word).with_gas(Low)
             .with_rmw()
             .with_rm_regw()
             .into_table(&mut ops);
         //0x02 add r8, r/m8
-        define_opcode(0x02).calls(add_8bit).with_gas(1)
+        define_opcode(0x02).calls(add_8bit).with_gas(Low)
             .with_rm_reg8()
             .with_rm8()
             .into_table(&mut ops);
         //0x03 add r16. r/m16
         //0x03 add r32, r/m32
-        define_opcode(0x03).calls(add_native_word).with_gas(1)
+        define_opcode(0x03).calls(add_native_word).with_gas(Low)
            .with_rm_regw()
            .with_rmw()
            .into_table(&mut ops);
         //0x04 add AL, imm8
-        define_opcode(0x04).calls(add_8bit).with_gas(1)
+        define_opcode(0x04).calls(add_8bit).with_gas(Low)
             .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
             .with_imm8()
             .into_table(&mut ops);
         //0x05 add AX, imm16
         //0x05 add EAX, imm32
-        define_opcode(0x05).calls(add_native_word).with_gas(1)
+        define_opcode(0x05).calls(add_native_word).with_gas(Low)
             .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
             .with_immw()
             .into_table(&mut ops);
         //0x80 add r/m8, imm8
-        define_opcode(0x80).calls(add_8bit).with_gas(1)
+        define_opcode(0x80).calls(add_8bit).with_gas(Low)
             .with_rm8()
             .with_imm8()
             .into_table(&mut ops);
         //0x81 add r/m16, imm16
         //0x81 add r/m32, imm32
-        define_opcode(0x81).calls(add_native_word).with_gas(1)
+        define_opcode(0x81).calls(add_native_word).with_gas(Low)
             .with_rmw()
             .with_immw()
             .into_table(&mut ops);
         //0x83 add r/m16, imm8
         //0x83 add r/m32, imm8
-        define_opcode(0x83).calls(add_native_word).with_gas(1)
+        define_opcode(0x83).calls(add_native_word).with_gas(Low)
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);

@@ -147,19 +147,51 @@ fn test_override_jmp_error(){
 
 #[test]
 fn test_signed_carry_add32(){
-    let vm = execute_vm_asm("
+    let vm = execute_vm_with_asm("
         mov eax, 0xF00090FF
         mov ebx, 0xF00121FA
         add eax, ebx
         hlt");
-    //assert_eq!(vm.reg8(Reg8::AL), 0x77);
     assert_eq!(vm.reg32(Reg32::EAX), 0xE001B2F9);
     assert_eq!(vm.flags, X86Flags{carry: true, parity: true, adjust: true, sign: true, ..Default::default()});
 }
 
 #[test]
+fn test_overflow_signed_add32(){
+    let vm = execute_vm_with_asm("
+        mov eax, 0x7FFFFFFF
+        mov ebx, 0x7FFFFFFF
+        add eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFFFFE);
+    assert_eq!(vm.flags, X86Flags{overflow: true, adjust: true, sign: true, ..Default::default()});
+}
+
+#[test]
+fn test_simple_add16(){
+    let vm = execute_vm_with_asm("
+        mov ax, 0x0064
+        mov bx, 0x0320
+        add ax, bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x0384);
+    assert_eq!(vm.flags, X86Flags{parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_signed_zero_add8(){
+    let vm = execute_vm_with_asm("
+        mov al, 155
+        mov cl, 101
+        add al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0);
+    assert_eq!(vm.flags, X86Flags{carry: true, zero: true, adjust: true, parity: true, ..Default::default()});
+}
+
+#[test]
 fn test_32bit_8bit_add(){
-    let vm = execute_vm_asm("
+    let vm = execute_vm_with_asm("
         add eax, byte -1
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFFFFF);
@@ -168,7 +200,7 @@ fn test_32bit_8bit_add(){
 
 #[test]
 fn test_16bit_8bit_add() {
-    let vm = execute_vm_asm("
+    let vm = execute_vm_with_asm("
         add ax, byte -1
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0xFFFF);
