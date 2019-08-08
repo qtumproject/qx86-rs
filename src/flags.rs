@@ -42,15 +42,6 @@ impl X86Flags {
 			self.sign = false;
 		}
 	}
-	pub fn calculate_overflow8(&mut self, result: u8, val1: u8, val2: u8) {
-		self.overflow = !((val1^val2) & 0x80 != 0) && ((val1^result) & 0x80 != 0);
-	}
-	pub fn calculate_overflow16(&mut self, result: u16, val1: u16, val2: u16) {
-		self.overflow = !((val1^val2) & 0x80 != 0) && ((val1^result) & 0x8000 != 0);
-	}
-	pub fn calculate_overflow32(&mut self, result: u32, val1: u32, val2: u32) {
-		self.overflow =  !((val1^val2) & 0x80 != 0) && ((val1^result) & 0x80000000 != 0);
-	}
 	pub fn calculate_zero(&mut self, result: u32) {
 		self.zero = result == 0;
 	}

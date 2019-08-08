@@ -71,10 +71,18 @@ fn indirect_infinite_loop_oog_benchmark(c: &mut Criterion) {
     c.bench_function_over_inputs("oog - indirect infinite loop", | i, bytecode | i.iter(|| run_oog_test(bytecode)), vec![bytes]);
 }
 
-criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark, infinite_loop_oog_benchmark, indirect_infinite_loop_oog_benchmark);
+fn test_add_calculation_uint8(c: &mut Criterion) {
+    let bytes = asm("
+    mov al, 0x0F
+    mov cl, 0x01
+    add al, cl
+    hlt
+    ");
+    c.bench_function_over_inputs("calculate_overflow_add", |i, bytecode| i.iter(|| run_exec_test(bytecode)), vec![bytes]);
+}
+
+criterion_group!(benches, nop_hlt_benchmark, mov_modrm_benchmark, infinite_loop_oog_benchmark, indirect_infinite_loop_oog_benchmark, test_add_calculation_uint8);
 criterion_main!(benches);
-
-
 
 
 //Duplicated from test/common.rs
