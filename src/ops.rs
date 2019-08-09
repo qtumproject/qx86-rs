@@ -65,10 +65,10 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
-    let (result, _carry) = base.overflowing_add(adder);
-    let (_, _overflow) = (base as i8).overflowing_add(adder as i8);
-    vm.flags.overflow = _overflow;
-    vm.flags.carry = _carry;
+    let (result, carry) = base.overflowing_add(adder);
+    let (_, overflow) = (base as i8).overflowing_add(adder as i8);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
