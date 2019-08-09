@@ -92,10 +92,10 @@ pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
 pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-    let (result, _carry) = base.overflowing_add(adder);
-    let (_, _overflow) = (base as i16).overflowing_add(adder as i16);
-    vm.flags.overflow = _overflow;
-    vm.flags.carry = _carry;
+    let (result, carry) = base.overflowing_add(adder);
+    let (_, overflow) = (base as i16).overflowing_add(adder as i16);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign16(result);
@@ -107,10 +107,10 @@ pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-    let (result, _carry) = base.overflowing_add(adder);
-    let (_, _overflow) = (base as i32).overflowing_add(adder as i32);
-    vm.flags.overflow = _overflow;
-    vm.flags.carry = _carry;
+    let (result, carry) = base.overflowing_add(adder);
+    let (_, overflow) = (base as i32).overflowing_add(adder as i32);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
     vm.flags.calculate_zero(result);
     vm.flags.calculate_parity(result);
     vm.flags.calculate_sign32(result);
