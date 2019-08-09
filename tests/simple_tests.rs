@@ -206,3 +206,80 @@ fn test_16bit_8bit_add() {
     assert_eq!(vm.reg16(Reg16::AX), 0xFFFF);
     assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
 }
+
+#[test]
+fn test_unsigned_8bit_sub(){
+    let vm = execute_vm_with_asm("
+        mov al, 155
+        mov cl, 101
+        sub al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x36);
+    assert_eq!(vm.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_negative_unsigned_16bit_sub(){
+    let vm = execute_vm_with_asm("
+        mov ax, 100
+        mov bx, 800
+        sub ax, bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xFD44);
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_subtracting_negatives_32bit_sub(){
+    let vm = execute_vm_with_asm("
+        mov eax, 0xF00090FF
+        mov ebx, 0xF00121FA
+        sub eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFFFF6F05);
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_achieving_zero_with_subtraction_32bit_sub(){
+    let vm = execute_vm_with_asm("
+        mov eax, 0x7FFFFFFF
+        mov ebx, 0x7FFFFFFF
+        sub eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x0);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_subtracting_negatives_8bit_sub(){
+    let vm = execute_vm_with_asm("
+        mov al, 0xFA
+        mov cl, 0xFF
+        sub al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xFB);
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, ..Default::default()});
+}
+
+#[test]
+fn test_signed_subtraction_8bit_sub(){
+    let vm = execute_vm_with_asm("
+        mov al, 0xFE
+        mov cl, 0xFF
+        sub al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xFF);
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_negative_addition_8bit_sub(){
+    let vm = execute_vm_with_asm("
+        mov al, -120
+        mov cl, 50
+        sub al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x56);
+    assert_eq!(vm.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
+}

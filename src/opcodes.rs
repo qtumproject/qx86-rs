@@ -487,19 +487,19 @@ lazy_static! {
             .with_immw()
             .into_table(&mut ops);
         //0x80 add r/m8, imm8
-        define_opcode(0x80).calls(add_8bit).with_gas(Low)
+        define_opcode(0x80).is_group(0).calls(add_8bit).with_gas(Low)
             .with_rm8()
             .with_imm8()
             .into_table(&mut ops);
         //0x81 add r/m16, imm16
         //0x81 add r/m32, imm32
-        define_opcode(0x81).calls(add_native_word).with_gas(Low)
+        define_opcode(0x81).is_group(0).calls(add_native_word).with_gas(Low)
             .with_rmw()
             .with_immw()
             .into_table(&mut ops);
         //0x83 add r/m16, imm8
         //0x83 add r/m32, imm8
-        define_opcode(0x83).calls(add_native_word).with_gas(Low)
+        define_opcode(0x83).is_group(0).calls(add_native_word).with_gas(Low)
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
@@ -537,19 +537,19 @@ lazy_static! {
             .with_immw()
             .into_table(&mut ops);
         //0x80 sub r/m8, imm8
-        define_opcode(0x80).calls(sub_8bit).with_gas(Low)
+        define_opcode(0x80).is_group(5).calls(sub_8bit).with_gas(Low)
             .with_rm8()
             .with_imm8()
             .into_table(&mut ops);
         //0x81 sub r/m16, imm16
         //0x81 sub r/m32, imm32
-        define_opcode(0x81).calls(sub_native_word).with_gas(Low)
+        define_opcode(0x81).is_group(5).calls(sub_native_word).with_gas(Low)
             .with_rmw()
             .with_immw()
             .into_table(&mut ops);
         //0x83 sub r/m16, imm8
         //0x83 sub r/m32, imm8
-        define_opcode(0x83).calls(sub_native_word).with_gas(Low)
+        define_opcode(0x83).is_group(5).calls(sub_native_word).with_gas(Low)
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);

@@ -129,7 +129,7 @@ pub fn sub_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((adder as i32)&0x0F) < 0;
+    vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
     Ok(())
 }
@@ -144,30 +144,30 @@ pub fn sub_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> 
 
 pub fn sub_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-    let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-    let (result, carry) = base.overflowing_sub(adder);
-    let (_, overflow) = (base as i16).overflowing_sub(adder as i16);
+    let subt = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    let (result, carry) = base.overflowing_sub(subt);
+    let (_, overflow) = (base as i16).overflowing_sub(subt as i16);
     vm.flags.overflow = overflow;
     vm.flags.carry = carry;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign16(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((adder as i32)&0x0F) < 0;
+    vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
     Ok(())
 }
 
 pub fn sub_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-    let adder = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-    let (result, carry) = base.overflowing_sub(adder);
-    let (_, overflow) = (base as i32).overflowing_sub(adder as i32);
+    let subt = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    let (result, carry) = base.overflowing_sub(subt);
+    let (_, overflow) = (base as i32).overflowing_sub(subt as i32);
     vm.flags.overflow = overflow;
     vm.flags.carry = carry;
     vm.flags.calculate_zero(result);
     vm.flags.calculate_parity(result);
     vm.flags.calculate_sign32(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((adder as i32)&0x0F) < 0;
+    vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
     Ok(())
 }
