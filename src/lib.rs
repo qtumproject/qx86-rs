@@ -20,6 +20,9 @@ pub mod vm;
 pub mod memory;
 /// The actual opcode logic function implementations
 mod ops;
+/// The structures used for flag register and flag register calculations
+pub mod flags;
+
 
 
 

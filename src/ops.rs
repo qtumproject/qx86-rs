@@ -62,9 +62,61 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     Ok(())
 }
 
+pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    let (result, carry) = base.overflowing_add(adder);
+    let (_, overflow) = (base as i8).overflowing_add(adder as i8);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign8(result);
+    vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    Ok(())
+}
 
+pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return add_16bit(vm, pipeline);
+    } else {
+        return add_32bit(vm, pipeline);
+    }
+}
 
 /// The logic function for the `hlt` opcode
 pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
     Err(VMError::InternalVMStop)
 }
+pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    let (result, carry) = base.overflowing_add(adder);
+    let (_, overflow) = (base as i16).overflowing_add(adder as i16);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign16(result);
+    vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    Ok(())
+}
+
+pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let adder = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    let (result, carry) = base.overflowing_add(adder);
+    let (_, overflow) = (base as i32).overflowing_add(adder as i32);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result);
+    vm.flags.calculate_parity(result);
+    vm.flags.calculate_sign32(result);
+    vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    Ok(())
+}
+
+
