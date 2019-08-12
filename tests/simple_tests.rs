@@ -283,3 +283,14 @@ fn test_negative_addition_8bit_sub(){
     assert_eq!(vm.reg8(Reg8::AL), 0x56);
     assert_eq!(vm.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
 }
+
+#[test]
+fn test_signed_comparison_8bit_cmp(){
+    let vm = execute_vm_with_asm("
+        mov al, 0xFE
+        mov cl, 0xFF
+        cmp al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xFF);
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
+}

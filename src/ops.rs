@@ -171,3 +171,53 @@ pub fn sub_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
     Ok(())
 }
+
+pub fn cmp_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let cmpt = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    let (result, carry) = base.overflowing_sub(cmpt);
+    let (_, overflow) = (base as i8).overflowing_sub(cmpt as i8);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign8(result);
+    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+    Ok(())
+}
+
+pub fn cmp_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return cmp_16bit(vm, pipeline);
+    } else {
+        return cmp_32bit(vm, pipeline);
+    }
+}
+
+pub fn cmp_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let cmpt = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    let (result, carry) = base.overflowing_sub(cmpt);
+    let (_, overflow) = (base as i16).overflowing_sub(cmpt as i16);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign16(result);
+    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+    Ok(())
+}
+
+pub fn cmp_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let cmpt = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    let (result, carry) = base.overflowing_sub(cmpt);
+    let (_, overflow) = (base as i32).overflowing_sub(cmpt as i32);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result);
+    vm.flags.calculate_parity(result);
+    vm.flags.calculate_sign32(result);
+    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+    Ok(())
+}
