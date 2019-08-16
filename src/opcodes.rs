@@ -164,6 +164,11 @@ pub struct OpcodeDefiner{
 }
 
 impl OpcodeDefiner{
+    /// Specifies that the opcode is an extended opcode and therefore needs to be read in two bytes
+    pub fn is_two_byte_op(&mut self) -> &mut OpcodeDefiner {
+        self.two_byte = true;
+        self
+    }
     /// Specifies that the opcode is a group opcode.
     /// Example: to encode `0xFF /0` one would use define_opcode(0xFF).is_group(0)
     pub fn is_group(&mut self, group: u8) -> &mut OpcodeDefiner{
@@ -435,22 +440,181 @@ lazy_static! {
             .into_table(&mut ops);
         
         //jmp opcodes
-        //EB       JMP  rel8
+        //0xEB  JMP  rel8
         define_opcode(0xEB).calls(jmp_rel).with_gas(Low)
             .with_arg(ArgSource::JumpRel, Fixed(Byte))
             .is_jump()
             .into_table(&mut ops);
-        //FF /4    JMP  r/mW
+        //0xFF /4 JMP  r/mW
         define_opcode(0xFF).is_group(4).calls(jmp_abs).with_gas(Moderate)
             .with_rmw()
             .is_unpredictable()
             .into_table(&mut ops);
-        //E9       JMP  relW
+        //0xE9 JMP  relW
         define_opcode(0xE9).calls(jmp_rel).with_gas(Low)
             .with_arg(ArgSource::JumpRel, NativeWord)
             .is_jump()
             .into_table(&mut ops);
-        
+        //0x70 JO rel8
+/*        define_opcode(0x70).calls(/*jmp_overflow */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x71 JNO rel8
+        define_opcode(0x71).calls(/*jmp_not_overflow*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x72 JB rel8
+        define_opcode(0x72).calls(/*jmp_below*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x73 JAE rel8
+        define_opcode(0x73).calls(/*jmp_above_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x74 JE rel8
+        define_opcode(0x74).calls(/*jmp_is_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x75 JNE rel8
+        define_opcode(0x75).calls(/*jmp_not_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x76 JBE rel8
+        define_opcode(0x76).calls(/*jmp_below_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x77 JA rel8
+        define_opcode(0x77).calls(/*jmp_above*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x78 JS rel8
+        define_opcode(0x78).calls(/*jmp_sign */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x79 JNS rel8
+        define_opcode(0x79).calls(/*jmp_no_sign*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x7A JP rel8
+        define_opcode(0x7A).calls(/*jmp_parity*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x7B JNP rel8
+        define_opcode(0x7B).calls(/*jmp_no_parity*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x7C JL rel8
+        define_opcode(0x7C).calls(/*jmp_less*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x7D JGE rel8
+        define_opcode(0x7D).calls(/*jmp_greater_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x7E JLE rel8
+        define_opcode(0x7E).calls(/*jmp_less_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x7F JG rel8
+        define_opcode(0x7F).calls(/*jmp_greater */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_jump()
+            .into_table(&mut ops);
+        //0x80 JO relw
+        define_opcode(0x80).calls(/*jmp_overflow */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x81 JNO relw
+        define_opcode(0x81).calls(/*jmp_not_overflow*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x82 JB relw
+        define_opcode(0x82).calls(/*jmp_below*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x83 JAE relw
+        define_opcode(0x83).calls(/*jmp_above_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x84 JE relw
+        define_opcode(0x84).calls(/*jmp_is_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x85 JNE relw
+        define_opcode(0x85).calls(/*jmp_not_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x86 JBE relw
+        define_opcode(0x86).calls(/*jmp_below_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x87 JA relw
+        define_opcode(0x87).calls(/*jmp_above*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x88 JS relw
+        define_opcode(0x88).calls(/*jmp_sign */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x89 JNS relw
+        define_opcode(0x89).calls(/*jmp_no_sign*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x8A JP relw
+        define_opcode(0x8A).calls(/*jmp_parity*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x8B JNP relw
+        define_opcode(0x8B).calls(/*jmp_no_parity*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x8C JL relw
+        define_opcode(0x8C).calls(/*jmp_less*/).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x8D JGE relw
+        define_opcode(0x8D).calls(/*jmp_greater_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x8E JLE relw
+        define_opcode(0x8E).calls(/*jmp_less_or_equal */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+        //0x8F JG relw
+        define_opcode(0x8F).calls(/*jmp_greater */).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);*/
         //Begin maths....
         //add opcodes
         //0x00 add r/m8, r8

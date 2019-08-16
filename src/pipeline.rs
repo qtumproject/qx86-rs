@@ -5,6 +5,30 @@ use crate::decoding::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
+#[derive(Default)]
+struct PrefixesActivated {
+    size_override: bool,
+    two_bytes: bool
+}
+
+impl PrefixesActivated {
+    fn get_prefixes(&mut self, buffer: &[u8], prefix_size: u8) -> Result<u8, VMError> {
+        match buffer[0]{
+            0x66 => {
+                self.size_override = true;
+                return self.get_prefixes(&buffer[1..], prefix_size+1);
+            },
+            0x0F => {
+                self.two_bytes = true;
+                Ok(prefix_size+1)
+            },
+            _ => {
+                Ok(prefix_size)
+            }
+        }
+    }
+}
+
 /// This is a single execution unit of a pipeline
 /// This includes all decoded information that the logic of an opcode would need to execute
 #[derive(Copy, Clone)]
@@ -58,17 +82,14 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             p.eip_size = 0;
             p.gas_cost = 0;
         }else{
-            let mut prefix_size = 0;
             let mut buffer = vm.memory.get_sized_memory(eip, 16)?;
-            //todo: handle 0x0F extension prefix and other prefixes
-            let size_override = if buffer[0] == 0x66{ //operand size override
-                buffer = &buffer[1..]; //advance to next opcode
-                prefix_size += 1;
-                true
-            }else{
-                false
-            };
-            let prop = &opcodes[buffer[0 as usize] as usize];
+            let mut prefixes = PrefixesActivated::default();
+            let prefix_size = prefixes.get_prefixes(buffer, 0)?;
+            buffer = &buffer[prefix_size as usize..];
+            let prop = &opcodes[buffer[0 as usize] as usize] | (prefixes.two_byte << 8);
+            // 
+            // opcode = buffer[0] | prefixes.two_bytes << 8;
+
             let mut modrm = Option::None;
             let opcode = if prop.has_modrm{
                 p.gas_cost += vm.charger.cost(GasCost::ModRMSurcharge);
@@ -79,18 +100,18 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             };
             p.function = opcode.function;
             p.gas_cost += vm.charger.cost(opcode.gas_cost);
-            p.size_override = size_override;
+            p.size_override = prefixes.size_override;
             match opcode.pipeline_behavior{
                 PipelineBehavior::None => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, size_override, false, modrm)? as u8 + prefix_size;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
                 },
                 PipelineBehavior::Unpredictable | PipelineBehavior::UnpredictableNoGas => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, size_override, false, modrm)? as u8 + prefix_size;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
                     eip += p.eip_size as u32;
                     stop_filling = true;
                 },
                 PipelineBehavior::RelativeJump => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, size_override, false, modrm)? as u8 + prefix_size;
+                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
                     //relative jumps are calculated from the EIP value AFTER the jump would've executed, ie, after EIP is advanced by the size of the instruction
                     let future_eip = eip + (p.eip_size as u32);
                     //rel must be sign extended, but is otherwise treated as a u32 for simplicity
