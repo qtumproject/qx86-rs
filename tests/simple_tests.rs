@@ -291,6 +291,6 @@ fn test_signed_comparison_8bit_cmp(){
         mov cl, 0xFF
         cmp al, cl
         hlt");
-    assert_eq!(vm.reg8(Reg8::AL), 0xFF);
+    assert_eq!(vm.reg8(Reg8::AL), 0xFE);
     assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
 }

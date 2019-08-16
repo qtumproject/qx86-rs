@@ -556,24 +556,24 @@ lazy_static! {
             .into_table(&mut ops);
         // Begin cmp opcodes
         //0x38 cmp r/m8, r8
-        define_opcode(0x38).calls(sub_8bit).with_gas(Low)
+        define_opcode(0x38).calls(cmp_8bit).with_gas(Low)
             .with_rm8()
             .with_rm_reg8()
             .into_table(&mut ops);
         //0x39 cmp, r/m16, r16
         //0x39 cmp, r/m32, r32
-        define_opcode(0x39).calls(sub_native_word).with_gas(Low)
+        define_opcode(0x39).calls(cmp_native_word).with_gas(Low)
             .with_rmw()
             .with_rm_regw()
             .into_table(&mut ops);
         //0x3A cmp r8, r/m8
-        define_opcode(0x3A).calls(sub_8bit).with_gas(Low)
+        define_opcode(0x3A).calls(cmp_8bit).with_gas(Low)
             .with_rm_reg8()
             .with_rm8()
             .into_table(&mut ops);
         //0x3B cmp r16, r/m16
         //0x3B cmp r32, r/m32
-        define_opcode(0x3B).calls(sub_native_word).with_gas(Low)
+        define_opcode(0x3B).calls(cmp_native_word).with_gas(Low)
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops);
