@@ -86,9 +86,7 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             let mut prefixes = PrefixesActivated::default();
             let prefix_size = prefixes.get_prefixes(buffer, 0)?;
             buffer = &buffer[prefix_size as usize..];
-            let prop = &opcodes[buffer[0 as usize] as usize] | (prefixes.two_byte << 8);
-            // 
-            // opcode = buffer[0] | prefixes.two_bytes << 8;
+            let prop = &opcodes[buffer[0] as usize | ((prefixes.two_bytes as usize) << 8)];
 
             let mut modrm = Option::None;
             let opcode = if prop.has_modrm{

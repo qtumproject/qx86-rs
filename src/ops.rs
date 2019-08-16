@@ -62,6 +62,122 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     Ok(())
 }
 
+pub fn jmp_overflow(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    //check flags for overflow
+    if vm.flags.overflow {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_not_overflow(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    //check flags for not overflow
+    if vm.flags.overflow == false {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_below(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    //check carry flag
+    if vm.flags.carry {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_above_or_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    //check carry not set
+    if vm.flags.carry == false {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_is_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.zero{
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_not_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.zero == false {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_below_or_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.carry || vm.flags.zero {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_sign(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.sign {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_no_sign(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.sign == false {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_above(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.carry && vm.flags.zero {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_parity(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.parity{
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_no_parity(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.parity == false {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_less(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.sign != vm.flags.overflow {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_greater_or_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.sign == vm.flags.overflow{
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_less_or_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.sign != vm.flags.overflow || vm.flags.zero {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
+pub fn jmp_greater(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.flags.sign && vm.flags.zero {
+        return jmp_abs(vm, pipeline);
+    }
+    Ok(())
+}
+
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
