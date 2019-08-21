@@ -291,6 +291,27 @@ mod tests{
         assert_eq!(pipeline[0].args[0].location, ArgLocation::RegisterAddress(Reg32::EDX as u8, ValueSize::Dword));
         assert_eq!(pipeline[0].eip_size, 2);
     }
+    #[test]
+    fn test_extended_opcodes(){
+        let opcodes = test_opcodes();
+        let mut vm = VM::default();
+        vm.gas_remaining = 1;
+        let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
+        vm.eip = 0x10000;
+        let bytes = vec![
+            0x66, // tells us to again look ahead
+            0x0F, //tells us to look ahead
+            0x01 // test op
+        ];
+        (&mut vm_mem[0..bytes.len()]).copy_from_slice(&bytes);
+        let mut pipeline = vec![];
+        pipeline.resize(3, Pipeline::default());
+        fill_pipeline(&vm, &opcodes, &mut pipeline).unwrap();
+
+        assert!(pipeline[2].function as usize == test_op as usize);
+        assert!(pipeline[2].args[0].location == ArgLocation::None);
+        assert!(pipeline[2].eip_size == 1);
+    }
 }
 
 

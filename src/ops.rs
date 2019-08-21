@@ -165,7 +165,7 @@ pub fn jmp_greater_or_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMEr
 }
 
 pub fn jmp_less_or_equal(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
-    if vm.flags.sign != vm.flags.overflow || vm.flags.zero {
+    if (vm.flags.sign != vm.flags.overflow) || vm.flags.zero {
         return jmp_abs(vm, pipeline);
     }
     Ok(())
