@@ -137,6 +137,47 @@ fn test_jmp(){
 }
 
 #[test]
+fn test_jcc(){
+    let vm = execute_vm_with_asm("
+    mov al, -120
+    mov cl, 50
+    cmp al, cl
+    jo short _a
+    ud2 ;shouldn't reach here
+    ud2
+    _e:
+    mov ebp, 3
+    hlt ;EIP = org+7 + 5
+    ud2 ;shouldn't reach here
+    _c:
+    mov ecx, 0xFEFEFEFE
+    jbe long _d
+    _b:
+    mov esi, 8
+    mov eax, 8
+    cmp eax, esi
+    je short _c
+    _a:
+    mov eax, 0xF00090FF
+    mov ebx, 0xF00121FA
+    cmp eax, ebx
+    jbe long _b
+    _d:
+    mov edx, 2
+    jg short _e
+    mov edx, 4
+    jle short _e
+    ud2 ;shouldn't reach here
+    ");
+    assert_eq!(vm.eip, CODE_MEM + 17);
+    assert_eq!(vm.reg32(Reg32::EAX), 8);
+    assert_eq!(vm.reg32(Reg32::ECX), 0xFEFEFEFE);
+    assert_eq!(vm.reg32(Reg32::EDX), 4);
+    assert_eq!(vm.reg32(Reg32::EBP), 3);
+    assert_eq!(vm.reg32(Reg32::ESI), 8);
+}
+
+#[test]
 fn test_override_jmp_error(){
     let mut vm = create_vm_with_asm("
     jmp word _a
