@@ -156,7 +156,7 @@ mod tests{
     fn test2_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
     fn test3_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
     fn test4_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
-
+    fn test5_op(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{Ok(())}
     /* Opcodes defined:
     0x00 -- undefined (purposefully)
     0x01 (), 10 gas -- test_op
@@ -194,6 +194,10 @@ mod tests{
             .is_group(3)
             .with_rmw()
             .calls(test4_op)
+            .into_table(&mut table);
+        define_opcode(0x05).is_two_byte_op()
+            .with_gas(GasCost::Low)
+            .calls(test5_op)
             .into_table(&mut table);
 
         table
@@ -301,16 +305,17 @@ mod tests{
         let bytes = vec![
             0x66, // tells us to again look ahead
             0x0F, //tells us to look ahead
-            0x01 // test op
+            0x05 // test op
         ];
         (&mut vm_mem[0..bytes.len()]).copy_from_slice(&bytes);
         let mut pipeline = vec![];
         pipeline.resize(3, Pipeline::default());
         fill_pipeline(&vm, &opcodes, &mut pipeline).unwrap();
 
-        assert!(pipeline[2].function as usize == test_op as usize);
-        assert!(pipeline[2].args[0].location == ArgLocation::None);
-        assert!(pipeline[2].eip_size == 1);
+        assert_eq!(pipeline[0].function as usize, test5_op as usize);
+        assert_eq!(pipeline[0].size_override, true);
+        assert_eq!(pipeline[0].args[0].location, ArgLocation::None);
+        assert_eq!(pipeline[0].eip_size, 3);
     }
 }
 

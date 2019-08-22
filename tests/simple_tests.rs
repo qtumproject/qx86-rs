@@ -150,7 +150,7 @@ fn test_jcc(){
     hlt ;EIP = org+7 + 5
     ud2 ;shouldn't reach here
     _c:
-    mov ecx 0xFEFEFEFE
+    mov ecx, 0xFEFEFEFE
     jbe long _d
     _b:
     mov esi, 8
@@ -161,11 +161,13 @@ fn test_jcc(){
     mov eax, 0xF00090FF
     mov ebx, 0xF00121FA
     cmp eax, ebx
-    jae long _b
+    jbe long _b
     _d:
-    mov edx, 2
+    mov edi, 1
+    cmp edx, edi
+    mov edi, 2
     jg short _e
-    mov edx, 4
+    mov edi, 3
     jle short _e
     ud2 ;shouldn't reach here
     ");
