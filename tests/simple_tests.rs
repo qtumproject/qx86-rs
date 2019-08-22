@@ -354,3 +354,20 @@ fn test_inc_and_dec_8bit_and_32bit() {
     assert_eq!(vm.reg32(Reg32::EDX), 0xDEADBEEE);
     assert_eq!(vm.flags, X86Flags{parity:true, sign: true, ..Default::default()});
 }
+
+#[test]
+fn test_inc_dont_modify_carry_flag() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFFFFFFFF
+        inc eax
+        hlt");
+        assert_eq!(vm.flags, X86Flags{zero: true, parity: true, adjust: true, ..Default::default()});
+}
+
+#[test]
+fn test_dec_dont_modify_carry_flag() {
+    let vm = execute_vm_with_asm("
+        dec eax
+        hlt");
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, adjust: true, ..Default::default()});
+}
