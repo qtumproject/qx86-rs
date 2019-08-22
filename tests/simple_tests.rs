@@ -335,3 +335,39 @@ fn test_signed_comparison_8bit_cmp(){
     assert_eq!(vm.reg8(Reg8::AL), 0xFE);
     assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
 }
+
+#[test]
+fn test_inc_and_dec_8bit_and_32bit() {
+    let vm = execute_vm_with_asm("
+        mov al, 0xFE
+        inc al
+        mov ebx, 0xDEADBEEF
+        inc ebx
+        mov cl, 0xFE
+        dec cl
+        mov edx, 0xDEADBEEF
+        dec edx
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xFF);
+    assert_eq!(vm.reg32(Reg32::EBX), 0xDEADBEF0);
+    assert_eq!(vm.reg8(Reg8::CL), 0xFD);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xDEADBEEE);
+    assert_eq!(vm.flags, X86Flags{parity:true, sign: true, ..Default::default()});
+}
+
+#[test]
+fn test_inc_dont_modify_carry_flag() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFFFFFFFF
+        inc eax
+        hlt");
+        assert_eq!(vm.flags, X86Flags{zero: true, parity: true, adjust: true, ..Default::default()});
+}
+
+#[test]
+fn test_dec_dont_modify_carry_flag() {
+    let vm = execute_vm_with_asm("
+        dec eax
+        hlt");
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, adjust: true, ..Default::default()});
+}

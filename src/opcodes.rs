@@ -768,7 +768,37 @@ lazy_static! {
         define_opcode(0x83).is_group(7).calls(sub_native_word).with_gas(Low)
             .with_rmw()
             .with_imm8()
-            .into_table(&mut ops);        
+            .into_table(&mut ops);
+        // decrement
+        // 0x48 dec r16
+        // 0x48 dec r32
+        define_opcode(0x48).calls(decrement_native_word).with_gas(Low)
+            .with_suffix_regw()
+            .into_table(&mut ops);
+        // 0xFE dec r/m8
+        define_opcode(0xFE).is_group(1).calls(decrement_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        // 0xFF dec r/m16
+        // 0xFF dec r/m32
+        define_opcode(0xFF).is_group(1).calls(decrement_native_word).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
+        // increment
+        // 0x40 inc r16
+        // 0x40 inc r32
+        define_opcode(0x40).calls(increment_native_word).with_gas(Low)
+            .with_suffix_regw()
+            .into_table(&mut ops);
+        // 0xFE dec r/m8
+        define_opcode(0xFE).is_group(0).calls(increment_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        // 0xFF dec r/m16
+        // 0xFF dec r/m32
+        define_opcode(0xFF).is_group(0).calls(increment_native_word).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
         ops
     };
 }
