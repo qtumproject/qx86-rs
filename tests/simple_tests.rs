@@ -163,15 +163,13 @@ fn test_jcc(){
     cmp eax, ebx
     jbe long _b
     _d:
-    mov edi, 1
-    cmp edx, edi
-    mov edi, 2
+    mov edx, 2
     jg short _e
-    mov edi, 3
+    mov edx, 4
     jle short _e
     ud2 ;shouldn't reach here
     ");
-    //assert_eq!(vm.eip, CODE_MEM + 11);
+    assert_eq!(vm.eip, CODE_MEM + 17);
     assert_eq!(vm.reg32(Reg32::EAX), 8);
     assert_eq!(vm.reg32(Reg32::ECX), 0xFEFEFEFE);
     assert_eq!(vm.reg32(Reg32::EDX), 4);
