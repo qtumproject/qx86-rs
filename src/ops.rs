@@ -237,14 +237,13 @@ pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 
 pub fn increment_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
-    let (result, carry) = base.overflowing_add(adder);
     let (result, overflow) = (base as i8).overflowing_add(1 as i8);
     vm.flags.overflow = overflow;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
+    vm.flags.calculate_sign8(result as u8);
     vm.flags.adjust = (base&0x0F) + (1&0x0F) > 15;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }
 
@@ -262,9 +261,9 @@ pub fn increment_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.overflow = overflow;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
+    vm.flags.calculate_sign16(result as u16);
     vm.flags.adjust = (base&0x0F) + (1&0x0F) > 15;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
 }
 
@@ -272,11 +271,11 @@ pub fn increment_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let (result, overflow) = (base as i32).overflowing_add(1 as i32);
     vm.flags.overflow = overflow;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign32(result as u32);
     vm.flags.adjust = (base&0x0F) + (1&0x0F) > 15;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
 
@@ -335,13 +334,13 @@ pub fn sub_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 
 pub fn decrement_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
-    let (result, overflow) = (base as i8).overflow_sub(1 as i8);
+    let (result, overflow) = (base as i8).overflowing_sub(1 as i8);
     vm.flags.overflow = overflow;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
+    vm.flags.calculate_sign8(result as u8);
     vm.flags.adjust = ((base as i32)&0x0F) - ((1 as i32)&0x0F) < 0;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }
 
@@ -359,9 +358,9 @@ pub fn decrement_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.overflow = overflow;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
+    vm.flags.calculate_sign16(result as u16);
     vm.flags.adjust = ((base as i32)&0x0F) - ((1 as i32)&0x0F) < 0;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
 }
 
@@ -369,11 +368,11 @@ pub fn decrement_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let (result, overflow) = (base as i32).overflowing_sub(1 as i32);
     vm.flags.overflow = overflow;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign32(result as u32);
     vm.flags.adjust = ((base as i32)&0x0F) - ((1 as i32)&0x0F) < 0;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
 

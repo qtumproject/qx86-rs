@@ -352,5 +352,5 @@ fn test_inc_and_dec_8bit_and_32bit() {
     assert_eq!(vm.reg32(Reg32::EBX), 0xDEADBEF0);
     assert_eq!(vm.reg8(Reg8::CL), 0xFD);
     assert_eq!(vm.reg32(Reg32::EDX), 0xDEADBEEE);
-    assert_eq!(vm.flags, X86Flags{parity:true, ..Default::default()});
+    assert_eq!(vm.flags, X86Flags{parity:true, sign: true, ..Default::default()});
 }
