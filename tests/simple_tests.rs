@@ -187,6 +187,23 @@ fn test_override_jmp_error(){
 }
 
 #[test]
+fn test_jcxz() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0
+        jecxz short _a
+        hlt
+        _a:
+        inc eax
+        mov ecx, 1
+        jecxz short _b
+        hlt
+        _b: 
+        inc eax ; should not reach here
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 1);
+}
+
+#[test]
 fn test_signed_carry_add32(){
     let vm = execute_vm_with_asm("
         mov eax, 0xF00090FF
