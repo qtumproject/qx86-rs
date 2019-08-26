@@ -432,3 +432,41 @@ pub fn cmp_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
     Ok(())
 }
+
+pub fn and_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let mask = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    let result = base & mask;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign8(result);
+    Ok(())
+}
+
+pub fn and_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return and_16bit(vm, pipeline);
+    } else {
+        return and_32bit(vm, pipeline);
+    }
+}
+
+pub fn and_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let mask = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    let result = base & mask;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign16(result);
+    Ok(())
+}
+
+pub fn and_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let mask = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    let result = base & mask;
+    vm.flags.calculate_zero(result);
+    vm.flags.calculate_parity(result);
+    vm.flags.calculate_sign32(result);
+    Ok(())
+}

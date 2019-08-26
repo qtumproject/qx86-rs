@@ -774,6 +774,57 @@ lazy_static! {
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
+        // Bitwise AND
+        //0x20 and r/m8, r8
+        define_opcode(0x20).calls(and_8bit).with_gas(Low)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0x21 and r/m16, r16
+        //0x21 and r/m32, r32
+        define_opcode(0x21).calls(and_native_word).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0x22 and r8, r/m8
+        define_opcode(0x22).calls(and_8bit).with_gas(Low)
+            .with_rm_reg8()
+            .with_rm8()
+            .into_table(&mut ops);
+        //0x23 and r16, r/m16
+        //0x23 and r32, r/m32
+        define_opcode(0x23).calls(and_native_word).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .into_table(&mut ops);
+        //0x24 and AL, imm8
+        define_opcode(0x24).calls(and_8bit).with_gas(Low)
+            .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
+            .with_imm8()
+            .into_table(&mut ops);
+        //0x25 and AX, imm16
+        //0x25 and EAX, imm32
+        define_opcode(0x25).calls(and_native_word).with_gas(Low)
+            .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
+            .with_immw()
+            .into_table(&mut ops);
+        //0x80 and r/m8, imm8
+        define_opcode(0x80).is_group(4).calls(and_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0x81 and r/m16, imm16
+        //0x81 and r/m32, imm32
+        define_opcode(0x81).is_group(4).calls(and_native_word).with_gas(Low)
+            .with_rmw()
+            .with_immw()
+            .into_table(&mut ops);
+        //0x83 and r/m16, imm8
+        //0x83 and r/m32, imm8
+        define_opcode(0x83).is_group(4).calls(and_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
         // decrement
         // 0x48 dec r16
         // 0x48 dec r32

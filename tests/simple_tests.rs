@@ -388,3 +388,48 @@ fn test_dec_dont_modify_carry_flag() {
         hlt");
     assert_eq!(vm.flags, X86Flags{sign: true, parity: true, adjust: true, ..Default::default()});
 }
+
+#[test]
+fn test_and_rm8_r8(){
+    let vm = execute_vm_with_asm("
+        mov AL, 0xFF
+        mov BL, 0xA7
+        and AL, BL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xA7);
+    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+}
+
+#[test]
+fn test_and_rmw_rw() {
+    let vm = execute_vm_with_asm("
+        mov AX, 0xFFFF
+        mov BX, 0xC8A7
+        and AX, BX
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xC8A7);
+    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+}
+
+#[test]
+fn test_and_r8_rm8() {
+    let vm = execute_vm_with_asm("
+        mov AL, 0xFF
+        mov EBX, _tmp
+        and AL, [EBX]
+        _tmp: dB 0xA7, 0, 0, 0
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xA7);
+    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+}
+
+#[test]
+fn test_and_ax_immw() {
+    let vm = execute_vm_with_asm("
+        mov AX, 0xFFFF
+        and AX, 0xA7A7
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xA7A7);
+    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+}
+
