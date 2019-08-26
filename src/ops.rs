@@ -63,7 +63,7 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
 }
 
 pub fn jmp_conditional_ecx_is_zero(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
-    if vm.regs[1] == 0x0 {
+    if vm.regs[Reg32::ECX as usize] == 0 {
         return jmp_rel(vm, pipeline);
     }
     Ok(())
