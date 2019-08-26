@@ -450,6 +450,11 @@ lazy_static! {
             .with_rmw()
             .is_unpredictable()
             .into_table(&mut ops);
+        //0xE3 JCXZ rel8
+        define_opcode(0xE3).calls(jmp_conditional_ecx_is_zero).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, Fixed(Byte))
+            .is_unpredictable()
+            .into_table(&mut ops);
         //0xE9 JMP  relW
         define_opcode(0xE9).calls(jmp_rel).with_gas(Low)
             .with_arg(ArgSource::JumpRel, NativeWord)

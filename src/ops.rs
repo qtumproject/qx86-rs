@@ -62,6 +62,13 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     Ok(())
 }
 
+pub fn jmp_conditional_ecx_is_zero(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if vm.regs[Reg32::ECX as usize] == 0 {
+        return jmp_rel(vm, pipeline);
+    }
+    Ok(())
+}
+
 pub fn jmp_overflow(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
     //check flags for overflow
     if vm.flags.overflow {
