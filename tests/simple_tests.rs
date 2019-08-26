@@ -530,7 +530,7 @@ fn test_or_parity_zero_32bit(){
         or EAX, EBX
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0x0);
-    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
 }
 
 #[test]
