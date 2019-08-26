@@ -417,8 +417,9 @@ fn test_and_r8_rm8() {
         mov AL, 0xFF
         mov EBX, _tmp
         and AL, [EBX]
+        hlt
         _tmp: dB 0xA7, 0, 0, 0
-        hlt");
+    ");
     assert_eq!(vm.reg8(Reg8::AL), 0xA7);
     assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
 }
