@@ -527,48 +527,6 @@ pub fn or_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     Ok(())
 }
 
-pub fn or_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
-    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
-    let mask = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
-    let result = base | mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
-    Ok(())
-}
-
-pub fn or_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
-    if pipeline.size_override {
-        return or_16bit(vm, pipeline);
-    } else {
-        return and_32bit(vm, pipeline);
-    }
-}
-
-pub fn or_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
-    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-    let mask = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-    let result = base | mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
-    Ok(())
-}
-
-pub fn or_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
-    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-    let mask = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-    print!("{}\n", base);
-    let result = base | mask;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
-    Ok(())
-}
-
 pub fn xor_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
@@ -576,6 +534,8 @@ pub fn xor_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
+    vm.flags.carry = false;
+    vm.flags.overflow = false;
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }
@@ -595,6 +555,8 @@ pub fn xor_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign16(result);
+    vm.flags.carry = false;
+    vm.flags.overflow = false;
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
 }
@@ -606,6 +568,8 @@ pub fn xor_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.calculate_zero(result);
     vm.flags.calculate_parity(result);
     vm.flags.calculate_sign32(result);
+    vm.flags.carry = false;
+    vm.flags.overflow = false;
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
