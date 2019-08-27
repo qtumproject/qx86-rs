@@ -927,6 +927,18 @@ lazy_static! {
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
+       //Bitwise NOT
+        //0xF6 not r/m8, r8
+        define_opcode(0xF6).is_group(2).calls(not_8bit).with_gas(Low)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0xF7 not r/m16, r16
+        //0xF7 not r/m32, r32
+        define_opcode(0x31).is_group(2).calls(not_native_word).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
         // decrement
         // 0x48 dec r16
         // 0x48 dec r32

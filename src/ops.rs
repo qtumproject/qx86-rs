@@ -614,3 +614,32 @@ pub fn or_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
+
+pub fn not_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let result = !base;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
+    Ok(())
+}
+
+pub fn not_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return not_16bit(vm, pipeline);
+    } else {
+        return not_32bit(vm, pipeline);
+    }
+}
+
+pub fn not_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let result = !base;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
+    Ok(())
+}
+
+pub fn not_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let result = !base;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
+    Ok(())
+}
