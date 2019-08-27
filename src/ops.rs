@@ -495,7 +495,7 @@ pub fn or_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
     if pipeline.size_override {
         return or_16bit(vm, pipeline);
     } else {
-        return and_32bit(vm, pipeline);
+        return or_32bit(vm, pipeline);
     }
 }
 
