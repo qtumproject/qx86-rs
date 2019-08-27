@@ -434,3 +434,101 @@ fn test_and_ax_immw() {
     assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
 }
 
+#[test]
+fn test_or_parity_sign_8bit(){
+     let vm = execute_vm_with_asm("
+        mov AL, 0x16
+        mov BL, 0x89
+        or AL, BL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x9F);
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
+}
+
+#[test]
+fn test_or_8bit(){
+     let vm = execute_vm_with_asm("
+        mov AL, 0x76
+        mov BL, 0x09
+        or AL, BL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x7F);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});   
+}
+
+#[test]
+fn test_or_parity_zero_8bit(){
+     let vm = execute_vm_with_asm("
+        mov AL, 0x0
+        mov BL, 0x0
+        or AL, BL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x0);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
+}
+
+#[test]
+fn test_or_parity_sign_16bit(){
+     let vm = execute_vm_with_asm("
+        mov AX, 0x1616
+        mov BX, 0x8989
+        or AX, BX
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x9F9F);
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
+}
+
+#[test]
+fn test_or_16bit(){
+     let vm = execute_vm_with_asm("
+        mov AX, 0x7676
+        mov BX, 0x0909
+        or AX, BX
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x7F7F);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});   
+}
+
+#[test]
+fn test_or_parity_zero_16bit(){
+     let vm = execute_vm_with_asm("
+        mov AX, 0x0
+        mov BX, 0x0
+        or AX, BX
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x0);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
+}
+
+#[test]
+fn test_or_parity_sign_32bit(){
+     let vm = execute_vm_with_asm("
+        mov EAX, 0x16161616
+        mov EBX, 0x89898989
+        or EAX, EBX
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x9F9F9F9F);
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
+}
+
+#[test]
+fn test_or_32bit(){
+     let vm = execute_vm_with_asm("
+        mov EAX, 0x76767676
+        mov EBX, 0x09090909
+        or EAX, EBX
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x7F7F7F7F);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});   
+}
+
+#[test]
+fn test_or_parity_zero_32bit(){
+     let vm = execute_vm_with_asm("
+        mov EAX, 0x0
+        mov EBX, 0x0
+        or EAX, EBX
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x0);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
+}
