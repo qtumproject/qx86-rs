@@ -934,7 +934,7 @@ lazy_static! {
             .into_table(&mut ops);
         //0xF7 not r/m16
         //0xF7 not r/m32
-        define_opcode(0x31).is_group(2).calls(not_native_word).with_gas(Low)
+        define_opcode(0xF7).is_group(2).calls(not_native_word).with_gas(Low)
             .with_rmw()
             .into_table(&mut ops);
         // decrement

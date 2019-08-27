@@ -542,3 +542,13 @@ fn test_xor() {
     assert_eq!(vm.reg8(Reg8::DL), 0xFE);
     assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
 }
+
+#[test]
+fn test_not() {
+    let vm = execute_vm_with_asm("
+        mov AL, 0xFA
+        not AL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 5);
+    assert_eq!(vm.flags, X86Flags::default());
+}
