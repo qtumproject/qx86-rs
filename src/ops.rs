@@ -440,6 +440,8 @@ pub fn and_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
+    vm.flags.carry = false;
+    vm.flags.overflow = false;
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }
@@ -459,6 +461,8 @@ pub fn and_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign16(result);
+    vm.flags.carry = false;
+    vm.flags.overflow = false;
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
 }
@@ -470,6 +474,8 @@ pub fn and_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.flags.calculate_zero(result);
     vm.flags.calculate_parity(result);
     vm.flags.calculate_sign32(result);
+    vm.flags.carry = false;
+    vm.flags.overflow = false;
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
