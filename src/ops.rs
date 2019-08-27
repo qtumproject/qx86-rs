@@ -602,3 +602,44 @@ pub fn not_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
+
+pub fn neg_8bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    if base == 0xFF {
+        vm.flags.overflow = true;
+    } else if base == 0 {
+        vm.flags.carry = false;
+    } else {
+        vm.flags.carry = true;
+    }
+    let result = -(base as i8);
+    vm.flags.calculate_zero(result as u32);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
+    Ok(())
+}
+
+pub fn neg_native_word(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return neg_16bit(vm, pipeline);
+    } else {
+        return neg_32bit(vm, pipeline);
+    }
+}
+
+pub fn neg_16bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    vm.flags.carry = base != 0;
+    let result = -(base as i16);
+    vm.flags.calculate_zero(result as u32);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
+    Ok(())
+}
+
+pub fn neg_32bit(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    vm.flags.carry = base != 0;
+    let result = -(base as i32);
+    vm.flags.calculate_zero(result as u32);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
+    Ok(())
+}
