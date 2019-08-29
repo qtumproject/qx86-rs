@@ -438,7 +438,18 @@ lazy_static! {
             .is_group(0)
             .with_rmw()
             .into_table(&mut ops);
-        
+        //call opcodes
+        //0xE8 Call rel16
+        //0xE8 Call rel32
+        define_opcode(0xE8).calls(call_rel).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .into_table(&mut ops);
+            // need to figure out what this should be
+        //0xFF Call r/m16
+        //0xFF Call r/m32
+        define_opcode(0xFF).is_group(2).calls(call_rel).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
         //jmp opcodes
         //0xEB  JMP  rel8
         define_opcode(0xEB).calls(jmp_rel).with_gas(Low)

@@ -38,6 +38,16 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(),
     };
     Ok(())
 }
+
+pub fn call_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let branch_to = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(vm.eip))?;
+    push(vm, pipeline)?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(branch_to))?;
+    jmp_rel(vm, pipeline)?;
+    Ok(())
+}
+
 /// The logic function for the `jmp` opcodes with a relative argument
 pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
     //relative jumps are calculated from the EIP value AFTER the jump would've executed, ie, after EIP is advanced by the size of the instruction
