@@ -937,6 +937,16 @@ lazy_static! {
         define_opcode(0xF7).is_group(2).calls(not_native_word).with_gas(Low)
             .with_rmw()
             .into_table(&mut ops);
+        // Bitwise NEG
+        // 0xF6 neg r/m8
+        define_opcode(0xF6).is_group(3).calls(neg_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        //0xF7 neg r/m16
+        //0xF7 neg r/m32
+        define_opcode(0xF7).is_group(3).calls(neg_native_word).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
         // decrement
         // 0x48 dec r16
         // 0x48 dec r32

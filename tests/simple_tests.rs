@@ -552,3 +552,22 @@ fn test_not() {
     assert_eq!(vm.reg8(Reg8::AL), 5);
     assert_eq!(vm.flags, X86Flags::default());
 }
+
+#[test]
+fn test_neg() {
+    let vm = execute_vm_with_asm("
+        mov AL, 0xFA
+        neg AL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 6);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_neg_zero() {
+    let vm = execute_vm_with_asm("
+        neg AL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0);
+     assert_eq!(vm.flags, X86Flags{zero: true, ..Default::default()});
+}
