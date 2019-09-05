@@ -20,7 +20,7 @@ fn run_exec_test(bytecode: &[u8]){
 
 fn run_oog_test(bytecode: &[u8]){
     let mut vm = create_vm();
-    vm.gas_remaining = OOG_GAS_LIMIT;
+    vm.state.gas_remaining = OOG_GAS_LIMIT;
     vm.copy_into_memory(CODE_MEM, bytecode).unwrap();
     let r = vm.execute().unwrap_err();
     match r{
@@ -87,17 +87,17 @@ criterion_main!(benches);
 
 //Duplicated from test/common.rs
 //fix this later.. 
-pub fn create_vm() -> VM{
+pub fn create_vm<'a>() -> VM<'a>{
     let mut vm = VM::default();
-    vm.eip = CODE_MEM;
-    vm.gas_remaining = 1000000000;
+    vm.state.eip = CODE_MEM;
+    vm.state.gas_remaining = 1000000000;
     vm.charger = GasCharger::test_schedule();
     vm.memory.add_memory(CODE_MEM, 0x10000).unwrap();
     vm.memory.add_memory(DATA_MEM, 0x10000).unwrap();
     vm
 }
 
-pub fn create_vm_with_asm(input: &str) -> VM{
+pub fn create_vm_with_asm<'a>(input: &str) -> VM<'a>{
     let mut vm = create_vm();
     let bytes = asm(input);
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();

@@ -14,18 +14,18 @@ pub const DATA_MEM:u32 = 0x80000000;
 pub const INITIAL_GAS:u64 = 10000000;
 
 #[cfg(test)]
-pub fn create_vm() -> VM{
+pub fn create_vm<'a>() -> VM<'a>{
     let mut vm = VM::default();
-    vm.eip = CODE_MEM;
+    vm.state.eip = CODE_MEM;
     vm.charger = GasCharger::test_schedule();
-    vm.gas_remaining = INITIAL_GAS;
+    vm.state.gas_remaining = INITIAL_GAS;
     vm.memory.add_memory(CODE_MEM, 0x10000).unwrap();
     vm.memory.add_memory(DATA_MEM, 0x10000).unwrap();
     vm
 }
 
 #[cfg(test)]
-pub fn create_vm_with_asm(input: &str) -> VM{
+pub fn create_vm_with_asm<'a>(input: &str) -> VM<'a>{
     let mut vm = create_vm();
     let bytes = asm(input);
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
@@ -33,7 +33,7 @@ pub fn create_vm_with_asm(input: &str) -> VM{
 }
 
 #[cfg(test)]
-pub fn execute_vm_with_asm(input: &str) -> VM{
+pub fn execute_vm_with_asm<'a>(input: &str) -> VM<'a>{
     let mut vm = create_vm_with_asm(input);
     execute_vm_with_diagnostics(&mut vm);
     vm
@@ -63,11 +63,11 @@ pub fn vm_diagnostics(vm: &VM){
     println!("ESI: 0x{:08X?}", vm.reg32(Reg32::ESI));
     println!("EDI: 0x{:08X?}", vm.reg32(Reg32::EDI));
     println!();
-    println!("Gas remaining: {}", vm.gas_remaining);
-    println!("EIP: 0x{:X?}", vm.eip);
+    println!("Gas remaining: {}", vm.state.gas_remaining);
+    println!("EIP: 0x{:X?}", vm.state.eip);
     println!("Surrounding bytes in opcode stream:");
-    if vm.eip >= 0x10000 {
-        for n in std::cmp::max(vm.eip - 8, 0x10000)..(vm.eip + 8){
+    if vm.state.eip >= 0x10000 {
+        for n in std::cmp::max(vm.state.eip - 8, 0x10000)..(vm.state.eip + 8){
             let b = vm.get_mem(n, ValueSize::Byte).unwrap().u8_exact().unwrap();
             println!("0x{:X?}: 0x{:02X}, as modrm: {}, as sib: {}", n, b, ModRM::parse(b), SIB::parse(b));
         }

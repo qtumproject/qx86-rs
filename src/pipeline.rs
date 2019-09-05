@@ -68,11 +68,11 @@ pub fn clear_pipeline(pipeline: &mut [Pipeline]){
 /// Decode the stream of opcodes and fill the pipeline with decoded opcodes for later execution
 /// Note the pipeline is expected to be of fixed size and to not incur any allocation within the main loop of the VM
 pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipeline]) -> Result<(), VMError>{
-    let mut eip = vm.eip;
+    let mut eip = vm.state.eip;
     let mut stop_filling = false;
-    let mut running_gas = vm.gas_remaining;
+    let mut running_gas = vm.state.gas_remaining;
     //writeable if in memory with top bit set
-    let writeable = vm.eip & 0x80000000 > 0;
+    let writeable = vm.state.eip & 0x80000000 > 0;
     clear_pipeline(pipeline);
     for n in 0..pipeline.len(){
         let mut p = &mut pipeline[n];
@@ -207,9 +207,9 @@ mod tests{
     fn test_simple_pipeline(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
-        vm.gas_remaining = 1;
+        vm.state.gas_remaining = 1;
         let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
-        vm.eip = 0x10000;
+        vm.state.eip = 0x10000;
         let bytes = vec![
             0x01, //test_op
             0x02, 0x15, //nop, imm8
@@ -234,7 +234,7 @@ mod tests{
         assert!(pipeline[1].args[1].location == ArgLocation::None);
         assert!(pipeline[1].eip_size == 2);
 
-        vm.eip += pipeline[0].eip_size as u32 + pipeline[1].eip_size as u32;
+        vm.state.eip += pipeline[0].eip_size as u32 + pipeline[1].eip_size as u32;
         fill_pipeline(&vm, &opcodes, &mut pipeline).unwrap();
 
         assert_eq!(pipeline[0].function as usize, test2_op as usize);
@@ -247,9 +247,9 @@ mod tests{
     fn test_cond_jump_pipeline(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
-        vm.gas_remaining = 1;
+        vm.state.gas_remaining = 1;
         let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
-        vm.eip = 0x10000;
+        vm.state.eip = 0x10000;
         let bytes = vec![
             0x01, //test_op
             0x03, 0x11, 0x22, 0x33, 0x44, //test3_op, imm32, cond jump
@@ -280,9 +280,9 @@ mod tests{
     fn test_group_opcodes(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
-        vm.gas_remaining = 1;
+        vm.state.gas_remaining = 1;
         let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
-        vm.eip = 0x10000;
+        vm.state.eip = 0x10000;
         let bytes = vec![
             0xFF, 0x1A, //test4_op /3 [EDX]
         ];
@@ -299,9 +299,9 @@ mod tests{
     fn test_extended_opcodes(){
         let opcodes = test_opcodes();
         let mut vm = VM::default();
-        vm.gas_remaining = 1;
+        vm.state.gas_remaining = 1;
         let vm_mem = vm.memory.add_memory(0x10000, 0x100).unwrap();
-        vm.eip = 0x10000;
+        vm.state.eip = 0x10000;
         let bytes = vec![
             0x66, // tells us to again look ahead
             0x0F, //tells us to look ahead

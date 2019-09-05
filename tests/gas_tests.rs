@@ -18,7 +18,7 @@ fn test_hlt_gas(){
     let vm = execute_vm_with_asm("
         hlt");
     //this should actually consume no gas
-    assert_eq!(vm.gas_remaining, INITIAL_GAS);
+    assert_eq!(vm.state.gas_remaining, INITIAL_GAS);
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn test_simple_gas(){
         nop ;None
         hlt ;None
         ");
-    assert_eq!(vm.gas_remaining, INITIAL_GAS - cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]));
+    assert_eq!(vm.state.gas_remaining, INITIAL_GAS - cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]));
 }
 
 //Need more tests here once more opcodes are implemented, especially jmp and jcc
@@ -45,7 +45,7 @@ fn test_perfect_gas_amount(){
         nop ;None
         hlt ;None
         ");
-    vm.gas_remaining = cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]);
+    vm.state.gas_remaining = cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]);
     vm.execute().unwrap();
 }
 
@@ -58,9 +58,9 @@ fn test_out_of_gas(){
         nop ;None -- size: 1
         hlt ;None -- size: 1
         ");
-    vm.gas_remaining = cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]) - 1;
+    vm.state.gas_remaining = cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]) - 1;
     let r = vm.execute();
     assert_eq!(r.err().unwrap(), VMError::OutOfGas);
-    //should stop at the `mov ecx, [eax]`
-    assert_eq!(vm.eip, CODE_MEM + 5); 
+    //should stop at the `mov ecx, [eax]
+    assert_eq!(vm.state.eip, CODE_MEM + 5); 
 }

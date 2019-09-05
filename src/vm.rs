@@ -8,27 +8,35 @@ use crate::flags::*;
 
 /// The primary controlling VM class holding all state of the machine 
 #[derive(Default)]
-pub struct VM{
-    /// 32bit registers for x86-32
-    /// In the order of: EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
-    pub regs: [u32; 8], 
-    /// The 32bit instruction pointer. This determines where execution of opcodes is happening within memory
-    pub eip: u32,
-    pub eflags: u32,
-    pub flags: X86Flags,
+pub struct VM<'a>{
+    pub state: VMState,
 
     /// The memory of the VM, controlled by the MemorySystem struct
     pub memory: MemorySystem,
 
-    //todo: hypervisor to call external code
-
     /// set to the EIP value when an error has occurred
     pub error_eip: u32,
-    /// The amount of gas remaining for execution
-    pub gas_remaining: u64,
     /// The struct which determines how the GasCost tiers resolve into actual numbers
     pub charger: GasCharger,
 
+    pub hypervisor: Option<&'a mut Hypervisor>
+}
+#[derive(Default, Clone)]
+pub struct VMState{
+    /// 32bit registers for x86-32
+    /// In the order of: EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
+    pub regs: [u32; 8],
+    /// The 32bit instruction pointer. This determines where execution of opcodes is happening within memory
+    pub eip: u32,
+    /// The 32bit instruction pointer. This determines where execution of opcodes is happening within memory
+    pub flags: X86Flags,
+    /// The amount of gas remaining for execution
+    pub gas_remaining: u64
+}
+
+
+pub trait Hypervisor{
+    fn interrupt(&mut self, state: &mut VMState, num: u8) -> Result<(), VMError>;
 }
 
 /// The gas cost of an operation
@@ -192,7 +200,7 @@ pub enum VMError{
 }
 
 
-impl VM{
+impl<'a> VM<'a>{
     fn calculate_modrm_address(&self, arg: &ArgLocation) -> u32{
         use ArgLocation::*;
         match arg{
@@ -202,18 +210,18 @@ impl VM{
                     Option::None => 0
                 };
                 let r = match reg{
-                    Some(x) => self.regs[*x as usize],
+                    Some(x) => self.state.regs[*x as usize],
                     Option::None => 0
                 };
                 o.wrapping_add(r)
             },
             SIBAddress{offset, base, scale, index, size: _} => {
                 let b = match base{
-                    Some(x) => self.regs[*x as usize],
+                    Some(x) => self.state.regs[*x as usize],
                     Option::None => 0
                 };
                 let ind = match index{
-                    Some(x) => self.regs[*x as usize],
+                    Some(x) => self.state.regs[*x as usize],
                     Option::None => 0
                 };
                 //base + (index * scale) + offset
@@ -288,17 +296,17 @@ impl VM{
             Byte => {
                 if reg & 0x04 == 0{
                     //access lows, AL, CL, DL, BL
-                    SizedValue::Byte((self.regs[r] & 0xFF) as u8)
+                    SizedValue::Byte((self.state.regs[r] & 0xFF) as u8)
                 }else{
                     //access highs, AH, CH, DH, BH
-                    SizedValue::Byte(((self.regs[r & 0x03] & 0xFF00) >> 8) as u8)
+                    SizedValue::Byte(((self.state.regs[r & 0x03] & 0xFF00) >> 8) as u8)
                 }
             },
             Word => {
-                SizedValue::Word((self.regs[r] & 0xFFFF) as u16)
+                SizedValue::Word((self.state.regs[r] & 0xFFFF) as u16)
             },
             Dword => {
-                SizedValue::Dword(self.regs[r])
+                SizedValue::Dword(self.state.regs[r])
             }
         }
     }
@@ -312,17 +320,17 @@ impl VM{
             Byte(v) => {
                 if reg & 0x04 == 0{
                     //access lows, AL, CL, DL, BL
-                    self.regs[r] = (self.regs[r] & 0xFFFFFF00) | (v as u32);
+                    self.state.regs[r] = (self.state.regs[r] & 0xFFFFFF00) | (v as u32);
                 }else{
                     //access highs, AH, CH, DH, BH
-                    self.regs[r & 0x03] = (self.regs[r & 0x03] & 0xFFFF00FF) | ((v as u32) << 8);
+                    self.state.regs[r & 0x03] = (self.state.regs[r & 0x03] & 0xFFFF00FF) | ((v as u32) << 8);
                 }
             },
             Word(v) => {
-                self.regs[r] = (self.regs[r] & 0xFFFF0000) | (v as u32);
+                self.state.regs[r] = (self.state.regs[r] & 0xFFFF0000) | (v as u32);
             },
             Dword(v) => {
-                self.regs[r] = v;
+                self.state.regs[r] = v;
             }
         }
     }
@@ -372,8 +380,8 @@ impl VM{
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
             let p = &pipeline[n];
-            let (_, negative_gas) = self.gas_remaining.overflowing_sub(p.gas_cost);
-            self.gas_remaining = self.gas_remaining.saturating_sub(p.gas_cost);
+            let (_, negative_gas) = self.state.gas_remaining.overflowing_sub(p.gas_cost);
+            self.state.gas_remaining = self.state.gas_remaining.saturating_sub(p.gas_cost);
 
             //the pipeline will not be filled beyond out of gas, so no worries about inconsistent errored state here
             //micro optimization note: removing this branch results in ~1% performance increase in naive tests
@@ -387,11 +395,11 @@ impl VM{
                 if r.err().unwrap() == VMError::InternalVMStop{
                     return Ok(true);
                 }else{
-                    self.error_eip = self.eip;
+                    self.error_eip = self.state.eip;
                     return Err(r.err().unwrap());
                 }
             }
-            self.eip = self.eip.wrapping_add(p.eip_size as u32);
+            self.state.eip = self.state.eip.wrapping_add(p.eip_size as u32);
         }
         return Ok(false);
 
@@ -499,8 +507,8 @@ mod tests{
     #[test]
     fn test_register_access(){
         let mut vm = VM::default();
-        vm.regs[2] = 0x11223344; // EDX
-        vm.regs[4] = 0xFFEEDDBB; // ESP
+        vm.state.regs[2] = 0x11223344; // EDX
+        vm.state.regs[4] = 0xFFEEDDBB; // ESP
         assert!(vm.get_reg(2, ValueSize::Dword) == SizedValue::Dword(0x11223344));
         assert!(vm.get_reg(4, ValueSize::Dword) == SizedValue::Dword(0xFFEEDDBB));
         assert!(vm.get_reg(2, ValueSize::Word) == SizedValue::Word(0x3344));
@@ -512,16 +520,16 @@ mod tests{
     fn test_register_writes(){
         use SizedValue::*;
         let mut vm = VM::default();
-        vm.regs[2] = 0x11223344; // EDX
-        vm.regs[4] = 0xFFEEDDBB; // ESP
+        vm.state.regs[2] = 0x11223344; // EDX
+        vm.state.regs[4] = 0xFFEEDDBB; // ESP
         vm.set_reg(2, Dword(0xAABBCCDD));
         assert!(vm.get_reg(2, ValueSize::Dword) == SizedValue::Dword(0xAABBCCDD));
         vm.set_reg(4, Word(0x1122));
-        assert!(vm.regs[4] == 0xFFEE1122);
+        assert!(vm.state.regs[4] == 0xFFEE1122);
         vm.set_reg(2, Byte(0x55)); //DL
-        assert!(vm.regs[2] == 0xAABBCC55);
+        assert!(vm.state.regs[2] == 0xAABBCC55);
         vm.set_reg(6, Byte(0x66)); //DH
-        assert_eq!(vm.regs[2], 0xAABB6655);
+        assert_eq!(vm.state.regs[2], 0xAABB6655);
     }
 
     #[test]
@@ -531,7 +539,7 @@ mod tests{
         let area = 0x77660000;
         vm.memory.add_memory(area, 0x100).unwrap();
         vm.memory.set_u32(area + 10, 0x11223344).unwrap();
-        vm.regs[0] = area + 12; //eax
+        vm.state.regs[0] = area + 12; //eax
         
         let arg = ArgLocation::Immediate(Word(0x9911));
         assert!(vm.get_arg(arg).unwrap() == Word(0x9911));
@@ -550,7 +558,7 @@ mod tests{
         let area = 0x87660000; //make sure top bit of memory area is set so it's writeable
         vm.memory.add_memory(area, 0x100).unwrap();
         vm.memory.set_u32(area + 10, 0x11223344).unwrap();
-        vm.regs[0] = area + 12; //eax
+        vm.state.regs[0] = area + 12; //eax
         
 
         let arg = ArgLocation::Immediate(Word(0x9911));
@@ -573,7 +581,7 @@ mod tests{
 
         let arg = ArgLocation::RegisterValue(1, ValueSize::Dword);
         vm.set_arg(arg, SizedValue::Dword(0x99887766)).unwrap();
-        assert!(vm.regs[1] == 0x99887766);
+        assert!(vm.state.regs[1] == 0x99887766);
     }
     #[test]
     fn test_set_arg_readonly(){
@@ -581,7 +589,7 @@ mod tests{
         let area = 0x07660000;
         vm.memory.add_memory(area, 0x100).unwrap();
         vm.memory.set_u32(area + 10, 0x11223344).unwrap();
-        vm.regs[0] = area + 12; //eax
+        vm.state.regs[0] = area + 12; //eax
         
         let arg = ArgLocation::Address(area + 10, ValueSize::Dword);
         //ensure it errors
@@ -597,7 +605,7 @@ mod tests{
             reg: Some(Reg32::EBX as u8),
             size: ValueSize::Byte
         };
-        vm.regs[Reg32::EBX as usize] = 0x88112233;
+        vm.state.regs[Reg32::EBX as usize] = 0x88112233;
         assert_eq!(vm.calculate_modrm_address(&a), 0x88112233);
         let a = ArgLocation::ModRMAddress{
             offset: Some(0x11223344),
@@ -622,8 +630,8 @@ mod tests{
             index: Some(Reg32::EDI as u8),
             size: ValueSize::Byte
         };
-        vm.regs[Reg32::EBX as usize] = 0x11223344;
-        vm.regs[Reg32::EDI as usize] = 0xFFEEDDCC;
+        vm.state.regs[Reg32::EBX as usize] = 0x11223344;
+        vm.state.regs[Reg32::EDI as usize] = 0xFFEEDDCC;
         //(ffeeddcc * 2) + 11223344 + 1
         //(ffddbb98) + 11223344 + 1
         //10ffeddc + 1

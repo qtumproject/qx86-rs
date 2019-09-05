@@ -33,7 +33,7 @@ fn test_simple_nop_hlt(){
     bytes.push(0xF4); //hlt
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
     assert!(vm.execute().unwrap());
-    assert_eq!(vm.eip, CODE_MEM + 100);
+    assert_eq!(vm.state.eip, CODE_MEM + 100);
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn test_jmp(){
     ud2 ;shouldn't reach here
     ");
     vm_diagnostics(&vm);
-    assert_eq!(vm.eip, CODE_MEM + 11);
+    assert_eq!(vm.state.eip, CODE_MEM + 11);
     assert_eq!(vm.reg32(Reg32::EAX), 0x80000100);
     assert_eq!(vm.reg32(Reg32::ECX), 1);
     assert_eq!(vm.reg32(Reg32::EDX), 2);
@@ -169,7 +169,7 @@ fn test_jcc(){
     jle short _e
     ud2 ;shouldn't reach here
     ");
-    assert_eq!(vm.eip, CODE_MEM + 17);
+    assert_eq!(vm.state.eip, CODE_MEM + 17);
     assert_eq!(vm.reg32(Reg32::EAX), 8);
     assert_eq!(vm.reg32(Reg32::ECX), 0xFEFEFEFE);
     assert_eq!(vm.reg32(Reg32::EDX), 4);
@@ -211,7 +211,7 @@ fn test_signed_carry_add32(){
         add eax, ebx
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0xE001B2F9);
-    assert_eq!(vm.flags, X86Flags{carry: true, parity: true, adjust: true, sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, parity: true, adjust: true, sign: true, ..Default::default()});
 }
 
 #[test]
@@ -222,7 +222,7 @@ fn test_overflow_signed_add32(){
         add eax, ebx
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFFFFE);
-    assert_eq!(vm.flags, X86Flags{overflow: true, adjust: true, sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{overflow: true, adjust: true, sign: true, ..Default::default()});
 }
 
 #[test]
@@ -233,7 +233,7 @@ fn test_simple_add16(){
         add ax, bx
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0x0384);
-    assert_eq!(vm.flags, X86Flags{parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{parity: true, ..Default::default()});
 }
 
 #[test]
@@ -244,7 +244,7 @@ fn test_signed_zero_add8(){
         add al, cl
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0);
-    assert_eq!(vm.flags, X86Flags{carry: true, zero: true, adjust: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, zero: true, adjust: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -253,7 +253,7 @@ fn test_32bit_8bit_add(){
         add eax, byte -1
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFFFFF);
-    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -262,7 +262,7 @@ fn test_16bit_8bit_add() {
         add ax, byte -1
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0xFFFF);
-    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -273,7 +273,7 @@ fn test_unsigned_8bit_sub(){
         sub al, cl
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0x36);
-    assert_eq!(vm.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -284,7 +284,7 @@ fn test_negative_unsigned_16bit_sub(){
         sub ax, bx
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0xFD44);
-    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -295,7 +295,7 @@ fn test_subtracting_negatives_32bit_sub(){
         sub eax, ebx
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0xFFFF6F05);
-    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -306,7 +306,7 @@ fn test_achieving_zero_with_subtraction_32bit_sub(){
         sub eax, ebx
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0x0);
-    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{zero: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -317,7 +317,7 @@ fn test_subtracting_negatives_8bit_sub(){
         sub al, cl
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0xFB);
-    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, sign: true, adjust: true, ..Default::default()});
 }
 
 #[test]
@@ -328,7 +328,7 @@ fn test_signed_subtraction_8bit_sub(){
         sub al, cl
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0xFF);
-    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -339,7 +339,7 @@ fn test_negative_addition_8bit_sub(){
         sub al, cl
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0x56);
-    assert_eq!(vm.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -350,7 +350,7 @@ fn test_signed_comparison_8bit_cmp(){
         cmp al, cl
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0xFE);
-    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, sign: true, adjust: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -369,7 +369,7 @@ fn test_inc_and_dec_8bit_and_32bit() {
     assert_eq!(vm.reg32(Reg32::EBX), 0xDEADBEF0);
     assert_eq!(vm.reg8(Reg8::CL), 0xFD);
     assert_eq!(vm.reg32(Reg32::EDX), 0xDEADBEEE);
-    assert_eq!(vm.flags, X86Flags{parity:true, sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{parity:true, sign: true, ..Default::default()});
 }
 
 #[test]
@@ -378,7 +378,7 @@ fn test_inc_dont_modify_carry_flag() {
         mov eax, 0xFFFFFFFF
         inc eax
         hlt");
-        assert_eq!(vm.flags, X86Flags{zero: true, parity: true, adjust: true, ..Default::default()});
+        assert_eq!(vm.state.flags, X86Flags{zero: true, parity: true, adjust: true, ..Default::default()});
 }
 
 #[test]
@@ -386,7 +386,7 @@ fn test_dec_dont_modify_carry_flag() {
     let vm = execute_vm_with_asm("
         dec eax
         hlt");
-    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, adjust: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, parity: true, adjust: true, ..Default::default()});
 }
 
 #[test]
@@ -397,7 +397,7 @@ fn test_and_rm8_r8(){
         and AL, BL
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0xA7);
-    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, ..Default::default()});
 }
 
 #[test]
@@ -408,7 +408,7 @@ fn test_and_rmw_rw() {
         and AX, BX
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0xC8A7);
-    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, ..Default::default()});
 }
 
 #[test]
@@ -421,7 +421,7 @@ fn test_and_r8_rm8() {
         _tmp: dB 0xA7, 0, 0, 0
     ");
     assert_eq!(vm.reg8(Reg8::AL), 0xA7);
-    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, ..Default::default()});
 }
 
 #[test]
@@ -431,7 +431,7 @@ fn test_and_ax_immw() {
         and AX, 0xA7A7
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0xA7A7);
-    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, ..Default::default()});
 }
 
 #[test]
@@ -442,7 +442,7 @@ fn test_or_parity_sign_8bit(){
         or AL, BL
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0x9F);
-    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
 }
 
 #[test]
@@ -453,7 +453,7 @@ fn test_or_8bit(){
         or AL, BL
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0x7F);
-    assert_eq!(vm.flags, X86Flags{..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{..Default::default()});   
 }
 
 #[test]
@@ -464,7 +464,7 @@ fn test_or_parity_zero_8bit(){
         or AL, BL
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0x0);
-    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
 }
 
 #[test]
@@ -475,7 +475,7 @@ fn test_or_parity_sign_16bit(){
         or AX, BX
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0x9F9F);
-    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
 }
 
 #[test]
@@ -486,7 +486,7 @@ fn test_or_16bit(){
         or AX, BX
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0x7F7F);
-    assert_eq!(vm.flags, X86Flags{..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{..Default::default()});   
 }
 
 #[test]
@@ -497,7 +497,7 @@ fn test_or_parity_zero_16bit(){
         or AX, BX
         hlt");
     assert_eq!(vm.reg16(Reg16::AX), 0x0);
-    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{zero: true, parity: true, ..Default::default()});   
 }
 
 #[test]
@@ -508,7 +508,7 @@ fn test_or_parity_sign_32bit(){
         or EAX, EBX
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0x9F9F9F9F);
-    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{sign: true, parity: true, ..Default::default()});   
 }
 
 #[test]
@@ -519,7 +519,7 @@ fn test_or_32bit(){
         or EAX, EBX
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0x7F7F7F7F);
-    assert_eq!(vm.flags, X86Flags{..Default::default()});   
+    assert_eq!(vm.state.flags, X86Flags{..Default::default()});   
 }
 
 #[test]
@@ -530,7 +530,7 @@ fn test_or_parity_zero_32bit(){
         or EAX, EBX
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0x0);
-    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{zero: true, parity: true, ..Default::default()});
 }
 
 #[test]
@@ -540,7 +540,7 @@ fn test_xor() {
         xor DL, 0x01
         hlt");
     assert_eq!(vm.reg8(Reg8::DL), 0xFE);
-    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{sign: true, ..Default::default()});
 }
 
 #[test]
@@ -550,7 +550,7 @@ fn test_not() {
         not AL
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 5);
-    assert_eq!(vm.flags, X86Flags::default());
+    assert_eq!(vm.state.flags, X86Flags::default());
 }
 
 #[test]
@@ -560,7 +560,7 @@ fn test_neg() {
         neg AL
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 6);
-    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+    assert_eq!(vm.state.flags, X86Flags{carry: true, ..Default::default()});
 }
 
 #[test]
@@ -569,5 +569,5 @@ fn test_neg_zero() {
         neg AL
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0);
-     assert_eq!(vm.flags, X86Flags{zero: true, ..Default::default()});
+     assert_eq!(vm.state.flags, X86Flags{zero: true, ..Default::default()});
 }

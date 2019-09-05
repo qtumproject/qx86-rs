@@ -115,7 +115,7 @@ Ok(())
 }
 
 pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
-    Err(VMError::InvalidOpcode(vm.get_mem(vm.eip, ValueSize::Byte)?.u8_exact()?))
+    Err(VMError::InvalidOpcode(vm.get_mem(vm.state.eip, ValueSize::Byte)?.u8_exact()?))
 }
 
 impl Default for OpcodeProperties{
