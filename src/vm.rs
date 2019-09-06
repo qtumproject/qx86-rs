@@ -14,7 +14,7 @@ pub struct VM{
     pub regs: [u32; 8], 
     /// The 32bit instruction pointer. This determines where execution of opcodes is happening within memory
     pub eip: u32,
-    pub eflags: u32,
+    
     pub flags: X86Flags,
     /// The memory of the VM, controlled by the MemorySystem struct
     pub memory: MemorySystem,

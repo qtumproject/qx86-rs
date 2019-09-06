@@ -593,3 +593,4 @@ fn test_interrupt(){
     assert_eq!(hv.ints_triggered[2], 0xBB);
     assert_eq!(hv.ints_triggered[3], 3);
 }
+
