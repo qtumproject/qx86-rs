@@ -429,10 +429,10 @@ impl VM{
     pub fn set_reg8(&mut self, r: Reg8, v: u8){
         self.set_reg(r as u8, SizedValue::Byte(v));
     }
-    pub fn set_reg16(&mut self, r: Reg8, v: u16){
+    pub fn set_reg16(&mut self, r: Reg16, v: u16){
         self.set_reg(r as u8, SizedValue::Word(v));
     }
-    pub fn set_reg32(&mut self, r: Reg8, v: u32){
+    pub fn set_reg32(&mut self, r: Reg32, v: u32){
         self.set_reg(r as u8, SizedValue::Dword(v));
     }
 }
