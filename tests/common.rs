@@ -16,11 +16,14 @@ pub const INITIAL_GAS:u64 = 10000000;
 #[cfg(test)]
 #[derive(Default)]
 pub struct TestHypervisor{
-    pushed_values: Vec<u32>
+    pub pushed_values: Vec<u32>,
+    pub ints_triggered: Vec<u8>
 }
 #[cfg(test)]
 impl Hypervisor for TestHypervisor{
     fn interrupt(&mut self, vm: &mut VM, num: u8) -> Result<(), VMError>{
+        self.ints_triggered.push(num);
+
         if num == 0xAA{
             self.pushed_values.push(vm.reg32(Reg32::EBX));
         }
@@ -57,6 +60,19 @@ pub fn execute_vm_with_asm(input: &str) -> VM{
 pub fn execute_vm_with_diagnostics(vm: &mut VM){
     let mut hv = TestHypervisor::default();
     let r = vm.execute(&mut hv);
+    vm_diagnostics(vm);
+    r.unwrap();
+}
+
+#[cfg(test)]
+pub fn execute_vm_with_asm_and_hypervisor(input: &str, hv: &mut Hypervisor) -> VM{
+    let mut vm = create_vm_with_asm(input);
+    execute_vm_with_diagnostics_and_hypervisor(&mut vm, hv);
+    vm
+}
+#[cfg(test)]
+pub fn execute_vm_with_diagnostics_and_hypervisor(vm: &mut VM, hv: &mut Hypervisor){
+    let r = vm.execute(hv);
     vm_diagnostics(vm);
     r.unwrap();
 }

@@ -977,6 +977,19 @@ lazy_static! {
         define_opcode(0xFF).is_group(0).calls(increment_native_word).with_gas(Low)
             .with_rmw()
             .into_table(&mut ops);
+        // 0xCD int imm8
+        define_opcode(0xCD).calls(interrupt).with_gas(Moderate)
+            .with_imm8()
+            .is_unpredictable()
+            .into_table(&mut ops);
+        // 0xCC int3
+        define_opcode(0xCC).calls(interrupt).with_gas(Moderate)
+            .with_arg(ArgSource::Literal(SizedValue::Byte(3)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .is_unpredictable()
+            .into_table(&mut ops);
+
+        
+
         ops
     };
 }

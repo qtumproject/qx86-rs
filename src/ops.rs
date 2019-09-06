@@ -640,3 +640,9 @@ pub fn neg_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Resu
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
+
+pub fn interrupt(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError>{
+    let num = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    hv.interrupt(vm, num)?;
+    Ok(())
+}
