@@ -4,7 +4,7 @@ use crate::pipeline::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
-pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>;
+pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError>;
 
 /// Defines how to decode an argument of an opcode
 #[derive(PartialEq)]
@@ -110,11 +110,11 @@ pub struct OpcodeProperties{
     pub opcodes: [Opcode; 8],
 }
 
-pub fn nop(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+pub fn nop(_vm: &mut VM, _pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
 Ok(())
 }
 
-pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
     Err(VMError::InvalidOpcode(vm.get_mem(vm.eip, ValueSize::Byte)?.u8_exact()?))
 }
 
@@ -977,6 +977,19 @@ lazy_static! {
         define_opcode(0xFF).is_group(0).calls(increment_native_word).with_gas(Low)
             .with_rmw()
             .into_table(&mut ops);
+        // 0xCD int imm8
+        define_opcode(0xCD).calls(interrupt).with_gas(Moderate)
+            .with_imm8()
+            .is_unpredictable()
+            .into_table(&mut ops);
+        // 0xCC int3
+        define_opcode(0xCC).calls(interrupt).with_gas(Moderate)
+            .with_arg(ArgSource::Literal(SizedValue::Byte(3)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .is_unpredictable()
+            .into_table(&mut ops);
+
+        
+
         ops
     };
 }

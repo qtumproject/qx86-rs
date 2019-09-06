@@ -16,19 +16,21 @@ pub struct VM{
     pub eip: u32,
     pub eflags: u32,
     pub flags: X86Flags,
-
     /// The memory of the VM, controlled by the MemorySystem struct
     pub memory: MemorySystem,
-
-    //todo: hypervisor to call external code
-
     /// set to the EIP value when an error has occurred
     pub error_eip: u32,
     /// The amount of gas remaining for execution
     pub gas_remaining: u64,
     /// The struct which determines how the GasCost tiers resolve into actual numbers
     pub charger: GasCharger,
+}
 
+pub trait Hypervisor{
+    fn interrupt(&mut self, _vm: &mut VM, _num: u8) -> Result<(), VMError>{
+        //by default do nothing
+        Ok(())
+    }
 }
 
 /// The gas cost of an operation
@@ -367,7 +369,7 @@ impl VM{
     /// This will execute one "cycle" of the VM
     /// A cycle includes filling the pipeline, executing the filled pipeline, and then handling any errors present
     /// Will return a result of true if an InternalVMStop was received, otherwise will return false
-    fn cycle(&mut self, pipeline: &mut [Pipeline]) -> Result<bool, VMError>{
+    fn cycle(&mut self, pipeline: &mut [Pipeline], hv: &mut Hypervisor) -> Result<bool, VMError>{
         fill_pipeline(self, &OPCODES[0..], pipeline)?;
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
@@ -382,7 +384,7 @@ impl VM{
                 return Err(VMError::OutOfGas);
             }
             //errors[n] = (p.function)(self, p);
-            let r = (p.function)(self,p);
+            let r = (p.function)(self,p, hv);
             if r.is_err(){
                 if r.err().unwrap() == VMError::InternalVMStop{
                     return Ok(true);
@@ -397,12 +399,12 @@ impl VM{
 
     }
     /// Executes the VM either until there is no remaining gas, an error occurs, or the `hlt` instruction is executed
-    pub fn execute(&mut self) -> Result<bool, VMError>{
+    pub fn execute(&mut self, hv: &mut Hypervisor) -> Result<bool, VMError>{
         //todo: gas handling
         let mut pipeline = vec![];
         pipeline.resize(PIPELINE_SIZE, Pipeline::default());
         loop{
-            if self.cycle(&mut pipeline)? {
+            if self.cycle(&mut pipeline, hv)? {
                 return Ok(true);
             }
         }

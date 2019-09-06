@@ -18,7 +18,8 @@ fn test_undefined_opcode(){
         0x90
     ];
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
-    assert_eq!(vm.execute().err().unwrap(), VMError::InvalidOpcode(0xAA));
+    let mut hv = TestHypervisor::default();
+    assert_eq!(vm.execute(&mut hv).err().unwrap(), VMError::InvalidOpcode(0xAA));
     assert_eq!(vm.error_eip, CODE_MEM + 2);
 }
 
@@ -32,7 +33,8 @@ fn test_simple_nop_hlt(){
     }
     bytes.push(0xF4); //hlt
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
-    assert!(vm.execute().unwrap());
+    let mut hv = TestHypervisor::default();
+    assert!(vm.execute(&mut hv).unwrap());
     assert_eq!(vm.eip, CODE_MEM + 100);
 }
 
@@ -570,4 +572,24 @@ fn test_neg_zero() {
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0);
      assert_eq!(vm.flags, X86Flags{zero: true, ..Default::default()});
+}
+
+#[test]
+fn test_interrupt(){
+    let mut hv = TestHypervisor::default();
+    let vm = execute_vm_with_asm_and_hypervisor("
+        mov ebx, 0x11223344
+        int 0xAA
+        mov ebx, 0xFFEEDDCC
+        int 0xAA
+        int 0xBB
+        int3
+        hlt
+    ", &mut hv);
+    assert_eq!(hv.pushed_values[0], 0x11223344);
+    assert_eq!(hv.pushed_values[1], 0xFFEEDDCC);
+    assert_eq!(hv.ints_triggered[0], 0xAA);
+    assert_eq!(hv.ints_triggered[1], 0xAA);
+    assert_eq!(hv.ints_triggered[2], 0xBB);
+    assert_eq!(hv.ints_triggered[3], 3);
 }
