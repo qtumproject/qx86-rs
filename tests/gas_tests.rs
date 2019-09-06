@@ -46,7 +46,8 @@ fn test_perfect_gas_amount(){
         hlt ;None
         ");
     vm.gas_remaining = cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]);
-    vm.execute().unwrap();
+    let mut hv = TestHypervisor::default();
+    vm.execute(&mut hv).unwrap();
 }
 
 #[test]
@@ -59,7 +60,8 @@ fn test_out_of_gas(){
         hlt ;None -- size: 1
         ");
     vm.gas_remaining = cost_from_list(&vm.charger, &[VeryLow, VeryLow, MemoryAccess, ModRMSurcharge]) - 1;
-    let r = vm.execute();
+    let mut hv = TestHypervisor::default();
+    let r = vm.execute(&mut hv);
     assert_eq!(r.err().unwrap(), VMError::OutOfGas);
     //should stop at the `mov ecx, [eax]`
     assert_eq!(vm.eip, CODE_MEM + 5); 

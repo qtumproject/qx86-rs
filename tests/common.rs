@@ -14,6 +14,21 @@ pub const DATA_MEM:u32 = 0x80000000;
 pub const INITIAL_GAS:u64 = 10000000;
 
 #[cfg(test)]
+#[derive(Default)]
+pub struct TestHypervisor{
+    pushed_values: Vec<u32>
+}
+#[cfg(test)]
+impl Hypervisor for TestHypervisor{
+    fn interrupt(&mut self, vm: &mut VM, num: u8) -> Result<(), VMError>{
+        if num == 0xAA{
+            self.pushed_values.push(vm.reg32(Reg32::EBX));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
 pub fn create_vm() -> VM{
     let mut vm = VM::default();
     vm.eip = CODE_MEM;
@@ -40,7 +55,8 @@ pub fn execute_vm_with_asm(input: &str) -> VM{
 }
 #[cfg(test)]
 pub fn execute_vm_with_diagnostics(vm: &mut VM){
-    let r = vm.execute();
+    let mut hv = TestHypervisor::default();
+    let r = vm.execute(&mut hv);
     vm_diagnostics(vm);
     r.unwrap();
 }
@@ -48,7 +64,8 @@ pub fn execute_vm_with_diagnostics(vm: &mut VM){
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn execute_vm_with_error(vm: &mut VM) -> VMError{
-    let r = vm.execute();
+    let mut hv = TestHypervisor::default();
+    let r = vm.execute(&mut hv);
     vm_diagnostics(vm);
     r.unwrap_err()
 }

@@ -4,7 +4,7 @@ use crate::pipeline::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
-pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>;
+pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError>;
 
 /// Defines how to decode an argument of an opcode
 #[derive(PartialEq)]
@@ -110,11 +110,11 @@ pub struct OpcodeProperties{
     pub opcodes: [Opcode; 8],
 }
 
-pub fn nop(_vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+pub fn nop(_vm: &mut VM, _pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
 Ok(())
 }
 
-pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline) -> Result<(), VMError>{
+pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
     Err(VMError::InvalidOpcode(vm.get_mem(vm.eip, ValueSize::Byte)?.u8_exact()?))
 }
 

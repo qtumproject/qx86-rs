@@ -12,17 +12,34 @@ pub const DATA_MEM:u32 = 0x80000000;
 
 pub const OOG_GAS_LIMIT:u64 = 10000;
 
+#[cfg(test)]
+#[derive(Default)]
+pub struct TestHypervisor{
+    pushed_values: Vec<u32>
+}
+#[cfg(test)]
+impl Hypervisor for TestHypervisor{
+    fn interrupt(&mut self, vm: &mut VM, num: u8) -> Result<(), VMError>{
+        if num == 0xAA{
+            self.pushed_values.push(vm.reg32(Reg32::EBX));
+        }
+        Ok(())
+    }
+}
+
 fn run_exec_test(bytecode: &[u8]){
     let mut vm = create_vm();
     vm.copy_into_memory(CODE_MEM, bytecode).unwrap();
-    vm.execute().unwrap();
+    let mut hv = TestHypervisor::default();
+    vm.execute(&mut hv).unwrap();
 }
 
 fn run_oog_test(bytecode: &[u8]){
     let mut vm = create_vm();
     vm.gas_remaining = OOG_GAS_LIMIT;
     vm.copy_into_memory(CODE_MEM, bytecode).unwrap();
-    let r = vm.execute().unwrap_err();
+    let mut hv = TestHypervisor::default();
+    let r = vm.execute(&mut hv).unwrap_err();
     match r{
         VMError::OutOfGas => return,
         _ => panic!("Unexpected error instead of Out Of Gas")
@@ -106,7 +123,8 @@ pub fn create_vm_with_asm(input: &str) -> VM{
 
 pub fn execute_vm_asm(input: &str) -> VM{
     let mut vm = create_vm_with_asm(input);
-    assert!(vm.execute().unwrap());
+    let mut hv = TestHypervisor::default();
+    assert!(vm.execute(&mut hv).unwrap());
     vm
 }
 

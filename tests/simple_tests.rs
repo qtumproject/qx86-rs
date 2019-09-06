@@ -18,7 +18,8 @@ fn test_undefined_opcode(){
         0x90
     ];
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
-    assert_eq!(vm.execute().err().unwrap(), VMError::InvalidOpcode(0xAA));
+    let mut hv = TestHypervisor::default();
+    assert_eq!(vm.execute(&mut hv).err().unwrap(), VMError::InvalidOpcode(0xAA));
     assert_eq!(vm.error_eip, CODE_MEM + 2);
 }
 
@@ -32,7 +33,8 @@ fn test_simple_nop_hlt(){
     }
     bytes.push(0xF4); //hlt
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
-    assert!(vm.execute().unwrap());
+    let mut hv = TestHypervisor::default();
+    assert!(vm.execute(&mut hv).unwrap());
     assert_eq!(vm.eip, CODE_MEM + 100);
 }
 
