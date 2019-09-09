@@ -197,6 +197,16 @@ pub enum VMError{
 
 
 impl VM{
+    pub fn pop16(&mut self) -> Result<SizedValue, VMError> {
+        let esp = self.regs[Reg32::ESP as usize];
+        self.regs[Reg32::ESP as usize] += 2;
+        return self.get_mem(esp, ValueSize::Word)
+    }
+    pub fn pop32(&mut self) -> Result<SizedValue, VMError> {
+        let esp = self.regs[Reg32::ESP as usize];
+        self.regs[Reg32::ESP as usize] += 4;
+        return self.get_mem(esp, ValueSize::Dword)
+    }
     pub fn push_stack(&mut self, val: SizedValue, pipeline: &Pipeline) -> Result<(), VMError> {
         if pipeline.size_override{
             self.regs[Reg32::ESP as usize] = self.regs[Reg32::ESP as usize].wrapping_sub(2);

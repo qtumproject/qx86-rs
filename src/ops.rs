@@ -22,29 +22,24 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(),
 
     The POP ESP instruction increments the stack pointer (ESP) before data at the old top of stack is written into the destination
     */
-    let esp = vm.regs[Reg32::ESP as usize];
     if pipeline.size_override{
-        vm.regs[Reg32::ESP as usize] += 2;
-        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Word)?)?;
+        let word = vm.pop16()?;
+        vm.set_arg(pipeline.args[0].location, word)?;
     }else{
-        vm.regs[Reg32::ESP as usize] += 4;
-        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Dword)?)?;
+        let dword = vm.pop32()?;
+        vm.set_arg(pipeline.args[0].location, dword)?;
     };
     Ok(())
 }
 
 pub fn ret(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError> {
-    let esp = vm.regs[Reg32::ESP as usize];
     if pipeline.size_override{
-        vm.regs[Reg32::ESP as usize] += 2;
-        println!("stack value: {}", vm.get_mem(esp, ValueSize::Word)?.u16_exact()?);
-        vm.set_arg(pipeline.args[1].location, vm.get_mem(esp, ValueSize::Word)?)?;
+        let word = vm.pop16()?;
+        vm.eip = (word.u32_zx()? - (pipeline.eip_size as u32)) & 0xFFFF;
     }else{
-        vm.regs[Reg32::ESP as usize] += 4;
-        println!("stack value32: {}", vm.get_mem(esp, ValueSize::Dword)?.u32_exact()?);
-        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Dword)?)?;
+        let dword = vm.pop32()?;
+        vm.eip = dword.u32_zx()? - (pipeline.eip_size as u32);
     };
-    jmp_abs(vm, pipeline, _hv)?;
     Ok(())
 }
 
