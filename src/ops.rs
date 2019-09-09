@@ -33,6 +33,7 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(),
 }
 
 pub fn ret(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError> {
+    let stack_clear = vm.get_arg(pipeline.args[0].location)?.u16_zx()?;
     if pipeline.size_override{
         let word = vm.pop16()?;
         vm.eip = (word.u32_zx()? - (pipeline.eip_size as u32)) & 0xFFFF;
@@ -40,6 +41,9 @@ pub fn ret(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(),
         let dword = vm.pop32()?;
         vm.eip = dword.u32_zx()? - (pipeline.eip_size as u32);
     };
+    if stack_clear != 0 {
+        vm.regs[Reg32::ESP as usize] += stack_clear as u32;
+    }
     Ok(())
 }
 

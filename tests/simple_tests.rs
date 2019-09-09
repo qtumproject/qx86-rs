@@ -254,6 +254,20 @@ fn test_call_relw_with_reg() {
 }
 
 #[test]
+fn test_ret_with_optional_arg() {
+    let vm = execute_vm_with_asm("
+        mov esp, 0x80000100
+        push dword 100
+        call stack_sub
+        hlt
+        stack_sub:
+        mov eax, [esp + 4]
+        ret 4");
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80000100);
+    assert_eq!(vm.reg32(Reg32::EAX), 100);
+}
+
+#[test]
 fn test_signed_carry_add32(){
     let vm = execute_vm_with_asm("
         mov eax, 0xF00090FF

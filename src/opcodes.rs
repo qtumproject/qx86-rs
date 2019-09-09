@@ -235,6 +235,10 @@ impl OpcodeDefiner{
     pub fn with_imm8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::Fixed(ValueSize::Byte))
     }
+    /// Specifies that the next argument is an immediate word value
+    pub fn with_imm16(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::Fixed(ValueSize::Word))
+    }
     /// Specifies that the next argument is an immeidate NativeWord value
     pub fn with_immw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::NativeWord)
@@ -455,7 +459,7 @@ lazy_static! {
         //ret opcodes
         //0xC2 RETN
         define_opcode(0xC2).calls(ret)
-            .with_immw()
+            .with_imm16()
             .is_unpredictable()
             .into_table(&mut ops);
         //0xC3 RETN
