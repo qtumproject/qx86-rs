@@ -75,9 +75,8 @@ pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result
 }
 /// The logic function for the `jmp` opcodes with an absolute argument
 pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
-    println!("HELP!: {}", vm.get_arg(pipeline.args[0].location)?.u32_zx()?);
     //must subtract the size of this opcode to correct for the automatic eip_size advance in the cycle() main loop
-    vm.eip = vm.get_arg(pipeline.args[0].location)?.u32_zx()?.wrapping_sub(pipeline.eip_size as u32);
+    vm.eip = vm.get_arg(pipeline.args[0].location)?.u32_zx()? - (pipeline.eip_size as u32);
     if pipeline.size_override{
         vm.eip &= 0xFFFF;
     }
