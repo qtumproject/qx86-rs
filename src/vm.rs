@@ -172,7 +172,7 @@ pub enum VMError{
     InvalidOpcode(u8),
     /// This is thrown when writing (ie, using set_arg) a read-only argument is attempted.
     /// This can be triggered for instance by using set_arg on an argument which has a location of ImmediateValue
-    WroteUnwriteableArgumnet,
+    WroteUnwriteableArgument,
 
     //decoding error
     /// More bytes were needed for filling the pipeline and decoding opcodes
@@ -197,6 +197,34 @@ pub enum VMError{
 
 
 impl VM{
+    pub fn pop_stack(&mut self, location: ArgLocation, pipeline: &Pipeline) -> Result<(), VMError> {
+        //Important edge case:
+        /* https://c9x.me/x86/html/file_module_x86_id_248.html
+        If the ESP register is used as a base register for addressing a destination operand in memory, 
+        the POP instruction computes the effective address of the operand after it increments the ESP register.
+
+        The POP ESP instruction increments the stack pointer (ESP) before data at the old top of stack is written into the destination
+        */
+        let esp = self.regs[Reg32::ESP as usize];
+        if pipeline.size_override{
+            self.regs[Reg32::ESP as usize] += 2;
+            self.set_arg(location, self.get_mem(esp, ValueSize::Word)?)?;
+        }else{
+            self.regs[Reg32::ESP as usize] += 4;
+            self.set_arg(location, self.get_mem(esp, ValueSize::Dword)?)?;
+        };
+        Ok(())
+    }
+    pub fn push_stack(&mut self, val: SizedValue, pipeline: &Pipeline) -> Result<(), VMError> {
+        if pipeline.size_override{
+            self.regs[Reg32::ESP as usize] = self.regs[Reg32::ESP as usize].wrapping_sub(2);
+            self.set_mem(self.regs[Reg32::ESP as usize], SizedValue::Word(val.u16_zx()?))?;
+        }else{
+            self.regs[Reg32::ESP as usize] = self.regs[Reg32::ESP as usize].wrapping_sub(4);
+            self.set_mem(self.regs[Reg32::ESP as usize], SizedValue::Dword(val.u32_zx()?))?;
+        };
+        Ok(())
+    }
     fn calculate_modrm_address(&self, arg: &ArgLocation) -> u32{
         use ArgLocation::*;
         match arg{
@@ -261,7 +289,7 @@ impl VM{
         use ArgLocation::*;
         match arg{
             None => (),
-            Immediate(_v) => return Err(VMError::WroteUnwriteableArgumnet), //should never happen, this is an implementation error
+            Immediate(_v) => return Err(VMError::WroteUnwriteableArgument), //should never happen, this is an implementation error
             Address(a, s) => {
                 self.set_mem(a, v.convert_size_zx(s)?)?
             },

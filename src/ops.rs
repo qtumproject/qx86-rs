@@ -10,41 +10,35 @@ pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(),
 /// The logic function for the `push` opcode
 pub fn push(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
     let v = vm.get_arg(pipeline.args[0].location)?;
-    if pipeline.size_override{
-        vm.regs[Reg32::ESP as usize] -= 2;
-        vm.set_mem(vm.regs[Reg32::ESP as usize], SizedValue::Word(v.u16_zx()?))?;
-    }else{
-        vm.regs[Reg32::ESP as usize] -= 4;
-        vm.set_mem(vm.regs[Reg32::ESP as usize], SizedValue::Dword(v.u32_zx()?))?;
-    };
+    vm.push_stack(v, pipeline)?;
     Ok(())
 }
 /// The logic function for the `pop` opcode
 pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
-    //Important edge case:
-    /* https://c9x.me/x86/html/file_module_x86_id_248.html
-    If the ESP register is used as a base register for addressing a destination operand in memory, 
-    the POP instruction computes the effective address of the operand after it increments the ESP register.
+    let location = pipeline.args[0].location;
+    vm.pop_stack(location, pipeline)?;
+    Ok(())
+}
 
-    The POP ESP instruction increments the stack pointer (ESP) before data at the old top of stack is written into the destination
-    */
-    let esp = vm.regs[Reg32::ESP as usize];
-    if pipeline.size_override{
-        vm.regs[Reg32::ESP as usize] += 2;
-        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Word)?)?;
-    }else{
-        vm.regs[Reg32::ESP as usize] += 4;
-        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Dword)?)?;
-    };
+pub fn ret(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError> {
+    let location = ArgLocation::Address(vm.eip + pipeline.eip_size as u32, ValueSize::Dword);
+    vm.pop_stack(location, pipeline)?;
     Ok(())
 }
 
 pub fn call_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
     let branch_to = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(vm.eip))?;
-    push(vm, pipeline)?;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(branch_to))?;
+    vm.push_stack(SizedValue::Dword(vm.eip + pipeline.eip_size as u32), pipeline)?;
+    vm.set_arg(pipeline.args[1].location, SizedValue::Dword(branch_to))?;
     jmp_rel(vm, pipeline)?;
+    Ok(())
+}
+
+pub fn call_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+    let branch_to = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
+    vm.push_stack(SizedValue::Dword(vm.eip + pipeline.eip_size as u32), pipeline)?;
+    vm.set_arg(pipeline.args[1].location, SizedValue::Dword(branch_to))?;
+    jmp_abs(vm, pipeline)?;
     Ok(())
 }
 

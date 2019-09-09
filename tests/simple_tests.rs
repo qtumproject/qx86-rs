@@ -206,6 +206,54 @@ fn test_jcxz() {
 }
 
 #[test]
+fn test_call_relw() {
+    let vm = execute_vm_with_asm("
+        mov esp, 0x80000100
+        mov eax, 1
+        call foobar
+        noreach:
+        ud2
+        foobar:
+        pop eax
+        mov ebx, noreach
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), vm.reg32(Reg32::EBX));
+}
+
+#[test]
+fn test_call_relw_with_reg() {
+    let vm = execute_vm_with_asm("
+        mov esp, 0x80000100
+        mov eax, 1
+        mov ecx, foobar
+        call ecx
+        noreach:
+        ud2
+        foobar:
+        pop eax
+        mov ebx, noreach
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), vm.reg32(Reg32::EBX));
+}
+
+#[test]
+ fn test_ret() {
+    let vm = execute_vm_with_asm("
+        mov esp, 0x80000100
+        mov eax, 1
+        jmp skip
+        ud2
+        backward:
+        mov eax, 2
+        hlt
+        skip:
+        push backward
+        ret");
+    assert_eq!(vm.reg32(Reg32::EAX), 2);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80000100);
+}
+
+#[test]
 fn test_signed_carry_add32(){
     let vm = execute_vm_with_asm("
         mov eax, 0xF00090FF

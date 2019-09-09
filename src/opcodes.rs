@@ -443,12 +443,24 @@ lazy_static! {
         //0xE8 Call rel32
         define_opcode(0xE8).calls(call_rel).with_gas(Low)
             .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
             .into_table(&mut ops);
             // need to figure out what this should be
         //0xFF Call r/m16
         //0xFF Call r/m32
-        define_opcode(0xFF).is_group(2).calls(call_rel).with_gas(Low)
+        define_opcode(0xFF).is_group(2).calls(call_abs).with_gas(Low)
             .with_rmw()
+            .is_unpredictable()
+            .into_table(&mut ops);
+        //ret opcodes
+        //0xC2 RETN
+        define_opcode(0xC2).calls(ret)
+            .with_immw()
+            .is_unpredictable()
+            .into_table(&mut ops);
+        //0xC3 RETN
+        define_opcode(0xC3).calls(ret)
+            .is_unpredictable()
             .into_table(&mut ops);
         //jmp opcodes
         //0xEB  JMP  rel8
