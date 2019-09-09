@@ -235,6 +235,10 @@ impl OpcodeDefiner{
     pub fn with_imm8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::Fixed(ValueSize::Byte))
     }
+    /// Specifies that the next argument is an immediate word value
+    pub fn with_imm16(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::Fixed(ValueSize::Word))
+    }
     /// Specifies that the next argument is an immeidate NativeWord value
     pub fn with_immw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ImmediateValue, OpcodeValueSize::NativeWord)
@@ -438,7 +442,30 @@ lazy_static! {
             .is_group(0)
             .with_rmw()
             .into_table(&mut ops);
-        
+        //call opcodes
+        //0xE8 Call rel16
+        //0xE8 Call rel32
+        define_opcode(0xE8).calls(call_rel).with_gas(Low)
+            .with_arg(ArgSource::JumpRel, NativeWord)
+            .is_jump()
+            .into_table(&mut ops);
+            // need to figure out what this should be
+        //0xFF Call r/m16
+        //0xFF Call r/m32
+        define_opcode(0xFF).is_group(2).calls(call_abs).with_gas(Low)
+            .with_rmw()
+            .is_unpredictable()
+            .into_table(&mut ops);
+        //ret opcodes
+        //0xC2 RETN
+        define_opcode(0xC2).calls(ret)
+            .with_imm16()
+            .is_unpredictable()
+            .into_table(&mut ops);
+        //0xC3 RETN
+        define_opcode(0xC3).calls(ret)
+            .is_unpredictable()
+            .into_table(&mut ops);
         //jmp opcodes
         //0xEB  JMP  rel8
         define_opcode(0xEB).calls(jmp_rel).with_gas(Low)

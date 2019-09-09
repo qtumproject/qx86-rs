@@ -172,7 +172,7 @@ pub enum VMError{
     InvalidOpcode(u8),
     /// This is thrown when writing (ie, using set_arg) a read-only argument is attempted.
     /// This can be triggered for instance by using set_arg on an argument which has a location of ImmediateValue
-    WroteUnwriteableArgumnet,
+    WroteUnwriteableArgument,
 
     //decoding error
     /// More bytes were needed for filling the pipeline and decoding opcodes
@@ -197,6 +197,26 @@ pub enum VMError{
 
 
 impl VM{
+    pub fn pop16(&mut self) -> Result<SizedValue, VMError> {
+        let esp = self.regs[Reg32::ESP as usize];
+        self.regs[Reg32::ESP as usize] += 2;
+        return self.get_mem(esp, ValueSize::Word)
+    }
+    pub fn pop32(&mut self) -> Result<SizedValue, VMError> {
+        let esp = self.regs[Reg32::ESP as usize];
+        self.regs[Reg32::ESP as usize] += 4;
+        return self.get_mem(esp, ValueSize::Dword)
+    }
+    pub fn push_stack(&mut self, val: SizedValue, pipeline: &Pipeline) -> Result<(), VMError> {
+        if pipeline.size_override{
+            self.regs[Reg32::ESP as usize] = self.regs[Reg32::ESP as usize].wrapping_sub(2);
+            self.set_mem(self.regs[Reg32::ESP as usize], SizedValue::Word(val.u16_zx()?))?;
+        }else{
+            self.regs[Reg32::ESP as usize] = self.regs[Reg32::ESP as usize].wrapping_sub(4);
+            self.set_mem(self.regs[Reg32::ESP as usize], SizedValue::Dword(val.u32_zx()?))?;
+        };
+        Ok(())
+    }
     fn calculate_modrm_address(&self, arg: &ArgLocation) -> u32{
         use ArgLocation::*;
         match arg{
@@ -261,7 +281,7 @@ impl VM{
         use ArgLocation::*;
         match arg{
             None => (),
-            Immediate(_v) => return Err(VMError::WroteUnwriteableArgumnet), //should never happen, this is an implementation error
+            Immediate(_v) => return Err(VMError::WroteUnwriteableArgument), //should never happen, this is an implementation error
             Address(a, s) => {
                 self.set_mem(a, v.convert_size_zx(s)?)?
             },
