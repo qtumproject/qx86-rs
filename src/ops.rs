@@ -15,30 +15,52 @@ pub fn push(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<()
 }
 /// The logic function for the `pop` opcode
 pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
-    let location = pipeline.args[0].location;
-    vm.pop_stack(location, pipeline)?;
+    //Important edge case:
+    /* https://c9x.me/x86/html/file_module_x86_id_248.html
+    If the ESP register is used as a base register for addressing a destination operand in memory, 
+    the POP instruction computes the effective address of the operand after it increments the ESP register.
+
+    The POP ESP instruction increments the stack pointer (ESP) before data at the old top of stack is written into the destination
+    */
+    let esp = vm.regs[Reg32::ESP as usize];
+    if pipeline.size_override{
+        vm.regs[Reg32::ESP as usize] += 2;
+        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Word)?)?;
+    }else{
+        vm.regs[Reg32::ESP as usize] += 4;
+        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Dword)?)?;
+    };
     Ok(())
 }
 
 pub fn ret(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError> {
-    let location = ArgLocation::Address(vm.eip + pipeline.eip_size as u32, ValueSize::Dword);
-    vm.pop_stack(location, pipeline)?;
+    let esp = vm.regs[Reg32::ESP as usize];
+    if pipeline.size_override{
+        vm.regs[Reg32::ESP as usize] += 2;
+        println!("stack value: {}", vm.get_mem(esp, ValueSize::Word)?.u16_exact()?);
+        vm.set_arg(pipeline.args[1].location, vm.get_mem(esp, ValueSize::Word)?)?;
+    }else{
+        vm.regs[Reg32::ESP as usize] += 4;
+        println!("stack value32: {}", vm.get_mem(esp, ValueSize::Dword)?.u32_exact()?);
+        vm.set_arg(pipeline.args[0].location, vm.get_mem(esp, ValueSize::Dword)?)?;
+    };
+    jmp_abs(vm, pipeline, _hv)?;
     Ok(())
 }
 
-pub fn call_rel(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+pub fn call_rel(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
     let branch_to = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
     vm.push_stack(SizedValue::Dword(vm.eip + pipeline.eip_size as u32), pipeline)?;
     vm.set_arg(pipeline.args[1].location, SizedValue::Dword(branch_to))?;
-    jmp_rel(vm, pipeline)?;
+    jmp_rel(vm, pipeline, _hv)?;
     Ok(())
 }
 
-pub fn call_abs(vm: &mut VM, pipeline: &Pipeline) -> Result<(), VMError>{
+pub fn call_abs(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
     let branch_to = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
     vm.push_stack(SizedValue::Dword(vm.eip + pipeline.eip_size as u32), pipeline)?;
     vm.set_arg(pipeline.args[1].location, SizedValue::Dword(branch_to))?;
-    jmp_abs(vm, pipeline)?;
+    jmp_abs(vm, pipeline, _hv)?;
     Ok(())
 }
 
@@ -58,8 +80,9 @@ pub fn jmp_rel(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result
 }
 /// The logic function for the `jmp` opcodes with an absolute argument
 pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
+    println!("HELP!: {}", vm.get_arg(pipeline.args[0].location)?.u32_zx()?);
     //must subtract the size of this opcode to correct for the automatic eip_size advance in the cycle() main loop
-    vm.eip = vm.get_arg(pipeline.args[0].location)?.u32_zx()? - (pipeline.eip_size as u32);
+    vm.eip = vm.get_arg(pipeline.args[0].location)?.u32_zx()?.wrapping_sub(pipeline.eip_size as u32);
     if pipeline.size_override{
         vm.eip &= 0xFFFF;
     }

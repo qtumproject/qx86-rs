@@ -197,24 +197,6 @@ pub enum VMError{
 
 
 impl VM{
-    pub fn pop_stack(&mut self, location: ArgLocation, pipeline: &Pipeline) -> Result<(), VMError> {
-        //Important edge case:
-        /* https://c9x.me/x86/html/file_module_x86_id_248.html
-        If the ESP register is used as a base register for addressing a destination operand in memory, 
-        the POP instruction computes the effective address of the operand after it increments the ESP register.
-
-        The POP ESP instruction increments the stack pointer (ESP) before data at the old top of stack is written into the destination
-        */
-        let esp = self.regs[Reg32::ESP as usize];
-        if pipeline.size_override{
-            self.regs[Reg32::ESP as usize] += 2;
-            self.set_arg(location, self.get_mem(esp, ValueSize::Word)?)?;
-        }else{
-            self.regs[Reg32::ESP as usize] += 4;
-            self.set_arg(location, self.get_mem(esp, ValueSize::Dword)?)?;
-        };
-        Ok(())
-    }
     pub fn push_stack(&mut self, val: SizedValue, pipeline: &Pipeline) -> Result<(), VMError> {
         if pipeline.size_override{
             self.regs[Reg32::ESP as usize] = self.regs[Reg32::ESP as usize].wrapping_sub(2);
