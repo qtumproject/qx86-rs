@@ -774,30 +774,30 @@ lazy_static! {
             .with_rmw()
             .into_table(&mut ops);
         //0x3C cmp AL, imm8
-        define_opcode(0x3C).calls(sub_8bit).with_gas(Low)
+        define_opcode(0x3C).calls(cmp_8bit).with_gas(Low)
             .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
             .with_imm8()
             .into_table(&mut ops);        
         //0x3D cmp AX, imm16
         //0x3D cmp EAX, imm32
-        define_opcode(0x3D).calls(sub_native_word).with_gas(Low)
+        define_opcode(0x3D).calls(cmp_native_word).with_gas(Low)
             .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
             .with_immw()
             .into_table(&mut ops);
         //0x80 cmp r/m8, imm8
-        define_opcode(0x80).is_group(7).calls(sub_8bit).with_gas(Low)
+        define_opcode(0x80).is_group(7).calls(cmp_8bit).with_gas(Low)
             .with_rm8()
             .with_imm8()
             .into_table(&mut ops);
         //0x81 cmp r/m16, imm16
         //0x81 cmp r/m32, imm32
-        define_opcode(0x81).is_group(7).calls(sub_native_word).with_gas(Low)
+        define_opcode(0x81).is_group(7).calls(cmp_native_word).with_gas(Low)
             .with_rmw()
             .with_immw()
             .into_table(&mut ops);
         //0x83 cmp r/m16, imm8
         //0x83 cmp r/m32, imm8
-        define_opcode(0x83).is_group(7).calls(sub_native_word).with_gas(Low)
+        define_opcode(0x83).is_group(7).calls(cmp_native_word).with_gas(Low)
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);

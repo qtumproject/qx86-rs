@@ -27,6 +27,9 @@ impl Hypervisor for TestHypervisor{
         if num == 0xAA{
             self.pushed_values.push(vm.reg32(Reg32::EBX));
         }
+        if num == 0xAB{
+            vm.set_reg32(Reg32::EBX, self.pushed_values.pop().unwrap());
+        }
         Ok(())
     }
 }
@@ -40,6 +43,11 @@ pub fn create_vm() -> VM{
     vm.memory.add_memory(CODE_MEM, 0x10000).unwrap();
     vm.memory.add_memory(DATA_MEM, 0x10000).unwrap();
     vm
+}
+#[cfg(test)]
+pub fn reset_vm(vm: &mut VM){
+    vm.eip = CODE_MEM;
+    vm.gas_remaining = INITIAL_GAS;
 }
 
 #[cfg(test)]
