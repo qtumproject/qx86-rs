@@ -329,27 +329,24 @@ pub fn imul2_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) 
 }
 
 pub fn imul2_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    let first_arg = vm.get_arg(pipeline.args[0].location)?.u32_sx()? as i32;
-    let second_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32;
-    let result = (first_arg * second_arg) as u32;
-    if (result&0xFFFF0000)>>16 > 0 {
+    let first_arg = vm.get_arg(pipeline.args[0].location)?.u16_sx()? as i16 as i32;
+    let second_arg = vm.get_arg(pipeline.args[1].location)?.u16_sx()? as i16 as i32;
+    let result = (first_arg.wrapping_mul(second_arg)) as u32;
+    if (result&0xFFFF0000).wrapping_shr(16) > 0 {
         vm.flags.carry = true;
         vm.flags.overflow = true;
     } else {
         vm.flags.carry = false;
         vm.flags.overflow = false;
     }
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
     vm.set_arg(pipeline.args[0].location, SizedValue::Word((result&0x0000FFFF) as u16))?;
     Ok(())
 }
 
 pub fn imul2_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    let first_arg = vm.get_arg(pipeline.args[0].location)?.u32_sx()? as i64;
-    let second_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i64;
-    let result = (first_arg * second_arg) as u64;
+    let first_arg = vm.get_arg(pipeline.args[0].location)?.u32_sx()? as i32 as i64;
+    let second_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;
+    let result = (first_arg.wrapping_mul(second_arg)) as u64;
     if (result&0xFFFFFFFF00000000).wrapping_shr(16) > 0 {
         vm.flags.carry = true;
         vm.flags.overflow = true;
@@ -370,9 +367,9 @@ pub fn imul3_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) 
 }
 
 pub fn imul3_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32;
-    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i32;
-    let result = (first_arg * second_arg) as u32;
+    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;;
+    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i32 as i64;;
+    let result = (first_arg.wrapping_mul(second_arg)) as u32;
     if (result&0xFFFF0000).wrapping_shr(16) > 0 {
         vm.flags.carry = true;
         vm.flags.overflow = true;
@@ -380,17 +377,14 @@ pub fn imul3_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Res
         vm.flags.carry = false;
         vm.flags.overflow = false;
     }
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
     vm.set_arg(pipeline.args[0].location, SizedValue::Word((result&0x0000FFFF) as u16))?;
     Ok(())
 }
 
 pub fn imul3_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i64;
-    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i64;
-    let result = (first_arg * second_arg) as u64;
+    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;
+    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i32 as i64;
+    let result = (first_arg.wrapping_mul(second_arg)) as u64;
     if (result&0xFFFFFFFF00000000).wrapping_shr(16) > 0 {
         vm.flags.carry = true;
         vm.flags.overflow = true;
