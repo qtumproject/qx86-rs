@@ -210,6 +210,192 @@ pub fn jmp_greater(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Res
     Ok(())
 }
 
+pub fn mul_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg8(Reg8::AL) as u16;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_zx()?;
+    let result = first_arg.wrapping_mul(second_arg);
+    if result & 0xFF00 > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    vm.set_reg(Reg16::AX as u8, SizedValue::Word(result));
+    Ok(())
+}
+
+pub fn mul_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return mul_16bit(vm, pipeline, hv);
+    } else {
+        return mul_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn mul_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg16(Reg16::AX) as u32;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
+    let result = first_arg.wrapping_mul(second_arg);
+    vm.set_reg(Reg16::AX as u8, SizedValue::Word((result&0x0000FFFF) as u16));
+    vm.set_reg(Reg16::DX as u8, SizedValue::Word(((result&0xFFFF0000).wrapping_shr(16)) as u16));
+    if vm.reg16(Reg16::DX) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    Ok(())
+}
+
+pub fn mul_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg32(Reg32::EAX) as u64;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()? as u64;
+    let result = first_arg.wrapping_mul(second_arg);
+    vm.set_reg(Reg32::EAX as u8, SizedValue::Dword((result&0x00000000FFFFFFFF) as u32));
+    vm.set_reg(Reg32::EDX as u8, SizedValue::Dword(((result&0xFFFFFFFF00000000).wrapping_shr(32)) as u32));
+    if vm.reg32(Reg32::EDX) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    Ok(())
+}
+
+pub fn imul1_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg8(Reg8::AL) as i16;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_sx()? as i16;
+    let result = (first_arg.wrapping_mul(second_arg)) as u16;
+    if result & 0xFF00 > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    vm.set_reg(Reg16::AX as u8, SizedValue::Word(result));
+    Ok(())
+}
+
+pub fn imul1_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return imul1_16bit(vm, pipeline, hv);
+    } else {
+        return imul1_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn imul1_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg16(Reg16::AX) as i16 as i32;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_sx()? as i16 as i32;
+    let result = (first_arg.wrapping_mul(second_arg)) as u32;
+    vm.set_reg(Reg16::AX as u8, SizedValue::Word((result&0x0000FFFF) as u16));
+    vm.set_reg(Reg16::DX as u8, SizedValue::Word(((result&0xFFFF0000).wrapping_shr(16)) as u16));
+    if vm.reg16(Reg16::DX) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    Ok(())
+}
+
+pub fn imul1_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg32(Reg32::EAX) as i32 as i64;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_sx()? as i32 as i64;
+    let result = (first_arg.wrapping_mul(second_arg)) as u64;
+    vm.set_reg(Reg32::EAX as u8, SizedValue::Dword((result&0x00000000FFFFFFFF) as u32));
+    vm.set_reg(Reg32::EDX as u8, SizedValue::Dword(((result&0xFFFFFFFF00000000).wrapping_shr(32)) as u32));
+    if vm.reg32(Reg32::EDX) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    Ok(())
+}
+
+pub fn imul2_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return imul2_16bit(vm, pipeline, hv);
+    } else {
+        return imul2_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn imul2_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.get_arg(pipeline.args[0].location)?.u16_sx()? as i16 as i32;
+    let second_arg = vm.get_arg(pipeline.args[1].location)?.u16_sx()? as i16 as i32;
+    let result = (first_arg.wrapping_mul(second_arg)) as u32;
+    if (result&0xFFFF0000).wrapping_shr(16) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word((result&0x0000FFFF) as u16))?;
+    Ok(())
+}
+
+pub fn imul2_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.get_arg(pipeline.args[0].location)?.u32_sx()? as i32 as i64;
+    let second_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;
+    let result = (first_arg.wrapping_mul(second_arg)) as u64;
+    if (result&0xFFFFFFFF00000000).wrapping_shr(16) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword((result&0x00000000FFFFFFFF) as u32))?;
+    Ok(())
+}
+
+pub fn imul3_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return imul3_16bit(vm, pipeline, hv);
+    } else {
+        return imul3_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn imul3_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;;
+    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i32 as i64;;
+    let result = (first_arg.wrapping_mul(second_arg)) as u32;
+    if (result&0xFFFF0000).wrapping_shr(16) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word((result&0x0000FFFF) as u16))?;
+    Ok(())
+}
+
+pub fn imul3_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;
+    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i32 as i64;
+    let result = (first_arg.wrapping_mul(second_arg)) as u64;
+    if (result&0xFFFFFFFF00000000).wrapping_shr(16) > 0 {
+        vm.flags.carry = true;
+        vm.flags.overflow = true;
+    } else {
+        vm.flags.carry = false;
+        vm.flags.overflow = false;
+    }
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword((result&0x00000000FFFFFFFF) as u32))?;
+    Ok(())
+}
+
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;

@@ -750,6 +750,48 @@ lazy_static! {
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
+        //0xF6 mul r/m8
+        define_opcode(0xF6).is_group(4).calls(mul_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        //0xF7 mul r/m16
+        //0xF7 mul r/m32
+        define_opcode(0xF7).is_group(4).calls(mul_native_word).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
+        //0xF6 imul r/m8
+        define_opcode(0xF6).is_group(5).calls(imul1_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        //0xF7 imul r/m16
+        //0xF7 imul r/m32
+        define_opcode(0xF7).is_group(5).calls(imul1_native_word).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
+        //0xAF imul r16, r/m16
+        //0xAF imul r32, r/m32
+        define_opcode(0xAF).is_two_byte_op().calls(imul2_native_word).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .into_table(&mut ops);
+        //0x69 imul r16,imm16
+        //0x69 imul r16,r/m16,imm16
+        //0x69 imul r32,imm32
+        //0x69 imul r32,r/m32,imm32
+        define_opcode(0x69).calls(imul3_native_word).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .with_immw()
+            .into_table(&mut ops);
+        //0x69 imul r16,imm8
+        //0x69 imul r16,r/m16,imm8
+        //0x69 imul r32,imm8
+        //0x69 imul r32,r/m32,imm8
+        define_opcode(0x6B).calls(imul3_native_word).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
         // Begin cmp opcodes
         //0x38 cmp r/m8, r8
         define_opcode(0x38).calls(cmp_8bit).with_gas(Low)

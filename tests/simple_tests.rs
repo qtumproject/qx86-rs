@@ -268,6 +268,186 @@ fn test_ret_with_optional_arg() {
 }
 
 #[test]
+fn test_regular_mul8bit_mul_0() {
+    let vm = execute_vm_with_asm("
+        mov al, 1
+        mul bl
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_mul8bit_basic(){
+    let vm = execute_vm_with_asm("
+        mov al, 0xFF
+        mov bl, 0xFF
+        mul bl
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xFE01);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_regular_mul8bit_basic_no_flag(){
+    let vm = execute_vm_with_asm("
+        mov al, 0x01
+        mov bl, 0x04
+        mul bl
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 4);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_mul16bit_basic() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0xFFFF
+        mov bx, 0xFFFF
+        mul bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 1);
+    assert_eq!(vm.reg16(Reg16::DX), 0xFFFE);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_regular_mul16bit_basic_no_flag() {
+    let vm = execute_vm_with_asm("
+        mov ax, 2
+        mov bx, 0xFE
+        mul bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x1FC);
+    assert_eq!(vm.reg16(Reg16::DX), 0);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_mul32bit_basic() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFFFFFFFF
+        mov ebx, 0xFFFFFFFF
+        mul ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 1);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xFFFFFFFE);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_regular_mul32bit_basic_no_flag() {
+    let vm = execute_vm_with_asm("
+        mov eax, 2
+        mov ebx, 0xFFFFEE
+        mul ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x1FFFFDC);
+    assert_eq!(vm.reg32(Reg32::EDX), 0);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_imul8bit_imul_0() {
+    let vm = execute_vm_with_asm("
+        mov al, 1
+        imul bl
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_imul8bit_basic(){
+    let vm = execute_vm_with_asm("
+        mov al, 100
+        mov bl, -100
+        imul bl
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xD8F0);
+    assert_eq!(vm.flags, X86Flags{overflow: true, carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_regular_imul8bit_basic_no_flag(){
+    let vm = execute_vm_with_asm("
+        mov al, 0x01
+        mov bl, 0x04
+        imul bl
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 4);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_imul16bit_basic() {
+    let vm = execute_vm_with_asm("
+        mov ax, 10000
+        mov bx, -10000
+        imul bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x1F00);
+    assert_eq!(vm.reg16(Reg16::DX), 0xFA0A);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_regular_imul16bit_basic_no_flag() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0xFFFF
+        mov bx, 0xFFFF
+        imul bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x1);
+    assert_eq!(vm.reg16(Reg16::DX), 0);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_imul32bit_basic() {
+    let vm = execute_vm_with_asm("
+        mov eax, 1000000000
+        mov ebx, -1000000000
+        imul ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x589C0000);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xF21F494C);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_regular_imul32bit_basic_no_flag() {
+    let vm = execute_vm_with_asm("
+        mov eax, 2
+        mov ebx, 0xFFFFEE
+        imul ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x1FFFFDC);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_regular_imul32bit_two_args_flag() {
+    let vm = execute_vm_with_asm("
+        mov eax, 3456
+        mov ecx, 4290403
+        imul eax, ecx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x73CBB880);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_regular_imul32bit_three_args_flag() {
+    let vm = execute_vm_with_asm("
+        mov eax, 3456
+        imul ebx, eax, 4290403
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EBX), 0x73CBB880);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
 fn test_signed_carry_add32(){
     let vm = execute_vm_with_asm("
         mov eax, 0xF00090FF
