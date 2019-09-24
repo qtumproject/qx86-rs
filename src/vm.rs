@@ -3,6 +3,7 @@ use crate::opcodes::*;
 use crate::structs::*;
 use crate::memory::*;
 use crate::flags::*;
+use crate::decoding::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
@@ -454,6 +455,32 @@ impl VM{
     }
     pub fn set_reg32(&mut self, r: Reg32, v: u32){
         self.set_reg(r as u8, SizedValue::Dword(v));
+    }
+    //todo later make this so it can write to a file rather than stdout
+    pub fn print_diagnostics(vm: &VM){
+        println!("EAX: 0x{:08X?}", vm.reg32(Reg32::EAX));
+        println!("ECX: 0x{:08X?}", vm.reg32(Reg32::ECX));
+        println!("EDX: 0x{:08X?}", vm.reg32(Reg32::EDX));
+        println!("EBX: 0x{:08X?}", vm.reg32(Reg32::EBX));
+        println!("ESP: 0x{:08X?}", vm.reg32(Reg32::ESP));
+        println!("EBP: 0x{:08X?}", vm.reg32(Reg32::EBP));
+        println!("ESI: 0x{:08X?}", vm.reg32(Reg32::ESI));
+        println!("EDI: 0x{:08X?}", vm.reg32(Reg32::EDI));
+        println!();
+        println!("Gas remaining: {}", vm.gas_remaining);
+        println!("EIP: 0x{:X?}", vm.eip);
+        println!("Surrounding bytes in opcode stream:");
+        if vm.eip >= 0x10000 {
+            for n in std::cmp::max(vm.eip - 8, 0x10000)..(vm.eip + 8){
+                let tmp = vm.get_mem(n, ValueSize::Byte);
+                if tmp.is_err(){
+                    println!("error reading memory");
+                    return;
+                }
+                let b = tmp.unwrap().u8_exact().unwrap();
+                println!("0x{:X?}: 0x{:02X}, as modrm: {}, as sib: {}", n, b, ModRM::parse(b), SIB::parse(b));
+            }
+        }
     }
 }
 
