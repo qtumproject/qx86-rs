@@ -1,6 +1,7 @@
 use crate::vm::*;
 use crate::pipeline::*;
 use crate::structs::*;
+use crate::flags::X86Flags;
 
 /// The logic function for the `mov` opcode
 pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
@@ -94,117 +95,31 @@ pub fn jmp_conditional_ecx_is_zero(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hy
     Ok(())
 }
 
-pub fn jmp_overflow(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    //check flags for overflow
-    if vm.flags.overflow {
-        return jmp_rel(vm, pipeline, hv);
+pub fn cc_matches(opcode: u8, flags: &X86Flags) -> bool{
+    let cc = 0x0F & opcode;
+    match cc{
+        0x0 => flags.overflow,
+        0x1 => !flags.overflow,
+        0x2 => flags.carry,
+        0x3 => !flags.carry,
+        0x4 => flags.zero,
+        0x5 => !flags.zero,
+        0x6 => flags.carry | flags.zero,
+        0x7 => !flags.carry & !flags.zero,
+        0x8 => flags.sign,
+        0x9 => !flags.sign,
+        0xA => flags.parity,
+        0xB => !flags.parity,
+        0xC => flags.sign != flags.overflow,
+        0xD => flags.sign == flags.overflow,
+        0xE => (flags.sign != flags.overflow) | flags.zero,
+        0xF => (flags.sign == flags.overflow) & !flags.zero,
+        _ => false
     }
-    Ok(())
 }
 
-pub fn jmp_not_overflow(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    //check flags for not overflow
-    if vm.flags.overflow == false {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_below(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    //check carry flag
-    if vm.flags.carry {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_above_or_equal(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    //check carry not set
-    if vm.flags.carry == false {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_is_equal(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.zero{
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_not_equal(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.zero == false {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_below_or_equal(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.carry || vm.flags.zero {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_sign(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.sign {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_no_sign(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.sign == false {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_above(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.carry && vm.flags.zero {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_parity(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.parity{
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_no_parity(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.parity == false {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_less(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.sign != vm.flags.overflow {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_greater_or_equal(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.sign == vm.flags.overflow{
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_less_or_equal(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if (vm.flags.sign != vm.flags.overflow) || vm.flags.zero {
-        return jmp_rel(vm, pipeline, hv);
-    }
-    Ok(())
-}
-
-pub fn jmp_greater(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
-    if vm.flags.sign && vm.flags.zero {
+pub fn jcc(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    if cc_matches(pipeline.opcode, &vm.flags){
         return jmp_rel(vm, pipeline, hv);
     }
     Ok(())

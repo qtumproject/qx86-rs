@@ -153,6 +153,7 @@ const OP_TWOBYTE:usize = 1 << 8;
 #[derive(Default)]
 pub struct OpcodeDefiner{
     opcode: u8,
+    len: usize,
     two_byte: bool,
     group: Option<u8>,
     gas_level: Option<GasCost>,
@@ -269,10 +270,16 @@ impl OpcodeDefiner{
         if self.gas_level.is_none(){
             self.gas_level = Some(GasCost::Low);
         }
+        if self.len == 0{
+            panic!("Incorrect opcode configuration");
+        }
+        if self.reg_suffix && self.len > 1{
+            panic!("Incorrect opcode configuration");
+        }
         let limit = if self.reg_suffix{
             8
         }else{
-            1
+            self.len
         };
         for n in 0..limit {
             let mut op = self.opcode as usize + n;
@@ -319,9 +326,15 @@ impl OpcodeDefiner{
 pub fn define_opcode(opcode: u8) -> OpcodeDefiner{
     let mut d = OpcodeDefiner::default();
     d.opcode = opcode;
+    d.len = 1;
     d
 }
-
+pub fn define_opcode_multi(opcode: u8, len: usize) -> OpcodeDefiner{
+    let mut d = OpcodeDefiner::default();
+    d.opcode = opcode;
+    d.len = len;
+    d
+}
 /*
 Opcode definition convention note:
 This uses the format used by Intel assembly syntax
@@ -487,166 +500,17 @@ lazy_static! {
             .with_arg(ArgSource::JumpRel, NativeWord)
             .is_unpredictable()
             .into_table(&mut ops);
-        //0x70 JO rel8
-        define_opcode(0x70).calls(jmp_overflow).with_gas(Low)
+        //0x70-0x7F Jcc rel8
+        define_opcode_multi(0x70, 16).calls(jcc).with_gas(Low)
             .with_arg(ArgSource::JumpRel, Fixed(Byte))
             .is_unpredictable()
             .into_table(&mut ops);
-        //0x71 JNO rel8
-        define_opcode(0x71).calls(jmp_not_overflow).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x72 JB rel8
-        define_opcode(0x72).calls(jmp_below).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x73 JAE rel8
-        define_opcode(0x73).calls(jmp_above_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x74 JE rel8
-        define_opcode(0x74).calls(jmp_is_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x75 JNE rel8
-        define_opcode(0x75).calls(jmp_not_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x76 JBE rel8
-        define_opcode(0x76).calls(jmp_below_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x77 JA rel8
-        define_opcode(0x77).calls(jmp_above).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x78 JS rel8
-        define_opcode(0x78).calls(jmp_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x79 JNS rel8
-        define_opcode(0x79).calls(jmp_no_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7A JP rel8
-        define_opcode(0x7A).calls(jmp_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7B JNP rel8
-        define_opcode(0x7B).calls(jmp_no_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7C JL rel8
-        define_opcode(0x7C).calls(jmp_less).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7D JGE rel8
-        define_opcode(0x7D).calls(jmp_greater_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7E JLE rel8
-        define_opcode(0x7E).calls(jmp_less_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7F JG rel8
-        define_opcode(0x7F).calls(jmp_greater).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x80 JO relw
-        define_opcode(0x80).is_two_byte_op().calls(jmp_overflow).with_gas(Low)
+        //0x80-0x8F Jcc relw
+        define_opcode_multi(0x80, 16).is_two_byte_op().calls(jcc).with_gas(Low)
             .with_arg(ArgSource::JumpRel, NativeWord)
             .is_unpredictable()
             .into_table(&mut ops);
-        //0x81 JNO relw
-        define_opcode(0x81).is_two_byte_op().calls(jmp_not_overflow).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x82 JB relw
-        define_opcode(0x82).is_two_byte_op().calls(jmp_below).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x83 JAE relw
-        define_opcode(0x83).is_two_byte_op().calls(jmp_above_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x84 JE relw
-        define_opcode(0x84).is_two_byte_op().calls(jmp_is_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x85 JNE relw
-        define_opcode(0x85).is_two_byte_op().calls(jmp_not_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x86 JBE relw
-        define_opcode(0x86).is_two_byte_op().calls(jmp_below_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x87 JA relw
-        define_opcode(0x87).is_two_byte_op().calls(jmp_above).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x88 JS relw
-        define_opcode(0x88).is_two_byte_op().calls(jmp_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x89 JNS relw
-        define_opcode(0x89).is_two_byte_op().calls(jmp_no_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8A JP relw
-        define_opcode(0x8A).is_two_byte_op().calls(jmp_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8B JNP relw
-        define_opcode(0x8B).is_two_byte_op().calls(jmp_no_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8C JL relw
-        define_opcode(0x8C).is_two_byte_op().calls(jmp_less).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8D JGE relw
-        define_opcode(0x8D).is_two_byte_op().calls(jmp_greater_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8E JLE relw
-        define_opcode(0x8E).is_two_byte_op().calls(jmp_less_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8F JG relw
-        define_opcode(0x8F).is_two_byte_op().calls(jmp_greater).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
+            
         //Begin maths....
         //add opcodes
         //0x00 add r/m8, r8
