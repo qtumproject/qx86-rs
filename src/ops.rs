@@ -782,7 +782,7 @@ pub fn setcc_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) ->
     Ok(())
 }
 
-pub fn movcc_native(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn cmovcc_native(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if cc_matches(pipeline.opcode, &vm.flags){
         vm.set_arg(pipeline.args[0].location, vm.get_arg(pipeline.args[1].location)?)?;
     }
