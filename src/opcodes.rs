@@ -90,7 +90,8 @@ pub struct Opcode{
     pub arg_source: [ArgSource; MAX_ARGS],
     pub gas_cost: GasCost,
     pub pipeline_behavior: PipelineBehavior,
-    pub defined: bool
+    pub defined: bool,
+    pub compare_only: bool
 }
 
 /// This is a "super-opcode" which may have multiple child opcodes.
@@ -137,7 +138,8 @@ impl Default for Opcode{
             gas_cost: GasCost::None,
             //this defaults to conditional so that an unknown opcode is considered conditional
             pipeline_behavior: PipelineBehavior::Unpredictable,
-            defined: false
+            defined: false,
+            compare_only: false
         }
     }
 }
@@ -161,13 +163,18 @@ pub struct OpcodeDefiner{
     function: Option<OpcodeFn>,
     jump: Option<PipelineBehavior>,
     has_modrm: bool,
-    reg_suffix: bool
+    reg_suffix: bool,
+    compare_only: bool
 }
 
 impl OpcodeDefiner{
     /// Specifies that the opcode is an extended opcode and therefore needs to be read in two bytes
     pub fn is_two_byte_op(&mut self) -> &mut OpcodeDefiner {
         self.two_byte = true;
+        self
+    }
+    pub fn compares_only(&mut self) -> &mut OpcodeDefiner {
+        self.compare_only = true;
         self
     }
     /// Specifies that the opcode is a group opcode.
@@ -313,6 +320,7 @@ impl OpcodeDefiner{
                 table[op].opcodes[inner].function = self.function.unwrap();
                 table[op].opcodes[inner].gas_cost = self.gas_level.unwrap();
                 table[op].opcodes[inner].pipeline_behavior = self.jump.unwrap();
+                table[op].opcodes[inner].compare_only = self.compare_only;
                 for n in 0..self.args.len(){
                     let (source, size) = self.args[n];
                     table[op].opcodes[inner].arg_source[n] = source;
@@ -658,54 +666,63 @@ lazy_static! {
             .into_table(&mut ops);
         // Begin cmp opcodes
         //0x38 cmp r/m8, r8
-        define_opcode(0x38).calls(cmp_8bit).with_gas(Low)
+        define_opcode(0x38).calls(sub_8bit).with_gas(Low)
             .with_rm8()
             .with_rm_reg8()
+            .compares_only()
             .into_table(&mut ops);
         //0x39 cmp, r/m16, r16
         //0x39 cmp, r/m32, r32
-        define_opcode(0x39).calls(cmp_native_word).with_gas(Low)
+        define_opcode(0x39).calls(sub_native_word).with_gas(Low)
             .with_rmw()
             .with_rm_regw()
+            .compares_only()
             .into_table(&mut ops);
         //0x3A cmp r8, r/m8
-        define_opcode(0x3A).calls(cmp_8bit).with_gas(Low)
+        define_opcode(0x3A).calls(sub_8bit).with_gas(Low)
             .with_rm_reg8()
             .with_rm8()
+            .compares_only()
             .into_table(&mut ops);
         //0x3B cmp r16, r/m16
         //0x3B cmp r32, r/m32
-        define_opcode(0x3B).calls(cmp_native_word).with_gas(Low)
+        define_opcode(0x3B).calls(sub_native_word).with_gas(Low)
             .with_rm_regw()
             .with_rmw()
+            .compares_only()
             .into_table(&mut ops);
         //0x3C cmp AL, imm8
-        define_opcode(0x3C).calls(cmp_8bit).with_gas(Low)
+        define_opcode(0x3C).calls(sub_8bit).with_gas(Low)
             .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
             .with_imm8()
+            .compares_only()
             .into_table(&mut ops);        
         //0x3D cmp AX, imm16
         //0x3D cmp EAX, imm32
-        define_opcode(0x3D).calls(cmp_native_word).with_gas(Low)
+        define_opcode(0x3D).calls(sub_native_word).with_gas(Low)
             .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
             .with_immw()
+            .compares_only()
             .into_table(&mut ops);
         //0x80 cmp r/m8, imm8
-        define_opcode(0x80).is_group(7).calls(cmp_8bit).with_gas(Low)
+        define_opcode(0x80).is_group(7).calls(sub_8bit).with_gas(Low)
             .with_rm8()
             .with_imm8()
+            .compares_only()
             .into_table(&mut ops);
         //0x81 cmp r/m16, imm16
         //0x81 cmp r/m32, imm32
-        define_opcode(0x81).is_group(7).calls(cmp_native_word).with_gas(Low)
+        define_opcode(0x81).is_group(7).calls(sub_native_word).with_gas(Low)
             .with_rmw()
             .with_immw()
+            .compares_only()
             .into_table(&mut ops);
         //0x83 cmp r/m16, imm8
         //0x83 cmp r/m32, imm8
-        define_opcode(0x83).is_group(7).calls(cmp_native_word).with_gas(Low)
+        define_opcode(0x83).is_group(7).calls(sub_native_word).with_gas(Low)
             .with_rmw()
             .with_imm8()
+            .compares_only()
             .into_table(&mut ops);
         // Bitwise AND
         //0x20 and r/m8, r8

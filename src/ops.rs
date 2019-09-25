@@ -423,7 +423,9 @@ pub fn sub_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
     vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    if !pipeline.compare_only {
+        vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    }
     Ok(())
 }
 
@@ -446,7 +448,9 @@ pub fn sub_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign16(result);
     vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    if !pipeline.compare_only {
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    }
     Ok(())
 }
 
@@ -461,7 +465,9 @@ pub fn sub_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     vm.flags.calculate_parity(result);
     vm.flags.calculate_sign32(result);
     vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    if !pipeline.compare_only {
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    }
     Ok(())
 }
 
@@ -506,56 +512,6 @@ pub fn decrement_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
     vm.flags.calculate_sign32(result as u32);
     vm.flags.adjust = ((base as i32)&0x0F) - ((1 as i32)&0x0F) < 0;
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
-    Ok(())
-}
-
-pub fn cmp_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
-    let cmpt = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
-    let (result, carry) = base.overflowing_sub(cmpt);
-    let (_, overflow) = (base as i8).overflowing_sub(cmpt as i8);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
-    Ok(())
-}
-
-pub fn cmp_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
-    if pipeline.size_override {
-        return cmp_16bit(vm, pipeline, hv);
-    } else {
-        return cmp_32bit(vm, pipeline, hv);
-    }
-}
-
-pub fn cmp_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-    let cmpt = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-    let (result, carry) = base.overflowing_sub(cmpt);
-    let (_, overflow) = (base as i16).overflowing_sub(cmpt as i16);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
-    Ok(())
-}
-
-pub fn cmp_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-    let cmpt = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-    let (result, carry) = base.overflowing_sub(cmpt);
-    let (_, overflow) = (base as i32).overflowing_sub(cmpt as i32);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
     Ok(())
 }
 

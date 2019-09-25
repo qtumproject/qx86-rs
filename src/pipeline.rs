@@ -44,7 +44,9 @@ pub struct Pipeline{
     /// Set to true if an operand size override prefix is present
     pub size_override: bool,
     /// The final opcode byte in the total opcode
-    pub opcode: u8
+    pub opcode: u8,
+    /// A marker that can be used to indicate the opcode function should only compare and not set any arguments
+    pub compare_only: bool
 }
 
 impl Default for Pipeline{
@@ -55,7 +57,8 @@ impl Default for Pipeline{
             gas_cost: 0,
             eip_size: 1,
             size_override: false,
-            opcode: 0
+            opcode: 0,
+            compare_only: false
         }
     }
 }
@@ -99,6 +102,7 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             }else{
                 &prop.opcodes[0]
             };
+            p.compare_only = opcode.compare_only;
             p.function = opcode.function;
             p.gas_cost += vm.charger.cost(opcode.gas_cost);
             p.size_override = prefixes.size_override;
