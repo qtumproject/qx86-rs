@@ -30,10 +30,7 @@ pub struct VM{
 /// Implements an interface for the program within the VM to talk to the external world
 pub trait Hypervisor{
     /// Executed whenever an INT opcode occurs 
-    fn interrupt(&mut self, _vm: &mut VM, _num: u8) -> Result<(), VMError>{
-        //by default do nothing
-        Ok(())
-    }
+    fn interrupt(&mut self, _vm: &mut VM, _num: u8) -> Result<(), VMError>;
 }
 
 /// The gas cost of an operation
