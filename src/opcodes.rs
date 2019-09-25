@@ -930,7 +930,37 @@ lazy_static! {
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops); 
-        
+        //0x84 TEST rm8, r8
+        define_opcode(0x84).calls(test_8bit).with_gas(Low)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0x85 TEST rmW, rW
+        define_opcode(0x85).calls(test_native_word).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0xA8 TEST AL, imm8
+        define_opcode(0xA8).calls(test_8bit).with_gas(Low)
+            .with_arg(ArgSource::HardcodedRegister(Reg8::AL as u8), OpcodeValueSize::Fixed(Byte))
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xA9 TEST EAX/AX, immW
+        define_opcode(0xA9).calls(test_native_word).with_gas(Low)
+            .with_arg(ArgSource::HardcodedRegister(Reg32::EAX as u8), OpcodeValueSize::NativeWord)
+            .with_immw()
+            .into_table(&mut ops);
+        //0xF6 /0 TEST rm8, imm8
+        define_opcode(0xF6).is_group(0).calls(test_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xF7 /0 TEST rmW, immW
+        define_opcode(0xF7).is_group(0).calls(test_native_word).with_gas(Low)
+            .with_rmw()
+            .with_immw()
+            .into_table(&mut ops);
+
 
         ops
     };
