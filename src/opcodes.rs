@@ -921,6 +921,15 @@ lazy_static! {
             .is_unpredictable()
             .into_table(&mut ops);
 
+        //0x0F 90 SETcc rm8
+        define_opcode_multi(0x90, 16).is_two_byte_op().calls(setcc_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        //0x0F 40 MOVcc rmW
+        define_opcode_multi(0x40, 16).is_two_byte_op().calls(movcc_native).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .into_table(&mut ops); 
         
 
         ops

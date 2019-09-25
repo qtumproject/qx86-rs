@@ -772,3 +772,20 @@ pub fn interrupt(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> R
     hv.interrupt(vm, num)?;
     Ok(())
 }
+
+pub fn setcc_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if cc_matches(pipeline.opcode, &vm.flags){
+        vm.set_arg(pipeline.args[0].location, SizedValue::Byte(1))?;
+    }else{
+        vm.set_arg(pipeline.args[0].location, SizedValue::Byte(0))?;
+    }
+    Ok(())
+}
+
+pub fn movcc_native(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if cc_matches(pipeline.opcode, &vm.flags){
+        vm.set_arg(pipeline.args[0].location, vm.get_arg(pipeline.args[1].location)?)?;
+    }
+    Ok(())
+}
+
