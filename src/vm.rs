@@ -392,7 +392,7 @@ impl VM{
     /// This will execute one "cycle" of the VM
     /// A cycle includes filling the pipeline, executing the filled pipeline, and then handling any errors present
     /// Will return a result of true if an InternalVMStop was received, otherwise will return false
-    fn cycle(&mut self, pipeline: &mut [Pipeline], hv: &mut Hypervisor) -> Result<bool, VMError>{
+    fn cycle(&mut self, pipeline: &mut [Pipeline], hv: &mut dyn Hypervisor) -> Result<bool, VMError>{
         fill_pipeline(self, &OPCODES[0..], pipeline)?;
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
@@ -422,7 +422,7 @@ impl VM{
 
     }
     /// Executes the VM either until there is no remaining gas, an error occurs, or the `hlt` instruction is executed
-    pub fn execute(&mut self, hv: &mut Hypervisor) -> Result<bool, VMError>{
+    pub fn execute(&mut self, hv: &mut dyn Hypervisor) -> Result<bool, VMError>{
         //todo: gas handling
         let mut pipeline = vec![];
         pipeline.resize(PIPELINE_SIZE, Pipeline::default());
