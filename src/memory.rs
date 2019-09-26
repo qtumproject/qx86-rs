@@ -71,7 +71,7 @@ impl MemorySystem{
         if m.len() < size as usize {
             return Err(VMError::ReadBadMemory(address + size - 1));
         }
-        Ok(m)
+        Ok(&m[0..size as usize])
     }
     /// This will get an area of mutable memory as a slice of bytes and will return an error if the size requested is not available
     /// Note that this will not respect the "readonly" flag, nor readonly memory space
@@ -81,7 +81,7 @@ impl MemorySystem{
         if m.len() < size as usize {
             return Err(VMError::WroteBadMemory(address + size - 1));
         }
-        Ok(m)
+        Ok(&mut m[0..size as usize])
     }
     /// Retreives a single u8 from memory
     pub fn get_u8(&self, address: u32) -> Result<u8, VMError>{
