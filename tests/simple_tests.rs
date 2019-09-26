@@ -873,6 +873,8 @@ fn test_lea() {
         mov eax, 0
         mov ebx, 5
         lea eax, [ebx * 2 + 1000]
+        lea dx, [ebx * 2 + 100000]
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 5 * 2 + 1000);
+    assert_eq!(vm.reg32(Reg32::EDX), (5 * 2 + 100000) & 0x0000FFFF);
 }
