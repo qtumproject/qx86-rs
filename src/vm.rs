@@ -435,6 +435,10 @@ impl VM{
         m[0..data.len()].copy_from_slice(data);
         Ok(())
     }
+    /// Helper function to simplify copying a set of data out of VM memory
+    pub fn copy_from_memory(&mut self, address: u32, size: u32) -> Result<&[u8], VMError>{
+        return Ok(self.memory.get_sized_memory(address, size)?);
+    }
     pub fn reg8(&self, r: Reg8) -> u8{
         self.get_reg(r as u8, ValueSize::Byte).u8_exact().unwrap()
     }
