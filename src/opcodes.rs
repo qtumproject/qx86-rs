@@ -960,7 +960,11 @@ lazy_static! {
             .with_rmw()
             .with_immw()
             .into_table(&mut ops);
-
+        //0x8D /r LEA  rW,m
+        define_opcode(0x8D).calls(lea).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .into_table(&mut ops);
 
         ops
     };

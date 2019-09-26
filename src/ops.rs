@@ -834,3 +834,13 @@ pub fn cmovcc_native(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor)
     Ok(())
 }
 
+pub fn lea(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let address = vm.get_arg_lea(pipeline.args[1].location)?;
+    let value = if pipeline.size_override{
+        SizedValue::Word(address as u16)
+    }else{
+        SizedValue::Dword(address)
+    };
+    vm.set_arg(pipeline.args[0].location, value)?;
+    Ok(())
+}

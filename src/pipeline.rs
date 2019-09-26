@@ -22,6 +22,10 @@ impl PrefixesActivated {
                 self.two_bytes = true;
                 Ok(prefix_size+1)
             },
+            0x67 => {
+                // address size override. Only needed for LEA
+                unimplemented!();
+            }
             _ => {
                 Ok(prefix_size)
             }

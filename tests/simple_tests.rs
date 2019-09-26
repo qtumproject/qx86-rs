@@ -866,3 +866,13 @@ fn test_movcc() {
     assert_eq!(vm.reg32(Reg32::EDX), 0x99AABBCC);
     assert_eq!(vm.reg32(Reg32::ESI), 0xDDEEFF11);
 }
+
+#[test]
+fn test_lea() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0
+        mov ebx, 5
+        lea eax, [ebx * 2 + 1000]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 5 * 2 + 1000);
+}

@@ -190,7 +190,8 @@ pub enum VMError{
     InternalVMStop,
     /// This indicates that the execution reached the end of its' gas limit
     /// This is not an actual execution error per-se, and resuming afterwards is possible if desired.
-    OutOfGas
+    OutOfGas,
+    InvalidOpcodeEncoding
 }
 
 
@@ -270,6 +271,28 @@ impl VM{
             SIBAddress{offset: _, base: _, scale: _, index: _, size} => {
                 self.get_mem(self.calculate_modrm_address(&arg), size)?
             }
+        })
+    }
+    pub fn get_arg_lea(&self, arg: ArgLocation) -> Result<u32, VMError>{
+        use ArgLocation::*;
+        Ok(match arg{
+            Address(a, _) => {
+                a
+            },
+            RegisterAddress(r, s) => {
+                self.get_reg(r, ValueSize::Dword).u32_exact()?
+            },
+            /*
+            ModRMAddress16{offset, reg1, reg2, size} => {
+                SizedValue::None
+            },*/
+            ModRMAddress{offset: _, reg: _, size: _} => {
+                self.calculate_modrm_address(&arg)
+            },
+            SIBAddress{offset: _, base: _, scale: _, index: _, size: _} => {
+                self.calculate_modrm_address(&arg)
+            }
+            _ => return Err(VMError::InvalidOpcodeEncoding)
         })
     }
     /// Resolves an argument location and stores the specified SizedValue in it.
