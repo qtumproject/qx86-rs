@@ -188,9 +188,12 @@ pub enum VMError{
 
     /// This is not an actual error, but rather an "escape" which should stop the VM immediately.
     InternalVMStop,
+    /// Used by the Hypervisor in order to stop execution in the case of an unrecoverable error
+    SyscallError,
     /// This indicates that the execution reached the end of its' gas limit
     /// This is not an actual execution error per-se, and resuming afterwards is possible if desired.
     OutOfGas,
+    /// Indicates that an opcode is invalidly encoded, for instance, a Mod R/M memory argument having a register encoded
     InvalidOpcodeEncoding
 }
 
