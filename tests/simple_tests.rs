@@ -878,3 +878,23 @@ fn test_lea() {
     assert_eq!(vm.reg32(Reg32::EAX), 5 * 2 + 1000);
     assert_eq!(vm.reg32(Reg32::EDX), (5 * 2 + 100000) & 0x0000FFFF);
 }
+
+#[test]
+fn test_movzx() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFA
+        mov ebx, 0xFFFFFFFF
+        mov ecx, 0xFFFFFFFF
+        mov edx, 0xFFFFFFFF
+        mov esi, 0xffffffff
+        movzx ebx, al
+        movzx cx, al
+        mov dx, 0xFEDC
+        movzx esi, dx 
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFA);
+    assert_eq!(vm.reg32(Reg32::EBX), 0xFA);
+    assert_eq!(vm.reg32(Reg32::ECX), 0xFFFF00FA);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xFFFFFEDC);
+    assert_eq!(vm.reg32(Reg32::ESI), 0xFEDC);
+}

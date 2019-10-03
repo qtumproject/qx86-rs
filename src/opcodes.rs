@@ -219,7 +219,15 @@ impl OpcodeDefiner{
     /// Specifies that the next argument is a ModRM argument of byte size
     pub fn with_rm8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Byte))
-    }   
+    }
+    /// Specifies that the next argument is a ModRM argument of byte size
+    pub fn with_rm16(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Word))
+    }
+    /// Specifies that the next argument is a ModRM argument of byte size
+    pub fn with_rm32(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Dword))
+    }
     /// Specifies that the next argument is a ModRM argument of NativeWord size
     pub fn with_rmw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRM, OpcodeValueSize::NativeWord)
@@ -227,6 +235,14 @@ impl OpcodeDefiner{
     /// Specifies that the next argument is a ModRM /r argument of NativeWord size
     pub fn with_rm_regw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::NativeWord)
+    }
+    /// Specifies that the next argument is a ModRM /r argument of word size
+    pub fn with_rm_reg16(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::Fixed(ValueSize::Word))
+    }
+    /// Specifies that the next argument is a ModRM /r argument of dword size
+    pub fn with_rm_reg32(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::Fixed(ValueSize::Dword))
     }
     /// Specifies that the next argument is a ModRM /r argument of byte size
     pub fn with_rm_reg8(&mut self) -> &mut OpcodeDefiner{
@@ -965,6 +981,16 @@ lazy_static! {
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops);
+        //0F B6 /r MOVZX rW,rm8
+        define_opcode(0xB6).is_two_byte_op().calls(movzx_8bit).with_gas(Low)
+            .with_rm_regw()
+            .with_rm8()
+            .into_table(&mut ops);
+        //0x0F B7 /r    MOVZX r32,rm16
+        define_opcode(0xB7).is_two_byte_op().calls(movzx_16bit).with_gas(Low)
+            .with_rm_reg32()
+            .with_rm16()
+            .into_table(&mut ops); 
 
         ops
     };

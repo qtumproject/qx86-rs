@@ -844,3 +844,20 @@ pub fn lea(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     vm.set_arg(pipeline.args[0].location, value)?;
     Ok(())
 }
+
+pub fn movzx_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let v = vm.get_arg(pipeline.args[1].location)?.u16_zx()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(v))?;
+    }else{
+        let v = vm.get_arg(pipeline.args[1].location)?.u32_zx()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
+    }
+    Ok(())
+}
+
+pub fn movzx_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let v = vm.get_arg(pipeline.args[1].location)?.u32_zx()?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
+    Ok(())
+}

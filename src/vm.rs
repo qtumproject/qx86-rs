@@ -282,7 +282,7 @@ impl VM{
             Address(a, _) => {
                 a
             },
-            RegisterAddress(r, s) => {
+            RegisterAddress(r, _) => {
                 self.get_reg(r, ValueSize::Dword).u32_exact()?
             },
             /*
