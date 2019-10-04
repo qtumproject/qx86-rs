@@ -5,10 +5,23 @@ use crate::decoding::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
+#[derive(PartialEq)]
+enum RepMode{
+    None = 0,
+    Repe,
+    Repne
+}
+impl Default for RepMode{
+    fn default() -> RepMode{
+        RepMode::None
+    }
+}
+
 #[derive(Default)]
 struct PrefixesActivated {
     size_override: bool,
-    two_bytes: bool
+    two_bytes: bool,
+    rep_mode: RepMode
 }
 
 impl PrefixesActivated {
@@ -25,6 +38,16 @@ impl PrefixesActivated {
             0x67 => {
                 // address size override. Only needed for LEA
                 unimplemented!();
+            },
+            0xF2 => {
+                //repne
+                self.rep_mode = RepMode::Repne;
+                return self.get_prefixes(&buffer[1..], prefix_size+1);
+            },
+            0xF3 => {
+                //rep/repe
+                self.rep_mode = RepMode::Repe;
+                return self.get_prefixes(&buffer[1..], prefix_size+1);
             }
             _ => {
                 Ok(prefix_size)
@@ -93,60 +116,76 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             let mut prefixes = PrefixesActivated::default();
             let prefix_size = prefixes.get_prefixes(buffer, 0)?;
             buffer = &buffer[prefix_size as usize..];
-            let prop = &opcodes[buffer[0] as usize | ((prefixes.two_bytes as usize) << 8)];
-            p.opcode = buffer[0];
-            let mut modrm = Option::None;
-            let opcode = if prop.has_modrm{
-                p.gas_cost += vm.charger.cost(GasCost::ModRMSurcharge);
-                modrm = Some(ParsedModRM::from_bytes(buffer)?);
-                &prop.opcodes[modrm.unwrap().modrm.reg as usize]
-            }else{
-                &prop.opcodes[0]
-            };
-            p.function = opcode.function;
-            p.gas_cost += vm.charger.cost(opcode.gas_cost);
-            p.size_override = prefixes.size_override;
-            match opcode.pipeline_behavior{
-                PipelineBehavior::None => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
-                },
-                PipelineBehavior::Unpredictable | PipelineBehavior::UnpredictableNoGas => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
-                    eip += p.eip_size as u32;
-                    stop_filling = true;
-                },
-                PipelineBehavior::RelativeJump => {
-                    p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
-                    //relative jumps are calculated from the EIP value AFTER the jump would've executed, ie, after EIP is advanced by the size of the instruction
-                    let future_eip = eip + (p.eip_size as u32);
-                    //rel must be sign extended, but is otherwise treated as a u32 for simplicity
-                    //an i32 and a u32 will behave the same way for wrapping_addition like this
-                    let rel = vm.get_arg(p.args[0].location)?.u32_sx()?;
-                    //subtract out the eip_size that'll be advanced in the main loop
-                    eip = future_eip.wrapping_add(rel) - (p.eip_size as u32);
-                    if p.size_override{
-                        return Err(VMError::ReadBadMemory(eip & 0xFFFF));
-                    }
-                }
-            };
-            p.gas_cost += match opcode.pipeline_behavior{
-                PipelineBehavior::Unpredictable => vm.charger.cost(GasCost::ConditionalBranch),
-                _ => 0
-            };
-            for i in 0..MAX_ARGS{
-                p.gas_cost += if p.args[i].is_memory{
-                    vm.charger.cost(GasCost::MemoryAccess)
+
+            if prefixes.rep_mode != RepMode::None{
+                //rep opcodes are handled as a special case 
+                p.size_override = prefixes.size_override;               
+                p.gas_cost += vm.charger.cost(GasCost::Moderate);
+                p.eip_size = prefix_size + 1;
+                p.opcode = buffer[0];
+                if prefixes.rep_mode == RepMode::Repe{
+                    p.function = crate::ops::repe;
                 }else{
-                    0
+                    p.function = crate::ops::repne;
+                }
+                //gas cost is unpredictable and potentially very large, so stop filling here. 
+                stop_filling = true;
+            }else{
+                let prop = &opcodes[buffer[0] as usize | ((prefixes.two_bytes as usize) << 8)];
+                p.opcode = buffer[0];
+                let mut modrm = Option::None;
+                let opcode = if prop.has_modrm{
+                    p.gas_cost += vm.charger.cost(GasCost::ModRMSurcharge);
+                    modrm = Some(ParsedModRM::from_bytes(buffer)?);
+                    &prop.opcodes[modrm.unwrap().modrm.reg as usize]
+                }else{
+                    &prop.opcodes[0]
                 };
+                p.function = opcode.function;
+                p.gas_cost += vm.charger.cost(opcode.gas_cost);
+                p.size_override = prefixes.size_override;
+                match opcode.pipeline_behavior{
+                    PipelineBehavior::None => {
+                        p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
+                    },
+                    PipelineBehavior::Unpredictable | PipelineBehavior::UnpredictableNoGas => {
+                        p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
+                        eip += p.eip_size as u32;
+                        stop_filling = true;
+                    },
+                    PipelineBehavior::RelativeJump => {
+                        p.eip_size = decode_args_with_modrm(opcode, buffer, &mut p.args, prefixes.size_override, false, modrm)? as u8 + prefix_size;
+                        //relative jumps are calculated from the EIP value AFTER the jump would've executed, ie, after EIP is advanced by the size of the instruction
+                        let future_eip = eip + (p.eip_size as u32);
+                        //rel must be sign extended, but is otherwise treated as a u32 for simplicity
+                        //an i32 and a u32 will behave the same way for wrapping_addition like this
+                        let rel = vm.get_arg(p.args[0].location)?.u32_sx()?;
+                        //subtract out the eip_size that'll be advanced in the main loop
+                        eip = future_eip.wrapping_add(rel) - (p.eip_size as u32);
+                        if p.size_override{
+                            return Err(VMError::ReadBadMemory(eip & 0xFFFF));
+                        }
+                    }
+                };
+                p.gas_cost += match opcode.pipeline_behavior{
+                    PipelineBehavior::Unpredictable => vm.charger.cost(GasCost::ConditionalBranch),
+                    _ => 0
+                };
+                for i in 0..MAX_ARGS{
+                    p.gas_cost += if p.args[i].is_memory{
+                        vm.charger.cost(GasCost::MemoryAccess)
+                    }else{
+                        0
+                    };
+                }
+                eip += p.eip_size as u32;
             }
-            eip += p.eip_size as u32;
-        }
-        if writeable {
-            //if in writeable space, only use one pipeline slot at a time
-            //otherwise, the memory we are decoding could be changed by an opcode within the pipeline
-            p.gas_cost += vm.charger.cost(GasCost::WriteableMemoryExec);
-            stop_filling = true;
+            if writeable {
+                //if in writeable space, only use one pipeline slot at a time
+                //otherwise, the memory we are decoding could be changed by an opcode within the pipeline
+                p.gas_cost += vm.charger.cost(GasCost::WriteableMemoryExec);
+                stop_filling = true;
+            }
         }
         running_gas = running_gas.saturating_sub(p.gas_cost);
         stop_filling |= running_gas == 0;

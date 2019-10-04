@@ -943,3 +943,102 @@ pub fn movzx_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
     Ok(())
 }
+
+fn rep_no_flag_opcodes(opcode: u8) -> bool{
+    match opcode{
+        0xA4 | 0xA5 | //movs
+        0xAC | 0xAD | //lods
+        0xAA | 0xAB => { //stos
+            true
+        }
+        _ => {
+            false
+        }
+    }
+}
+fn rep_flag_opcodes(opcode: u8) -> bool{
+    match opcode{
+        0xA6 | 0xA7 | //cmps
+        0xAE | 0xAF => { //scas
+            true
+        }
+        _ => {
+            false
+        }
+    }
+}
+
+fn read_regw(vm: &VM, reg: Reg32, size_override: bool) -> u32{
+    if size_override{
+        vm.regs[reg as usize] & 0x0000FFFF
+    }else{
+        vm.regs[reg as usize]
+    }
+}
+
+fn decrement_regw(vm: &mut VM, reg: Reg32, size_override: bool) -> u32{
+    if size_override{
+        let mut r = (vm.regs[reg as usize] & 0x0000FFFF) as u16;
+        r -= 1;
+        let write = (vm.regs[reg as usize] & 0xFFFF0000) | (r as u32);
+        vm.regs[reg as usize] = write;
+        r as u32
+    }else{
+        vm.regs[reg as usize] -= 1;
+        vm.regs[reg as usize]
+    } 
+}
+
+pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let opcodes = &crate::opcodes::OPCODES;
+    if rep_flag_opcodes(pipeline.opcode){
+
+    }else if rep_no_flag_opcodes(pipeline.opcode){
+        let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
+        let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
+        /*      
+        while eCX <> 0
+            execute string instruction once
+            eCX . eCX - 1
+        endwhile
+        */
+        while read_regw(vm, Reg32::ECX, pipeline.size_override) != 0{
+            if vm.gas_remaining == 0{
+                return Err(VMError::OutOfGas);
+            }
+            function(vm, pipeline, hv)?;
+            decrement_regw(vm, Reg32::ECX, pipeline.size_override);
+            vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
+        }
+    }else{
+        return Err(VMError::InvalidOpcodeEncoding);
+    }
+    Ok(())
+}
+pub fn repne(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    Ok(())
+}
+
+pub fn movs_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    //[EDI] . [ESI]
+    if pipeline.size_override{
+        vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Word(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?))?;
+        //todo DF
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(2));
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(2));
+    }else{
+        vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Dword(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Dword)?.u32_exact()?))?;
+        //todo DF
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(4));
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(4));
+    }
+    Ok(())
+}
+pub fn movsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    //[EDI] . [ESI]
+    vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Byte(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?))?;
+    //todo DF
+    vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(1));
+    vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(1));
+    Ok(())
+}

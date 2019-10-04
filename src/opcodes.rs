@@ -1009,6 +1009,13 @@ lazy_static! {
             .with_rm_reg32()
             .with_rm16()
             .into_table(&mut ops); 
+        //0xA5 MOVSD/MOVSW
+        define_opcode(0xA5).calls(movs_native_word).with_gas(Low)
+            .into_table(&mut ops);
+        //0xA4 MOVSB
+        define_opcode(0xA4).calls(movsb).with_gas(Low)
+            .into_table(&mut ops);
+
 
         ops
     };
