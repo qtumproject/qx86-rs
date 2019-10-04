@@ -147,6 +147,9 @@ pub enum VMError{
     /// Indicates this functionality is currently not yet implemented
     /// This will be removed when the qx86 is finished per specifications
     NotYetImplemented,
+    // Supposed to be used on div and idiv operations for when dividing by zero or when 
+    // result is too big to be stored in the register
+    DivideByZero,
 
     //memory errors
 
