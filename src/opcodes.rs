@@ -4,7 +4,7 @@ use crate::pipeline::*;
 
 #[allow(dead_code)] //remove after design stuff is done
 
-pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError>;
+pub type OpcodeFn = fn(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>;
 
 /// Defines how to decode an argument of an opcode
 #[derive(PartialEq)]
@@ -110,11 +110,11 @@ pub struct OpcodeProperties{
     pub opcodes: [Opcode; 8],
 }
 
-pub fn nop(_vm: &mut VM, _pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
+pub fn nop(_vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
 Ok(())
 }
 
-pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut Hypervisor) -> Result<(), VMError>{
+pub fn op_undefined(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     Err(VMError::InvalidOpcode(vm.get_mem(vm.eip, ValueSize::Byte)?.u8_exact()?))
 }
 
@@ -153,6 +153,7 @@ const OP_TWOBYTE:usize = 1 << 8;
 #[derive(Default)]
 pub struct OpcodeDefiner{
     opcode: u8,
+    len: usize,
     two_byte: bool,
     group: Option<u8>,
     gas_level: Option<GasCost>,
@@ -218,7 +219,15 @@ impl OpcodeDefiner{
     /// Specifies that the next argument is a ModRM argument of byte size
     pub fn with_rm8(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Byte))
-    }   
+    }
+    /// Specifies that the next argument is a ModRM argument of byte size
+    pub fn with_rm16(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Word))
+    }
+    /// Specifies that the next argument is a ModRM argument of byte size
+    pub fn with_rm32(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Dword))
+    }
     /// Specifies that the next argument is a ModRM argument of NativeWord size
     pub fn with_rmw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRM, OpcodeValueSize::NativeWord)
@@ -226,6 +235,14 @@ impl OpcodeDefiner{
     /// Specifies that the next argument is a ModRM /r argument of NativeWord size
     pub fn with_rm_regw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::NativeWord)
+    }
+    /// Specifies that the next argument is a ModRM /r argument of word size
+    pub fn with_rm_reg16(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::Fixed(ValueSize::Word))
+    }
+    /// Specifies that the next argument is a ModRM /r argument of dword size
+    pub fn with_rm_reg32(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::ModRMReg, OpcodeValueSize::Fixed(ValueSize::Dword))
     }
     /// Specifies that the next argument is a ModRM /r argument of byte size
     pub fn with_rm_reg8(&mut self) -> &mut OpcodeDefiner{
@@ -269,10 +286,16 @@ impl OpcodeDefiner{
         if self.gas_level.is_none(){
             self.gas_level = Some(GasCost::Low);
         }
+        if self.len == 0{
+            panic!("Incorrect opcode configuration");
+        }
+        if self.reg_suffix && self.len > 1{
+            panic!("Incorrect opcode configuration");
+        }
         let limit = if self.reg_suffix{
             8
         }else{
-            1
+            self.len
         };
         for n in 0..limit {
             let mut op = self.opcode as usize + n;
@@ -319,9 +342,15 @@ impl OpcodeDefiner{
 pub fn define_opcode(opcode: u8) -> OpcodeDefiner{
     let mut d = OpcodeDefiner::default();
     d.opcode = opcode;
+    d.len = 1;
     d
 }
-
+pub fn define_opcode_multi(opcode: u8, len: usize) -> OpcodeDefiner{
+    let mut d = OpcodeDefiner::default();
+    d.opcode = opcode;
+    d.len = len;
+    d
+}
 /*
 Opcode definition convention note:
 This uses the format used by Intel assembly syntax
@@ -487,166 +516,17 @@ lazy_static! {
             .with_arg(ArgSource::JumpRel, NativeWord)
             .is_unpredictable()
             .into_table(&mut ops);
-        //0x70 JO rel8
-        define_opcode(0x70).calls(jmp_overflow).with_gas(Low)
+        //0x70-0x7F Jcc rel8
+        define_opcode_multi(0x70, 16).calls(jcc).with_gas(Low)
             .with_arg(ArgSource::JumpRel, Fixed(Byte))
             .is_unpredictable()
             .into_table(&mut ops);
-        //0x71 JNO rel8
-        define_opcode(0x71).calls(jmp_not_overflow).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x72 JB rel8
-        define_opcode(0x72).calls(jmp_below).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x73 JAE rel8
-        define_opcode(0x73).calls(jmp_above_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x74 JE rel8
-        define_opcode(0x74).calls(jmp_is_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x75 JNE rel8
-        define_opcode(0x75).calls(jmp_not_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x76 JBE rel8
-        define_opcode(0x76).calls(jmp_below_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x77 JA rel8
-        define_opcode(0x77).calls(jmp_above).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x78 JS rel8
-        define_opcode(0x78).calls(jmp_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x79 JNS rel8
-        define_opcode(0x79).calls(jmp_no_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7A JP rel8
-        define_opcode(0x7A).calls(jmp_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7B JNP rel8
-        define_opcode(0x7B).calls(jmp_no_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7C JL rel8
-        define_opcode(0x7C).calls(jmp_less).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7D JGE rel8
-        define_opcode(0x7D).calls(jmp_greater_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7E JLE rel8
-        define_opcode(0x7E).calls(jmp_less_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x7F JG rel8
-        define_opcode(0x7F).calls(jmp_greater).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, Fixed(Byte))
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x80 JO relw
-        define_opcode(0x80).is_two_byte_op().calls(jmp_overflow).with_gas(Low)
+        //0x80-0x8F Jcc relw
+        define_opcode_multi(0x80, 16).is_two_byte_op().calls(jcc).with_gas(Low)
             .with_arg(ArgSource::JumpRel, NativeWord)
             .is_unpredictable()
             .into_table(&mut ops);
-        //0x81 JNO relw
-        define_opcode(0x81).is_two_byte_op().calls(jmp_not_overflow).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x82 JB relw
-        define_opcode(0x82).is_two_byte_op().calls(jmp_below).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x83 JAE relw
-        define_opcode(0x83).is_two_byte_op().calls(jmp_above_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x84 JE relw
-        define_opcode(0x84).is_two_byte_op().calls(jmp_is_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x85 JNE relw
-        define_opcode(0x85).is_two_byte_op().calls(jmp_not_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x86 JBE relw
-        define_opcode(0x86).is_two_byte_op().calls(jmp_below_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x87 JA relw
-        define_opcode(0x87).is_two_byte_op().calls(jmp_above).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x88 JS relw
-        define_opcode(0x88).is_two_byte_op().calls(jmp_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x89 JNS relw
-        define_opcode(0x89).is_two_byte_op().calls(jmp_no_sign).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8A JP relw
-        define_opcode(0x8A).is_two_byte_op().calls(jmp_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8B JNP relw
-        define_opcode(0x8B).is_two_byte_op().calls(jmp_no_parity).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8C JL relw
-        define_opcode(0x8C).is_two_byte_op().calls(jmp_less).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8D JGE relw
-        define_opcode(0x8D).is_two_byte_op().calls(jmp_greater_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8E JLE relw
-        define_opcode(0x8E).is_two_byte_op().calls(jmp_less_or_equal).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
-        //0x8F JG relw
-        define_opcode(0x8F).is_two_byte_op().calls(jmp_greater).with_gas(Low)
-            .with_arg(ArgSource::JumpRel, NativeWord)
-            .is_unpredictable()
-            .into_table(&mut ops);
+
         //Begin maths....
         //add opcodes
         //0x00 add r/m8, r8
@@ -1057,7 +937,60 @@ lazy_static! {
             .is_unpredictable()
             .into_table(&mut ops);
 
-        
+        //0x0F 90 SETcc rm8
+        define_opcode_multi(0x90, 16).is_two_byte_op().calls(setcc_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        //0x0F 40 CMOVcc rmW
+        define_opcode_multi(0x40, 16).is_two_byte_op().calls(cmovcc_native).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .into_table(&mut ops); 
+        //0x84 TEST rm8, r8
+        define_opcode(0x84).calls(test_8bit).with_gas(Low)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0x85 TEST rmW, rW
+        define_opcode(0x85).calls(test_native_word).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0xA8 TEST AL, imm8
+        define_opcode(0xA8).calls(test_8bit).with_gas(Low)
+            .with_arg(ArgSource::HardcodedRegister(Reg8::AL as u8), OpcodeValueSize::Fixed(Byte))
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xA9 TEST EAX/AX, immW
+        define_opcode(0xA9).calls(test_native_word).with_gas(Low)
+            .with_arg(ArgSource::HardcodedRegister(Reg32::EAX as u8), OpcodeValueSize::NativeWord)
+            .with_immw()
+            .into_table(&mut ops);
+        //0xF6 /0 TEST rm8, imm8
+        define_opcode(0xF6).is_group(0).calls(test_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xF7 /0 TEST rmW, immW
+        define_opcode(0xF7).is_group(0).calls(test_native_word).with_gas(Low)
+            .with_rmw()
+            .with_immw()
+            .into_table(&mut ops);
+        //0x8D /r LEA  rW,m
+        define_opcode(0x8D).calls(lea).with_gas(Low)
+            .with_rm_regw()
+            .with_rmw()
+            .into_table(&mut ops);
+        //0F B6 /r MOVZX rW,rm8
+        define_opcode(0xB6).is_two_byte_op().calls(movzx_8bit).with_gas(Low)
+            .with_rm_regw()
+            .with_rm8()
+            .into_table(&mut ops);
+        //0x0F B7 /r    MOVZX r32,rm16
+        define_opcode(0xB7).is_two_byte_op().calls(movzx_16bit).with_gas(Low)
+            .with_rm_reg32()
+            .with_rm16()
+            .into_table(&mut ops); 
 
         ops
     };

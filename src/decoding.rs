@@ -168,7 +168,7 @@ pub struct ParsedModRM{
 impl ParsedModRM{
     /// Decodes the current byte stream (starting at the ModRM byte) into a fully formed ParsedModRM struct
     pub fn from_bytes(bytestream: &[u8]) -> Result<ParsedModRM, VMError>{
-        if bytestream.len() < 16{
+        if bytestream.len() < 5{
             return Err(VMError::DecodingOverrun);
         }
         let mut parsed = ParsedModRM::default();
@@ -206,7 +206,7 @@ pub fn decode_args(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; M
 /// Decodes the set of arguments for a given opcode within a given byte stream. This returns the total size of the arguments in opcode bytes
 pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [OpArgument; MAX_ARGS], size_override: bool, _address_override: bool, parsed_modrm: Option<ParsedModRM>) -> Result<usize, VMError>{
     use ArgSource::*;
-    if bytestream.len() < 16{
+    if bytestream.len() < 6{
         return Err(VMError::DecodingOverrun);
     }
     let opcode_byte = bytestream[0];

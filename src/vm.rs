@@ -30,10 +30,7 @@ pub struct VM{
 /// Implements an interface for the program within the VM to talk to the external world
 pub trait Hypervisor{
     /// Executed whenever an INT opcode occurs 
-    fn interrupt(&mut self, _vm: &mut VM, _num: u8) -> Result<(), VMError>{
-        //by default do nothing
-        Ok(())
-    }
+    fn interrupt(&mut self, _vm: &mut VM, _num: u8) -> Result<(), VMError>;
 }
 
 /// The gas cost of an operation
@@ -191,9 +188,13 @@ pub enum VMError{
 
     /// This is not an actual error, but rather an "escape" which should stop the VM immediately.
     InternalVMStop,
+    /// Used by the Hypervisor in order to stop execution in the case of an unrecoverable error
+    SyscallError,
     /// This indicates that the execution reached the end of its' gas limit
     /// This is not an actual execution error per-se, and resuming afterwards is possible if desired.
-    OutOfGas
+    OutOfGas,
+    /// Indicates that an opcode is invalidly encoded, for instance, a Mod R/M memory argument having a register encoded
+    InvalidOpcodeEncoding
 }
 
 
@@ -273,6 +274,28 @@ impl VM{
             SIBAddress{offset: _, base: _, scale: _, index: _, size} => {
                 self.get_mem(self.calculate_modrm_address(&arg), size)?
             }
+        })
+    }
+    pub fn get_arg_lea(&self, arg: ArgLocation) -> Result<u32, VMError>{
+        use ArgLocation::*;
+        Ok(match arg{
+            Address(a, _) => {
+                a
+            },
+            RegisterAddress(r, _) => {
+                self.get_reg(r, ValueSize::Dword).u32_exact()?
+            },
+            /*
+            ModRMAddress16{offset, reg1, reg2, size} => {
+                SizedValue::None
+            },*/
+            ModRMAddress{offset: _, reg: _, size: _} => {
+                self.calculate_modrm_address(&arg)
+            },
+            SIBAddress{offset: _, base: _, scale: _, index: _, size: _} => {
+                self.calculate_modrm_address(&arg)
+            }
+            _ => return Err(VMError::InvalidOpcodeEncoding)
         })
     }
     /// Resolves an argument location and stores the specified SizedValue in it.
@@ -392,7 +415,7 @@ impl VM{
     /// This will execute one "cycle" of the VM
     /// A cycle includes filling the pipeline, executing the filled pipeline, and then handling any errors present
     /// Will return a result of true if an InternalVMStop was received, otherwise will return false
-    fn cycle(&mut self, pipeline: &mut [Pipeline], hv: &mut Hypervisor) -> Result<bool, VMError>{
+    fn cycle(&mut self, pipeline: &mut [Pipeline], hv: &mut dyn Hypervisor) -> Result<bool, VMError>{
         fill_pipeline(self, &OPCODES[0..], pipeline)?;
         //manually unroll loop later if needed?
         for n in 0..pipeline.len() {
@@ -422,7 +445,7 @@ impl VM{
 
     }
     /// Executes the VM either until there is no remaining gas, an error occurs, or the `hlt` instruction is executed
-    pub fn execute(&mut self, hv: &mut Hypervisor) -> Result<bool, VMError>{
+    pub fn execute(&mut self, hv: &mut dyn Hypervisor) -> Result<bool, VMError>{
         //todo: gas handling
         let mut pipeline = vec![];
         pipeline.resize(PIPELINE_SIZE, Pipeline::default());
@@ -437,6 +460,10 @@ impl VM{
         let m = self.memory.get_mut_sized_memory(address, data.len() as u32)?;
         m[0..data.len()].copy_from_slice(data);
         Ok(())
+    }
+    /// Helper function to simplify copying a set of data out of VM memory
+    pub fn copy_from_memory(&mut self, address: u32, size: u32) -> Result<&[u8], VMError>{
+        return Ok(self.memory.get_sized_memory(address, size)?);
     }
     pub fn reg8(&self, r: Reg8) -> u8{
         self.get_reg(r as u8, ValueSize::Byte).u8_exact().unwrap()

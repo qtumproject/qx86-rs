@@ -836,3 +836,65 @@ fn test_interrupt(){
     assert_eq!(hv.ints_triggered[3], 3);
 }
 
+#[test]
+fn test_setcc() {
+    let vm = execute_vm_with_asm("
+        mov AL, 20
+        mov BL, 10
+        mov CL, 30
+        cmp AL, 20
+        sete BL
+        setne CL
+        hlt");
+    assert_eq!(vm.reg8(Reg8::BL), 1);
+    assert_eq!(vm.reg8(Reg8::CL), 0);
+}
+#[test]
+fn test_movcc() {
+    let vm = execute_vm_with_asm("
+        mov AL, 20
+        cmp AL, 20
+        mov EBX, 0x11223344
+        mov ECX, 0x55667788
+        mov EDX, 0x99AABBCC
+        mov ESI, 0xDDEEFF11
+        cmove EBX, ECX
+        cmovne EDX, ESI
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EBX), 0x55667788);
+    assert_eq!(vm.reg32(Reg32::ECX), 0x55667788);
+    assert_eq!(vm.reg32(Reg32::EDX), 0x99AABBCC);
+    assert_eq!(vm.reg32(Reg32::ESI), 0xDDEEFF11);
+}
+
+#[test]
+fn test_lea() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0
+        mov ebx, 5
+        lea eax, [ebx * 2 + 1000]
+        lea dx, [ebx * 2 + 100000]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 5 * 2 + 1000);
+    assert_eq!(vm.reg32(Reg32::EDX), (5 * 2 + 100000) & 0x0000FFFF);
+}
+
+#[test]
+fn test_movzx() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFA
+        mov ebx, 0xFFFFFFFF
+        mov ecx, 0xFFFFFFFF
+        mov edx, 0xFFFFFFFF
+        mov esi, 0xffffffff
+        movzx ebx, al
+        movzx cx, al
+        mov dx, 0xFEDC
+        movzx esi, dx 
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFA);
+    assert_eq!(vm.reg32(Reg32::EBX), 0xFA);
+    assert_eq!(vm.reg32(Reg32::ECX), 0xFFFF00FA);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xFFFFFEDC);
+    assert_eq!(vm.reg32(Reg32::ESI), 0xFEDC);
+}

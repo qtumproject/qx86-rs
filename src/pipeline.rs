@@ -22,6 +22,10 @@ impl PrefixesActivated {
                 self.two_bytes = true;
                 Ok(prefix_size+1)
             },
+            0x67 => {
+                // address size override. Only needed for LEA
+                unimplemented!();
+            }
             _ => {
                 Ok(prefix_size)
             }
@@ -42,7 +46,9 @@ pub struct Pipeline{
     /// The size of the current opcode
     pub eip_size: u8,
     /// Set to true if an operand size override prefix is present
-    pub size_override: bool
+    pub size_override: bool,
+    /// The final opcode byte in the total opcode
+    pub opcode: u8
 }
 
 impl Default for Pipeline{
@@ -52,7 +58,8 @@ impl Default for Pipeline{
             args: [OpArgument::default(), OpArgument::default(), OpArgument::default()],
             gas_cost: 0,
             eip_size: 1,
-            size_override: false
+            size_override: false,
+            opcode: 0
         }
     }
 }
@@ -87,7 +94,7 @@ pub fn fill_pipeline(vm: &VM, opcodes: &[OpcodeProperties], pipeline: &mut [Pipe
             let prefix_size = prefixes.get_prefixes(buffer, 0)?;
             buffer = &buffer[prefix_size as usize..];
             let prop = &opcodes[buffer[0] as usize | ((prefixes.two_bytes as usize) << 8)];
-
+            p.opcode = buffer[0];
             let mut modrm = Option::None;
             let opcode = if prop.has_modrm{
                 p.gas_cost += vm.charger.cost(GasCost::ModRMSurcharge);
