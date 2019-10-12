@@ -125,7 +125,89 @@ pub fn jcc(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<
     Ok(())
 }
 
-pub fn mul_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn div_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg16(Reg16::AX) as u16;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_zx()?;
+    if second_arg == 0 || ((first_arg / second_arg) > 0xFF) {
+        return Err(VMError::DivideByZero) // divide by 0 not allowed and result being too big for destination not allowed
+    }
+    vm.set_reg(Reg8::AL as u8, SizedValue::Byte((first_arg / second_arg) as u8));
+    vm.set_reg(Reg8::AH as u8, SizedValue::Byte((first_arg%second_arg) as u8));
+    Ok(())
+}
+
+pub fn div_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return div_16bit(vm, pipeline, hv);
+    } else {
+        return div_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn div_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = ((vm.reg16(Reg16::DX) as u32) << 16) | (vm.reg16(Reg16::AX) as u32);
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
+    if second_arg == 0 || ((first_arg / second_arg) > 0xFFFF) {
+        return Err(VMError::DivideByZero) // divide by 0 not allowed and result being too big for destination not allowed
+    }
+    vm.set_reg(Reg16::AX as u8, SizedValue::Word((first_arg / second_arg) as u16));
+    vm.set_reg(Reg16::DX as u8, SizedValue::Word((first_arg%second_arg) as u16));
+    Ok(())
+}
+
+pub fn div_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = ((vm.reg32(Reg32::EDX) as u64) << 32) | (vm.reg32(Reg32::EAX) as u64);
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()? as u64;
+    if second_arg == 0 || ((first_arg / second_arg) > 0xFFFFFFFF) {
+        return Err(VMError::DivideByZero) // divide by 0 not allowed and result being too big for destination not allowed
+    }
+    vm.set_reg(Reg32::EAX as u8, SizedValue::Dword((first_arg / second_arg) as u32));
+    vm.set_reg(Reg32::EDX as u8, SizedValue::Dword((first_arg%second_arg) as u32));
+    Ok(())
+}
+
+pub fn idiv_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = vm.reg16(Reg16::AX) as i16;
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_zx()? as i16;
+    if second_arg == 0 || ((first_arg / second_arg) > 0xFF) {
+        return Err(VMError::DivideByZero) // divide by 0 not allowed and result being too big for destination not allowed
+    }
+    vm.set_reg(Reg8::AL as u8, SizedValue::Byte((first_arg / second_arg) as u8));
+    vm.set_reg(Reg8::AH as u8, SizedValue::Byte((first_arg%second_arg) as u8));
+    Ok(())
+}
+
+pub fn idiv_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return idiv_16bit(vm, pipeline, hv);
+    } else {
+        return idiv_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn idiv_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = ((vm.reg16(Reg16::DX) as i16 as i32) << 16) | (vm.reg16(Reg16::AX) as u16 as i32);
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()? as i32;
+    if second_arg == 0 || ((first_arg / second_arg) > 0xFFFF) {
+        return Err(VMError::DivideByZero) // divide by 0 not allowed and result being too big for destination not allowed
+    }
+    vm.set_reg(Reg16::AX as u8, SizedValue::Word((first_arg / second_arg) as u16));
+    vm.set_reg(Reg16::DX as u8, SizedValue::Word((first_arg%second_arg) as u16));
+    Ok(())
+}
+
+pub fn idiv_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+    let first_arg = ((vm.reg32(Reg32::EDX) as i32 as i64) << 32) | (vm.reg32(Reg32::EAX) as i32 as i64);
+    let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()? as i32 as i64;
+    if second_arg == 0 || ((first_arg / second_arg) > 0xFFFFFFFF) {
+        return Err(VMError::DivideByZero) // divide by 0 not allowed and result being too big for destination not allowed
+    }
+    vm.set_reg(Reg32::EAX as u8, SizedValue::Dword((first_arg / second_arg) as u32));
+    vm.set_reg(Reg32::EDX as u8, SizedValue::Dword((first_arg%second_arg) as u32));
+    Ok(())
+}
+
+pub fn mul_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
     let first_arg = vm.reg8(Reg8::AL) as u16;
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_zx()?;
     let result = first_arg.wrapping_mul(second_arg);

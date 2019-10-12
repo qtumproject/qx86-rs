@@ -268,6 +268,114 @@ fn test_ret_with_optional_arg() {
 }
 
 #[test]
+fn test_divide_by_zero(){
+    let mut vm = create_vm_with_asm("
+    mov ax, 10
+    mov bx, 0
+    div bx
+    hlt");
+    assert_eq!(VMError::DivideByZero, execute_vm_with_error(&mut vm));
+    vm = create_vm_with_asm("
+    mov al, 5
+    mov bl, 0
+    div bl
+    hlt");
+    assert_eq!(VMError::DivideByZero, execute_vm_with_error(&mut vm));
+    vm = create_vm_with_asm("
+    mov edx, 1000
+    mov eax, 1000
+    mov ebx, 0
+    div ebx
+    hlt");
+    assert_eq!(VMError::DivideByZero, execute_vm_with_error(&mut vm));
+    vm = create_vm_with_asm("
+    mov ax, 10
+    mov bx, 0
+    idiv bx
+    hlt");
+    assert_eq!(VMError::DivideByZero, execute_vm_with_error(&mut vm));
+    vm = create_vm_with_asm("
+    mov al, 5
+    mov bl, 0
+    idiv bl
+    hlt");
+    assert_eq!(VMError::DivideByZero, execute_vm_with_error(&mut vm));
+    vm = create_vm_with_asm("
+    mov edx, 1000
+    mov eax, 1000
+    mov ebx, 0
+    idiv ebx
+    hlt");
+    assert_eq!(VMError::DivideByZero, execute_vm_with_error(&mut vm));
+}
+
+#[test]
+fn test_quotient_and_remainder_8bit(){
+    let vm = execute_vm_with_asm("
+        mov al, 100
+        mov bl, 15
+        div bl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 6);
+    assert_eq!(vm.reg8(Reg8::AH), 10);
+}
+
+#[test]
+fn test_quotient_and_remainder_16bit(){
+    let vm = execute_vm_with_asm("
+        mov ax, 1000
+        mov bx, 200
+        div bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 5);
+    assert_eq!(vm.reg16(Reg16::DX), 0);
+}
+
+#[test]
+fn test_quotient_and_remainder_32bit(){
+    let vm = execute_vm_with_asm("
+        mov eax, 1000
+        mov ebx, 200
+        div ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 5);
+    assert_eq!(vm.reg32(Reg32::EDX), 0);
+}
+
+#[test]
+fn test_quotient_and_remainder_8bit_idiv(){
+    let vm = execute_vm_with_asm("
+        mov al, 100
+        mov bl, 15
+        idiv bl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 6);
+    assert_eq!(vm.reg8(Reg8::AH), 10);
+}
+
+#[test]
+fn test_quotient_and_remainder_16bit_idiv(){
+    let vm = execute_vm_with_asm("
+        mov ax, 1000
+        mov bx, 200
+        idiv bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 5);
+    assert_eq!(vm.reg16(Reg16::DX), 0);
+}
+
+#[test]
+fn test_quotient_and_remainder_32bit_idiv(){
+    let vm = execute_vm_with_asm("
+        mov eax, 1000
+        mov ebx, 200
+        idiv ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 5);
+    assert_eq!(vm.reg32(Reg32::EDX), 0);
+}
+
+#[test]
 fn test_regular_mul8bit_mul_0() {
     let vm = execute_vm_with_asm("
         mov al, 1

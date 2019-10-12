@@ -672,6 +672,24 @@ lazy_static! {
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
+        //0xF6 div r/m8
+        define_opcode(0xF6).is_group(6).calls(div_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        //0xF7 div r/m16
+        //0xF7 div r/m32
+        define_opcode(0xF7).is_group(6).calls(div_native_word).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
+        //0xF6 idiv r/m8
+        define_opcode(0xF6).is_group(7).calls(idiv_8bit).with_gas(Low)
+            .with_rm8()
+            .into_table(&mut ops);
+        //0xF7 idiv r/m16
+        //0xF7 idiv r/m32
+        define_opcode(0xF7).is_group(7).calls(idiv_native_word).with_gas(Low)
+            .with_rmw()
+            .into_table(&mut ops);
         // Begin cmp opcodes
         //0x38 cmp r/m8, r8
         define_opcode(0x38).calls(cmp_8bit).with_gas(Low)
