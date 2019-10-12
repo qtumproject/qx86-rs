@@ -1034,6 +1034,33 @@ fn test_rep_movsb() {
 }
 
 #[test]
+fn test_rep_movsb_df() {
+    let vm = execute_vm_with_asm("
+        mov edi, 0x80000000
+        mov dword [edi], 0x11223344
+        mov dword [edi + 4], 0xaabbccdd
+        mov esi, 0x80000006
+        mov edi, 0x80000004 
+        mov ecx, 4
+        std
+        rep movsb
+        mov eax, [0x80000000]
+        mov ebx, [0x80000004]
+        hlt");      
+    /*
+        ; memory before
+        ; 44 33 22 11 dd cc bb aa
+        ; memory after
+        ; 44 cc bb cc bb cc bb aa
+    */
+    assert_eq!(vm.reg32(Reg32::EAX), 0xccbbcc44);
+    assert_eq!(vm.reg32(Reg32::EBX), 0xaabbccbb);
+    assert_eq!(vm.reg32(Reg32::ESI), 0x80000002);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000000);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+}
+
+#[test]
 fn test_rep_movsw() {
     let vm = execute_vm_with_asm("
         mov edi, 0x80000000
@@ -1055,5 +1082,27 @@ fn test_rep_movsw() {
     assert_eq!(vm.reg32(Reg32::EBX), 0x0000aabb);
     assert_eq!(vm.reg32(Reg32::ESI), 0x8000000a);
     assert_eq!(vm.reg32(Reg32::EDI), 0x80000008);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+}
+
+#[test]
+fn test_rep_movsd() {
+    let vm = execute_vm_with_asm("
+        mov esi, 0x80000000
+        mov dword [esi], 0x11223344
+        mov dword [esi + 4], 0xaabbccdd
+        mov dword [esi + 8], 0x55667788
+        mov edi, 0x80000004
+        mov ecx, 3
+        rep movsd
+        mov eax, [0x80000004]
+        mov ebx, [0x80000008]
+        mov edx, [0x8000000C]
+        hlt");      
+    assert_eq!(vm.reg32(Reg32::EAX), 0x11223344);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x11223344);
+    assert_eq!(vm.reg32(Reg32::EDX), 0x11223344);
+    assert_eq!(vm.reg32(Reg32::ESI), 0x8000000C);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000010);
     assert_eq!(vm.reg32(Reg32::ECX), 0);
 }

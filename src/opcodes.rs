@@ -1015,6 +1015,12 @@ lazy_static! {
         //0xA4 MOVSB
         define_opcode(0xA4).calls(movsb).with_gas(Low)
             .into_table(&mut ops);
+        //0xFD STD
+        define_opcode(0xFD).calls(set_direction).with_gas(VeryLow)
+            .into_table(&mut ops);
+        //0xFC CLD
+        define_opcode(0xFC).calls(clear_direction).with_gas(VeryLow)
+            .into_table(&mut ops);
 
 
         ops

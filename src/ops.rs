@@ -1023,14 +1023,24 @@ pub fn movs_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
     //[EDI] . [ESI]
     if pipeline.size_override{
         vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Word(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?))?;
+        let d = if vm.flags.direction{
+            (-2i32) as u32
+        }else{
+            2
+        };
         //todo DF
-        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(2));
-        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(2));
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
     }else{
         vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Dword(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Dword)?.u32_exact()?))?;
         //todo DF
-        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(4));
-        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(4));
+        let d = if vm.flags.direction{
+            (-4i32) as u32
+        }else{
+            4
+        };
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
     }
     Ok(())
 }
@@ -1038,7 +1048,20 @@ pub fn movsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     //[EDI] . [ESI]
     vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Byte(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?))?;
     //todo DF
-    vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(1));
-    vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(1));
+    let d = if vm.flags.direction{
+        (-1i32) as u32
+    }else{
+        1
+    };
+    vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+    vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
+    Ok(())
+}
+pub fn set_direction(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.flags.direction = true;
+    Ok(())
+}
+pub fn clear_direction(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.flags.direction = false;
     Ok(())
 }
