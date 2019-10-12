@@ -1032,3 +1032,28 @@ fn test_rep_movsb() {
     assert_eq!(vm.reg32(Reg32::EDI), 0x80000004);
     assert_eq!(vm.reg32(Reg32::ECX), 0);
 }
+
+#[test]
+fn test_rep_movsw() {
+    let vm = execute_vm_with_asm("
+        mov edi, 0x80000000
+        mov dword [edi], 0x11223344
+        mov dword [edi + 4], 0xaabbccdd
+        mov esi, 0x80000002
+        mov ecx, 4
+        rep movsw
+        mov eax, [0x80000000]
+        mov ebx, [0x80000004]
+        hlt");      
+    /*
+        ; memory before
+        ; 44 33 22 11 dd cc bb aa
+        ; memory after at 0..8
+        ; 22 11 dd cc bb aa 00 00
+    */
+    assert_eq!(vm.reg32(Reg32::EAX), 0xccdd1122);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x0000aabb);
+    assert_eq!(vm.reg32(Reg32::ESI), 0x8000000a);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000008);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+}
