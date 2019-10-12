@@ -992,7 +992,7 @@ fn decrement_regw(vm: &mut VM, reg: Reg32, size_override: bool) -> u32{
 pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let opcodes = &crate::opcodes::OPCODES;
     if rep_flag_opcodes(pipeline.opcode){
-
+        unimplemented!();
     }else if rep_no_flag_opcodes(pipeline.opcode){
         let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
         let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
@@ -1016,6 +1016,13 @@ pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result
     Ok(())
 }
 pub fn repne(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let opcodes = &crate::opcodes::OPCODES;
+    if rep_flag_opcodes(pipeline.opcode){
+        unimplemented!();
+    }else{
+        //note this prefix can not be used with non-flag using string instructions
+        return Err(VMError::InvalidOpcodeEncoding);
+    }
     Ok(())
 }
 
