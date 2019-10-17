@@ -33,6 +33,14 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     Ok(())
 }
 
+pub fn xchg(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let source = vm.get_arg(pipeline.args[0].location)?;
+    let destination = vm.get_arg(pipeline.args[1].location)?;
+    vm.set_arg(pipeline.args[0].location, destination)?;
+    vm.set_arg(pipeline.args[1].location, source)?;
+    Ok(())
+}
+
 pub fn ret(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let stack_clear = vm.get_arg(pipeline.args[0].location)?.u16_zx()?;
     if pipeline.size_override{
@@ -396,14 +404,14 @@ pub fn imul3_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -
 pub fn shl_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let destination = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let count = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
-    let result= destination << count;
+    let result= (destination as u16) << count;
     if count == 1 {
-        vm.flags.overflow = (destination & 0x80) != (result & 0x80);
+        vm.flags.overflow = (destination & 0x80) != ((result as u8) & 0x80);
     }
     vm.flags.carry = result & 0x100 != 0;
-    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_zero(result as u8 as u32);
     vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
+    vm.flags.calculate_sign8(result as u8);
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }

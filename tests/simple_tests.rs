@@ -354,6 +354,39 @@ fn test_quotient_and_remainder_8bit_idiv(){
 }
 
 #[test]
+fn test_xchg_8bit() {
+    let vm = execute_vm_with_asm("
+        mov al, 100
+        mov bl, 200
+        xchg al, bl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 200);
+    assert_eq!(vm.reg8(Reg8::BL), 100);
+}
+
+#[test]
+fn test_xchg_16bit() {
+    let vm = execute_vm_with_asm("
+        mov cx, 0xFFFF
+        mov bx, 0xFFEE
+        xchg cx, bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::CX), 0xFFEE);
+    assert_eq!(vm.reg16(Reg16::BX), 0xFFFF);
+}
+
+#[test]
+fn test_xchg_32bit() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFFFFFFFF
+        mov ebx, 0xFFFFEEEE
+        xchg eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFEEEE);
+    assert_eq!(vm.reg32(Reg32::EBX), 0xFFFFFFFF);
+}
+
+#[test]
 fn test_quotient_and_remainder_16bit_idiv(){
     let vm = execute_vm_with_asm("
         mov ax, 1000
