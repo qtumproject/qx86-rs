@@ -397,11 +397,10 @@ pub fn shl_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let destination = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let count = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     let result= destination << count;
-    let computation_result = (destination as u16) << count;
     if count == 1 {
         vm.flags.overflow = (destination & 0x80) != (result & 0x80);
     }
-    vm.flags.carry = computation_result & 0x100 != 0;
+    vm.flags.carry = result & 0x100 != 0;
     vm.flags.calculate_zero(result as u32);
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
@@ -421,7 +420,6 @@ pub fn shl_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let destination = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let count = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let result= (destination as u32) << count;
-    let computation_result = (destination as u32) << count;
     if count == 1 {
         vm.flags.overflow = ((destination as u32) & 0x8000) != (result & 0x8000);
     }
@@ -437,7 +435,6 @@ pub fn shl_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let destination = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let count = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let result= (destination as u64) << count;
-    let computation_result = (destination as u64) << count;
     if count == 1 {
         vm.flags.overflow = ((destination as u64) & 0x80000000) != (result & 0x80000000);
     }
