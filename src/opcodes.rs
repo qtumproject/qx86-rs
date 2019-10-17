@@ -161,15 +161,10 @@ pub struct OpcodeDefiner{
     function: Option<OpcodeFn>,
     jump: Option<PipelineBehavior>,
     has_modrm: bool,
-    reg_suffix: bool,
-    is_nop: bool
+    reg_suffix: bool
 }
 
 impl OpcodeDefiner{
-    pub fn is_nop(&mut self) -> &mut OpcodeDefiner{
-        self.is_nop = true;
-        self
-    }
     /// Specifies that the opcode is an extended opcode and therefore needs to be read in two bytes
     pub fn is_two_byte_op(&mut self) -> &mut OpcodeDefiner {
         self.two_byte = true;
@@ -387,7 +382,7 @@ lazy_static! {
         use GasCost::*;
         let mut ops: [OpcodeProperties; OPCODE_TABLE_SIZE] = [OpcodeProperties::default(); OPCODE_TABLE_SIZE];
         //nop
-        define_opcode(0x90).is_nop().calls(nop).with_gas(GasCost::None).into_table(&mut ops);
+        define_opcode(0x90).calls(nop).with_gas(GasCost::None).into_table(&mut ops);
 
         //hlt
         define_opcode(0xF4).calls(hlt).with_gas(GasCost::None).is_unpredictable_no_gas().into_table(&mut ops);
