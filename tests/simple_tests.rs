@@ -376,6 +376,96 @@ fn test_quotient_and_remainder_32bit_idiv(){
 }
 
 #[test]
+fn test_shl_sign_carry_flag(){
+    let vm = execute_vm_with_asm("
+        mov eax, 0x007f8000
+        shl eax, 10
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFE000000);
+    assert_eq!(vm.flags, X86Flags{carry:true, sign:true, parity:true, ..Default::default()});
+}
+
+#[test]
+fn test_shl_zero_overflow_carry_flag(){
+    let vm = execute_vm_with_asm("
+        mov eax, 0x80000000
+        shl eax, 1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0);
+    assert_eq!(vm.flags, X86Flags{carry:true, zero: true, overflow: true, parity:true, ..Default::default()});
+}
+
+#[test]
+fn test_shl_8bit(){
+    let vm = execute_vm_with_asm("
+        mov al, 8
+        shl al, 2
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x20);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_shl_8bit_sign(){
+    let vm = execute_vm_with_asm("
+        mov al, 0x20
+        shl al, 2
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x80);
+    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+}
+
+#[test]
+fn test_shl_8bit_overflow(){
+    let vm = execute_vm_with_asm("
+        mov al, 0x80
+        shl al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0);
+    assert_eq!(vm.flags, X86Flags{overflow: true, carry: true, parity: true, zero: true, ..Default::default()});
+}
+
+#[test]
+fn test_shr_8bit_carry(){
+    let vm = execute_vm_with_asm("
+        mov al, 0xb
+        shr al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 5);
+    assert_eq!(vm.flags, X86Flags{carry: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_shr_8bit_carry_overflow(){
+    let vm = execute_vm_with_asm("
+        mov al, 0xFF
+        shr al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x7F);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_shr_16bit_carry(){
+    let vm = execute_vm_with_asm("
+        mov ax, 0x5DDD
+        shr ax, 1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x2EEE);
+    assert_eq!(vm.flags, X86Flags{carry: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_shr_16bit_carry_overflow(){
+    let vm = execute_vm_with_asm("
+        mov ax, 0xFFFF
+        shr ax, 1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x7FFF);
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, parity: true, ..Default::default()});
+}
+
+#[test]
 fn test_regular_mul8bit_mul_0() {
     let vm = execute_vm_with_asm("
         mov al, 1
