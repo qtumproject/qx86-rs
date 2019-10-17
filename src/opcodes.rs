@@ -303,6 +303,11 @@ impl OpcodeDefiner{
                 true => op | OP_TWOBYTE,
                 false => op
             };
+            if op == 0x90 {
+                if table[op].defined {
+                    continue; // this is to support both nop and xchg
+                }
+            }
             if table[op].defined && !table[op].has_modrm{
                 panic!("Conflicting opcode definition detected");
             }
@@ -689,6 +694,28 @@ lazy_static! {
         define_opcode(0xD2).is_group(5).calls(shr_8bit).with_gas(Low)
             .with_rm8()
             .with_arg(HardcodedRegister(Reg8::CL as u8), Fixed(Byte))
+            .into_table(&mut ops);
+        //0x86 xchg r/m8, r8
+        //0x86 xchg r8, r/m8
+        define_opcode(0x86).calls(xchg).with_gas(Low)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0x87 xchg r/m16, r16
+        //0x87 xchg r16, r/m16
+        //0x87 xchg r32, r/m32
+        //0x87 xchg r/m32, r32
+        define_opcode(0x87).calls(xchg).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0x90 xchg ax, r16
+        //0x90 xchg r16, ax
+        //0x90 xchg eax, r32
+        //0x90 xchg r32, eax
+        define_opcode(0x90).calls(xchg).with_gas(Low)
+            .with_arg(ArgSource::HardcodedRegister(Reg32::EAX as u8), OpcodeValueSize::NativeWord)
+            .with_suffix_regw()
             .into_table(&mut ops);
         //0xD3 shr r/m16, CL
         //0xD3 shr r/m32, CL
