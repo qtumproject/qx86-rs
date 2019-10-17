@@ -393,6 +393,115 @@ pub fn imul3_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -
     Ok(())
 }
 
+pub fn shl_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let destination = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let count = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    let result= destination << count;
+    if count == 1 {
+        vm.flags.overflow = (destination & 0x80) != (result & 0x80);
+    }
+    vm.flags.carry = result & 0x100 != 0;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign8(result);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
+    Ok(())
+}
+
+pub fn shl_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return shl_16bit(vm, pipeline, hv);
+    } else {
+        return shl_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn shl_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let destination = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let count = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    let result= (destination as u32) << count;
+    if count == 1 {
+        vm.flags.overflow = ((destination as u32) & 0x8000) != (result & 0x8000);
+    }
+    vm.flags.carry = (result & 0x1000) != 0;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign16(result as u16);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
+    Ok(())
+}
+
+pub fn shl_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let destination = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let count = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    let result= (destination as u64) << count;
+    if count == 1 {
+        vm.flags.overflow = ((destination as u64) & 0x80000000) != (result & 0x80000000);
+    }
+    vm.flags.carry = (result & 0x100000000) != 0;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign32(result as u32);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
+    Ok(())
+}
+
+pub fn shr_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let destination = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let count = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    let result= destination >> count;
+    let computation_result = destination >> (count - 1);
+    if count == 1 {
+        vm.flags.overflow = (destination & 0x80) != (result & 0x80);
+    }
+    vm.flags.carry = computation_result & 1 != 0;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign8(result);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
+    Ok(())
+}
+
+pub fn shr_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        return shr_16bit(vm, pipeline, hv);
+    } else {
+        return shr_32bit(vm, pipeline, hv);
+    }
+}
+
+pub fn shr_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let destination = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let count = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    let result= (destination as u32) >> count;
+    let computation_result = (destination as u32) >> (count - 1);
+    if count == 1 {
+        vm.flags.overflow = ((destination as u32) & 0x8000) != (result & 0x8000);
+    }
+    vm.flags.carry = (computation_result & 1) != 0;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign16(result as u16);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
+    Ok(())
+}
+
+pub fn shr_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let destination = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let count = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    let result= (destination as u64) >> count;
+    let computation_result = destination >> (count - 1);
+    if count == 1 {
+        vm.flags.overflow = ((destination as u64) & 0x80000000) != (result & 0x80000000);
+    }
+    vm.flags.carry = (computation_result & 1) != 0;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign32(result as u32);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
+    Ok(())
+}
+
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;

@@ -630,6 +630,72 @@ lazy_static! {
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
+        //0xC0 shl r/m8, imm8
+        define_opcode(0xC0).is_group(4).calls(shl_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xC1 shl r/m16, imm8
+        //0xC1 shl r/m32, imm8
+        define_opcode(0xC1).is_group(4).calls(shl_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xD0 shl r/m8, 1
+        define_opcode(0xD0).is_group(4).calls(shl_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        //0xD1 shl r/m16, 1
+        //0xD1 shl r/m32, 1
+        define_opcode(0xD1).is_group(4).calls(shl_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        //0xD2 shl r/m8, CL
+        define_opcode(0xD2).is_group(4).calls(shl_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(HardcodedRegister(Reg8::CL as u8), Fixed(Byte))
+            .into_table(&mut ops);
+        //0xD3 shl r/m16, CL
+        //0xD3 shl r/m32, CL
+        define_opcode(0xD3).is_group(4).calls(shl_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(HardcodedRegister(Reg8::CL as u8), Fixed(Byte))
+            .into_table(&mut ops);
+        //0xC0 shr r/m8, imm8
+        define_opcode(0xC0).is_group(5).calls(shr_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xC1 shr r/m16, imm8
+        //0xC1 shr r/m32, imm8
+        define_opcode(0xC1).is_group(5).calls(shr_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0xD0 shr r/m8, 1
+        define_opcode(0xD0).is_group(5).calls(shr_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        //0xD1 shr r/m16, 1
+        //0xD1 shr r/m32, 1
+        define_opcode(0xD1).is_group(5).calls(shr_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        //0xD2 shr r/m8, CL
+        define_opcode(0xD2).is_group(5).calls(shr_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(HardcodedRegister(Reg8::CL as u8), Fixed(Byte))
+            .into_table(&mut ops);
+        //0xD3 shr r/m16, CL
+        //0xD3 shr r/m32, CL
+        define_opcode(0xD3).is_group(5).calls(shr_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(HardcodedRegister(Reg8::CL as u8), Fixed(Byte))
+            .into_table(&mut ops);
         //0xF6 mul r/m8
         define_opcode(0xF6).is_group(4).calls(mul_8bit).with_gas(Low)
             .with_rm8()
