@@ -1114,8 +1114,12 @@ lazy_static! {
         //0xFC CLD
         define_opcode(0xFC).calls(clear_direction).with_gas(VeryLow)
             .into_table(&mut ops);
-
-
+        //0xA6 CMPSB
+        define_opcode(0xA6).calls(cmpsb).with_gas(Low)
+            .into_table(&mut ops);
+        //0xA7 CMPSD/CMPSW
+        define_opcode(0xA7).calls(cmps_native_word).with_gas(Low)
+            .into_table(&mut ops);       
         ops
     };
 }
