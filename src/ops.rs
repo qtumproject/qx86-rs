@@ -1150,7 +1150,7 @@ pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result
     }
     Ok(())
 }
-pub fn repne(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn repne(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let opcodes = &crate::opcodes::OPCODES;
     if rep_flag_opcodes(pipeline.opcode){
         let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
@@ -1228,8 +1228,8 @@ pub fn clear_direction(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervis
 pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     //[EDI] . [ESI]
     if pipeline.size_override{
-        let source = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
-        let destination = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Word)?.u16_exact()?;
+        let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
+        let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Word)?.u16_exact()?;
         let (result, carry) = destination.overflowing_sub(source);
         let (_, overflow) = (destination as i16).overflowing_sub(source as i16);
         vm.flags.overflow = overflow;
@@ -1237,7 +1237,7 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
         vm.flags.calculate_zero(result as u32);
         vm.flags.calculate_parity(result as u32);
         vm.flags.calculate_sign16(result);
-        vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+        vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
         let d = if vm.flags.direction{
             (-2i32) as u32
         }else{
@@ -1247,8 +1247,8 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
         vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
         vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
     }else{
-        let source = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Dword)?.u32_exact()?;
-        let destination = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Dword)?.u32_exact()?;
+        let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Dword)?.u32_exact()?;
+        let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Dword)?.u32_exact()?;
         let (result, carry) = destination.overflowing_sub(source);
         let (_, overflow) = (destination as i32).overflowing_sub(source as i32);
         vm.flags.overflow = overflow;
@@ -1256,7 +1256,7 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
         vm.flags.calculate_zero(result as u32);
         vm.flags.calculate_parity(result as u32);
         vm.flags.calculate_sign32(result);
-        vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+        vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
         //todo DF
         let d = if vm.flags.direction{
             (-4i32) as u32
@@ -1271,8 +1271,8 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
 
 pub fn cmpsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     //[EDI] . [ESI]
-    let source = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?;
-    let destination = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Byte)?.u8_exact()?;
+    let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?;
+    let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Byte)?.u8_exact()?;
     let (result, carry) = destination.overflowing_sub(source);
     let (_, overflow) = (destination as i8).overflowing_sub(source as i8);
     vm.flags.overflow = overflow;
