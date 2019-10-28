@@ -1262,7 +1262,7 @@ fn test_repne_cmpsb() {
     assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, ..Default::default()});
 }
 
-#[test]
+/*#[test]
 fn test_repne_cmpsw() {
     let vm = execute_vm_with_asm("
         mov edi, 0x80000000
@@ -1277,6 +1277,23 @@ fn test_repne_cmpsw() {
     assert_eq!(vm.reg32(Reg32::ECX), 0);
     // carry is being triggered here
     assert_eq!(vm.flags, X86Flags{parity: true, ..Default::default()});
+}*/
+
+#[test]
+fn test_repne_cmpsw_2() {
+    let vm = execute_vm_with_asm("
+        mov edi, 0x80000000
+        mov esi, 0x80000002
+        mov dword [edi], 0x11223344
+        mov dword [esi], 0xaabbccdd
+        mov ecx, 3
+        repne cmpsw
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESI), 0x80000008);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000006);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+    // carry is being triggered here
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
 }
 
 #[test]

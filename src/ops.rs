@@ -1108,45 +1108,30 @@ fn decrement_regw(vm: &mut VM, reg: Reg32, size_override: bool) -> u32{
 
 pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let opcodes = &crate::opcodes::OPCODES;
-    if rep_flag_opcodes(pipeline.opcode){
-        let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
-        let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
-        /*      
-        while eCX <> 0
-            execute string instruction once
-            eCX . eCX - 1
-        endwhile
-        */
-        while read_regw(vm, Reg32::ECX, pipeline.size_override) != 0{
-            if vm.gas_remaining == 0{
-                return Err(VMError::OutOfGas);
-            }
-            function(vm, pipeline, hv)?;
-            decrement_regw(vm, Reg32::ECX, pipeline.size_override);
-            vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
+    let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
+    let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
+    /*      
+    while eCX <> 0
+        execute string instruction once
+        eCX . eCX - 1
+    endwhile
+    */
+    while read_regw(vm, Reg32::ECX, pipeline.size_override) != 0{
+        if vm.gas_remaining == 0{
+            return Err(VMError::OutOfGas);
+        }
+        function(vm, pipeline, hv)?;
+        decrement_regw(vm, Reg32::ECX, pipeline.size_override);
+        vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
+        if rep_flag_opcodes(pipeline.opcode) {
             if vm.flags.zero == false {
                 break;
             }
+        }else if rep_no_flag_opcodes(pipeline.opcode) {
+            continue
+        } else {
+            return Err(VMError::InvalidOpcodeEncoding);
         }
-    }else if rep_no_flag_opcodes(pipeline.opcode){
-        let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
-        let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
-        /*      
-        while eCX <> 0
-            execute string instruction once
-            eCX . eCX - 1
-        endwhile
-        */
-        while read_regw(vm, Reg32::ECX, pipeline.size_override) != 0{
-            if vm.gas_remaining == 0{
-                return Err(VMError::OutOfGas);
-            }
-            function(vm, pipeline, hv)?;
-            decrement_regw(vm, Reg32::ECX, pipeline.size_override);
-            vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
-        }
-    }else{
-        return Err(VMError::InvalidOpcodeEncoding);
     }
     Ok(())
 }
@@ -1229,8 +1214,11 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
     //[EDI] . [ESI]
     if pipeline.size_override{
         let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
+        println!("Destination: {}", destination);
         let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Word)?.u16_exact()?;
+        println!("Source: {}", source);
         let (result, carry) = destination.overflowing_sub(source);
+        println!("Result: {}", result);
         let (_, overflow) = (destination as i16).overflowing_sub(source as i16);
         vm.flags.overflow = overflow;
         vm.flags.carry = carry;
