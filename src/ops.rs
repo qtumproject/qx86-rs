@@ -1214,11 +1214,8 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
     //[EDI] . [ESI]
     if pipeline.size_override{
         let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
-        println!("Destination: {}", destination);
         let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Word)?.u16_exact()?;
-        println!("Source: {}", source);
         let (result, carry) = destination.overflowing_sub(source);
-        println!("Result: {}", result);
         let (_, overflow) = (destination as i16).overflowing_sub(source as i16);
         vm.flags.overflow = overflow;
         vm.flags.carry = carry;
