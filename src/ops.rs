@@ -1108,9 +1108,36 @@ fn decrement_regw(vm: &mut VM, reg: Reg32, size_override: bool) -> u32{
 
 pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let opcodes = &crate::opcodes::OPCODES;
+    let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
+    let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
+    /*      
+    while eCX <> 0
+        execute string instruction once
+        eCX . eCX - 1
+    endwhile
+    */
+    while read_regw(vm, Reg32::ECX, pipeline.size_override) != 0{
+        if vm.gas_remaining == 0{
+            return Err(VMError::OutOfGas);
+        }
+        function(vm, pipeline, hv)?;
+        decrement_regw(vm, Reg32::ECX, pipeline.size_override);
+        vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
+        if rep_flag_opcodes(pipeline.opcode) {
+            if vm.flags.zero == false {
+                break;
+            }
+        }else if rep_no_flag_opcodes(pipeline.opcode) {
+            continue
+        } else {
+            return Err(VMError::InvalidOpcodeEncoding);
+        }
+    }
+    Ok(())
+}
+pub fn repne(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let opcodes = &crate::opcodes::OPCODES;
     if rep_flag_opcodes(pipeline.opcode){
-        unimplemented!();
-    }else if rep_no_flag_opcodes(pipeline.opcode){
         let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
         let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
         /*      
@@ -1126,16 +1153,10 @@ pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result
             function(vm, pipeline, hv)?;
             decrement_regw(vm, Reg32::ECX, pipeline.size_override);
             vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
+            if vm.flags.zero{
+                break;
+            }
         }
-    }else{
-        return Err(VMError::InvalidOpcodeEncoding);
-    }
-    Ok(())
-}
-pub fn repne(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    let opcodes = &crate::opcodes::OPCODES;
-    if rep_flag_opcodes(pipeline.opcode){
-        unimplemented!();
     }else{
         //note this prefix can not be used with non-flag using string instructions
         return Err(VMError::InvalidOpcodeEncoding);
@@ -1187,5 +1208,72 @@ pub fn set_direction(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor
 }
 pub fn clear_direction(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     vm.flags.direction = false;
+    Ok(())
+}
+pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    //[EDI] . [ESI]
+    if pipeline.size_override{
+        let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
+        let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Word)?.u16_exact()?;
+        let (result, carry) = destination.overflowing_sub(source);
+        let (_, overflow) = (destination as i16).overflowing_sub(source as i16);
+        vm.flags.overflow = overflow;
+        vm.flags.carry = carry;
+        vm.flags.calculate_zero(result as u32);
+        vm.flags.calculate_parity(result as u32);
+        vm.flags.calculate_sign16(result);
+        vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
+        let d = if vm.flags.direction{
+            (-2i32) as u32
+        }else{
+            2
+        };
+        //todo DF
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
+    }else{
+        let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Dword)?.u32_exact()?;
+        let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Dword)?.u32_exact()?;
+        let (result, carry) = destination.overflowing_sub(source);
+        let (_, overflow) = (destination as i32).overflowing_sub(source as i32);
+        vm.flags.overflow = overflow;
+        vm.flags.carry = carry;
+        vm.flags.calculate_zero(result as u32);
+        vm.flags.calculate_parity(result as u32);
+        vm.flags.calculate_sign32(result);
+        vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
+        //todo DF
+        let d = if vm.flags.direction{
+            (-4i32) as u32
+        }else{
+            4
+        };
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
+    }
+    Ok(())
+}
+
+pub fn cmpsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    //[EDI] . [ESI]
+    let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?;
+    let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Byte)?.u8_exact()?;
+    let (result, carry) = destination.overflowing_sub(source);
+    let (_, overflow) = (destination as i8).overflowing_sub(source as i8);
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    vm.flags.calculate_sign8(result);
+    vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
+    //todo DF
+    let d = if vm.flags.direction{
+        (-1i32) as u32
+    }else{
+        1
+    };
+    vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+    vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
+    
     Ok(())
 }
