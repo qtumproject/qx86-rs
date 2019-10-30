@@ -1291,7 +1291,6 @@ pub fn store_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervis
 
 pub fn load_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let esi_mem = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?;
-    println!("load_string_byte: {}", esi_mem);
     vm.set_reg(Reg8::AL as u8, SizedValue::Byte(esi_mem as u8));
     let d = if vm.flags.direction{
         (-1i32) as u32
