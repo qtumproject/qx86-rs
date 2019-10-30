@@ -1119,7 +1119,19 @@ lazy_static! {
             .into_table(&mut ops);
         //0xA7 CMPSD/CMPSW
         define_opcode(0xA7).calls(cmps_native_word).with_gas(Low)
-            .into_table(&mut ops);       
+            .into_table(&mut ops);
+        //0xAA STOS m8
+        define_opcode(0xAA).calls(store_string_byte).with_gas(Low)
+            .into_table(&mut ops);
+        //0xAB STOS m16/m32
+        define_opcode(0xAB).calls(store_string_native_word).with_gas(Low)
+            .into_table(&mut ops);
+        //0xAC LODS m8
+        define_opcode(0xAC).calls(load_string_byte).with_gas(Low)
+            .into_table(&mut ops);
+        //0xAD LODS m16/m32
+        define_opcode(0xAD).calls(load_string_native_word).with_gas(Low)
+            .into_table(&mut ops);
         ops
     };
 }
