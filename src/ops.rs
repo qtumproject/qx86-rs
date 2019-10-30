@@ -1277,3 +1277,70 @@ pub fn cmpsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     
     Ok(())
 }
+
+pub fn store_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.set_mem(vm.reg32(Reg32::EDI), vm.get_reg(Reg8::AL as u8, ValueSize::Byte))?;
+    let d = if vm.flags.direction{
+        (-1i32) as u32
+    }else{
+        1
+    };
+    vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+    Ok(())
+}
+
+pub fn load_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let esi_mem = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?;
+    vm.set_reg(Reg8::AL as u8, SizedValue::Byte(esi_mem as u8));
+    let d = if vm.flags.direction{
+        (-1i32) as u32
+    }else{
+        1
+    };
+    vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
+    Ok(())
+}
+
+pub fn store_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        vm.set_mem(vm.reg32(Reg32::EDI), vm.get_reg(Reg16::AX as u8, ValueSize::Word))?;
+        let d = if vm.flags.direction{
+            (-2i32) as u32
+        }else{
+            2
+        };
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+    } else {
+        vm.set_mem(vm.reg32(Reg32::EDI), vm.get_reg(Reg32::EAX as u8, ValueSize::Dword))?;
+        let d = if vm.flags.direction{
+            (-4i32) as u32
+        }else{
+            4
+        };
+        vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+    }
+    Ok(())
+}
+
+pub fn load_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let esi_mem = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
+        vm.set_reg(Reg16::AX as u8, SizedValue::Word(esi_mem));
+        let d = if vm.flags.direction{
+            (-2i32) as u32
+        }else{
+            2
+        };
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
+    } else {
+        let esi_mem = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Dword)?.u32_exact()?;
+        vm.set_reg(Reg32::EAX as u8, SizedValue::Dword(esi_mem));
+        let d = if vm.flags.direction{
+            (-4i32) as u32
+        }else{
+            4
+        };
+        vm.set_reg32(Reg32::ESI, vm.reg32(Reg32::ESI).wrapping_add(d));
+    }
+    Ok(())
+}

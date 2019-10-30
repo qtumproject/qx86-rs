@@ -13,13 +13,14 @@ fn test_undefined_opcode(){
     let bytes = vec![
         0x90, //nop
         0x90,
-        0xAA, //eventually this might not be an undefined opcode
+        0x0F,
+        0x0B,
         0x90,
         0x90
     ];
     vm.copy_into_memory(CODE_MEM, &bytes).unwrap();
     let mut hv = TestHypervisor::default();
-    assert_eq!(vm.execute(&mut hv).err().unwrap(), VMError::InvalidOpcode(0xAA));
+    assert_eq!(vm.execute(&mut hv).err().unwrap(), VMError::InvalidOpcode(0x0F));
     assert_eq!(vm.error_eip, CODE_MEM + 2);
 }
 
@@ -1344,4 +1345,64 @@ fn test_repe_cmpsd() {
     assert_eq!(vm.reg32(Reg32::EDI), 0x80000008);
     assert_eq!(vm.reg32(Reg32::ECX), 1);
     assert_eq!(vm.flags, X86Flags{ adjust: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_lodsb_stosb() {
+    let vm = execute_vm_with_asm("
+        mov esi, 0x80000000
+        mov edi, 0x80000004
+        mov byte [esi], 0x08
+        mov ecx, 1
+        rep lodsb
+        mov ecx, 3
+        rep stosb
+        mov ebx, dword [edi - 3]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESI), 0x80000001);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000007);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00000008);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x00080808);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_lodsw_stosw() {
+    let vm = execute_vm_with_asm("
+        mov esi, 0x80000000
+        mov edi, 0x80000004
+        mov word [esi], 0x8008
+        mov ecx, 1
+        rep lodsw
+        mov ecx, 2
+        rep stosw
+        mov ebx, dword [edi - 4]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESI), 0x80000002);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000008);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00008008);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x80088008);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_lodsd_stosd() {
+    let vm = execute_vm_with_asm("
+        mov esi, 0x80000000
+        mov edi, 0x80000008
+        mov dword [esi], 0x8080BEAD
+        mov ecx, 1
+        rep lodsd
+        mov ecx, 1
+        rep stosd
+        mov ebx, dword [edi - 4]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESI), 0x80000004);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x8000000c);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x8080bead);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x8080bead);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
