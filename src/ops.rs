@@ -8,6 +8,31 @@ pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     vm.set_arg(pipeline.args[0].location, vm.get_arg(pipeline.args[1].location)?)?;
     Ok(())
 }
+///  The logic function for the 'enter' opcode
+pub fn enter(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    //push ebp
+    let ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword);
+    vm.push_stack(ebp, pipeline)?;
+    //mov ebp, esp
+    let esp = vm.get_reg(Reg32::ESP as u8, ValueSize::Dword);
+    vm.set_reg(Reg32::EBP as u8, esp);
+    //sub esp, imm
+    let imm = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let espnum = esp.u32_exact()?;
+    let (result, _) = espnum.overflowing_sub(imm as u32);
+    vm.set_reg(Reg32::ESP as u8, SizedValue::Dword(result));
+    Ok(())
+}
+///  The logic function for the 'leave' opcode
+pub fn leave(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    //mov esp, ebp
+    let ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword);
+    vm.set_reg(Reg32::ESP as u8, ebp);
+    //pop ebp
+    let dword = vm.pop32()?;
+    vm.set_reg(Reg32::ESP as u8, dword);
+    Ok(())
+}
 /// The logic function for the `push` opcode
 pub fn push(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let v = vm.get_arg(pipeline.args[0].location)?;
@@ -1344,3 +1369,4 @@ pub fn load_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hy
     }
     Ok(())
 }
+
