@@ -10,16 +10,29 @@ pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
 }
 ///  The logic function for the 'enter' opcode
 pub fn enter(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let locals = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let mut nesting = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     //push ebp
-    let ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword);
-    vm.push_stack(ebp, pipeline)?;
-    //mov ebp, esp
-    let esp = vm.get_reg(Reg32::ESP as u8, ValueSize::Dword);
-    vm.set_reg(Reg32::EBP as u8, esp);
-    //sub esp, imm
-    let imm = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-    let espnum = esp.u32_exact()?;
-    let (result, _) = espnum.overflowing_sub(imm as u32);
+    let mut ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword).u32_exact()?;
+    vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
+    //temp . esp
+    let temp = vm.get_reg(Reg32::ESP as u8, ValueSize::Dword);
+    // todo: This portion appears to be erroring but I can't figure out why
+    // should return and fix this in the future
+    // while (nesting > 0)
+    //  nesting . nesting - 1
+    //  eBP . eBP - n
+    // push [SS:eBP]
+    while (nesting > 0) {
+        nesting = nesting - 1;
+        ebp = ebp - 4;
+        vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
+    }
+    //ebp . temp
+    vm.set_reg(Reg32::EBP as u8, temp);
+    //esp . esp - locals
+    let esp = temp.u32_exact()?;
+    let (result, _) = esp.overflowing_sub(locals as u32);
     vm.set_reg(Reg32::ESP as u8, SizedValue::Dword(result));
     Ok(())
 }
@@ -30,7 +43,7 @@ pub fn leave(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     vm.set_reg(Reg32::ESP as u8, ebp);
     //pop ebp
     let dword = vm.pop32()?;
-    vm.set_reg(Reg32::ESP as u8, dword);
+    vm.set_reg(Reg32::EBP as u8, dword);
     Ok(())
 }
 /// The logic function for the `push` opcode

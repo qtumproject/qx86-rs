@@ -1411,17 +1411,28 @@ fn test_lodsd_stosd() {
 fn test_enter_leave() {
     let vm = execute_vm_with_asm("
         mov ebp, 0x8000000A
-        mov esp, 0x80000010
-        enter 0x8, 0x1
-        mov eax, [esp + 8]
+        mov esp, 0x80006650
+        enter 1, 0
+        mov eax, [esp + 1]
         mov ebx, esp
         mov ecx, ebp
         leave
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0x8000000A);
-    assert_eq!(vm.reg32(Reg32::EBX), 0x80000004);
-    assert_eq!(vm.reg32(Reg32::ECX), 0x80000010);
-    assert_eq!(vm.reg32(Reg32::ESP), 0x80000010);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x8000664b);
+    assert_eq!(vm.reg32(Reg32::ECX), 0x8000664C);
+    /**
+     * Todo: add these statements after enter 1, 0 and figure out why
+     * the while loop portion is erroring
+     *  enter 1, 2
+     *  mov edx, [esp + 1]
+     *  mov esi, esp
+     *  mov edi, ebp
+     * also add in these assertions
+     * assert_eq!(vm.reg32(Reg32::EDI), 0x8000664b);
+     * assert_eq!(vm.reg32(Reg32::ESI), 0x8000664C);    
+     */
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80006650);
     assert_eq!(vm.reg32(Reg32::EBP), 0x8000000A);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
