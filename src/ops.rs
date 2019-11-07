@@ -24,6 +24,7 @@ pub fn enter(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     //  eBP . eBP - n
     // push [SS:eBP]
     while (nesting > 0) {
+        unimplemented!("Nesting is not working properly yet. TBC.");
         nesting = nesting - 1;
         ebp = ebp - 4;
         vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
