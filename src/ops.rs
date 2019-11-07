@@ -549,6 +549,34 @@ pub fn shr_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     Ok(())
 }
 
+pub fn adc_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let carry_add = if vm.flags.carry{
+        1
+    }else{
+        0
+    };
+    let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_sum + carry_add));    
+    return add_8bit(vm, pipeline, _hv);
+}
+
+pub fn adc_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+    let carry_add = if vm.flags.carry{
+        1
+    }else{
+        0
+    };
+    if pipeline.size_override{
+        let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(prelim_sum + carry_add as u16));
+        return add_16bit(vm, pipeline, _hv);
+    } else {
+        let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(prelim_sum + carry_add as u32));
+        return add_32bit(vm, pipeline, _hv);
+    }
+}
+
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
@@ -572,10 +600,6 @@ pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor
     }
 }
 
-/// The logic function for the `hlt` opcode
-pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    Err(VMError::InternalVMStop)
-}
 pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
@@ -604,6 +628,11 @@ pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
     Ok(())
+}
+
+/// The logic function for the `hlt` opcode
+pub fn hlt(_vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    Err(VMError::InternalVMStop)
 }
 
 pub fn increment_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
