@@ -1472,3 +1472,77 @@ fn test_enter_leave() {
     assert_eq!(vm.reg32(Reg32::EBP), 0x8000000A);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
+
+#[test]
+fn test_bsf_bsr_1() {
+    let vm = execute_vm_with_asm("
+        mov dx, 0110b
+        bsf cx, dx
+        bsr ax, dx
+        mov dx, 0100b
+        bsf bx, dx
+        bsr si, dx 
+        hlt");
+    assert_eq!(vm.reg16(Reg16::CX), 1);
+    assert_eq!(vm.reg16(Reg16::AX), 2);
+    assert_eq!(vm.reg16(Reg16::BX), 2);
+    assert_eq!(vm.reg16(Reg16::SI), 2);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+/*#[test]
+fn test_bsf_bsr_2() {
+    let vm = execute_vm_with_asm("
+        mov ebp, 0x8000000A
+        mov esp, 0x80006650
+        enter 1, 0
+        mov eax, [esp + 1]
+        mov ebx, esp
+        mov ecx, ebp
+        leave
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x8000000A);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x8000664b);
+    assert_eq!(vm.reg32(Reg32::ECX), 0x8000664C);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80006650);
+    assert_eq!(vm.reg32(Reg32::EBP), 0x8000000A);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_bsr_1() {
+    let vm = execute_vm_with_asm("
+        mov ebp, 0x8000000A
+        mov esp, 0x80006650
+        enter 1, 0
+        mov eax, [esp + 1]
+        mov ebx, esp
+        mov ecx, ebp
+        leave
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x8000000A);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x8000664b);
+    assert_eq!(vm.reg32(Reg32::ECX), 0x8000664C);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80006650);
+    assert_eq!(vm.reg32(Reg32::EBP), 0x8000000A);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_bsr_2() {
+    let vm = execute_vm_with_asm("
+        mov ebp, 0x8000000A
+        mov esp, 0x80006650
+        enter 1, 0
+        mov eax, [esp + 1]
+        mov ebx, esp
+        mov ecx, ebp
+        leave
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x8000000A);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x8000664b);
+    assert_eq!(vm.reg32(Reg32::ECX), 0x8000664C);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x80006650);
+    assert_eq!(vm.reg32(Reg32::EBP), 0x8000000A);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}*/

@@ -72,6 +72,56 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     Ok(())
 }
 
+pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        let source = vm.get_arg(pipeline.args[1].location)?.u16_exact()?;
+        let binary_string = format!("{:b}", source);
+        let index = binary_string.find('1');
+        if index == None {
+            vm.flags.zero = true;
+        } else {
+            vm.flags.zero = false;
+            vm.set_arg(pipeline.args[0].location, SizedValue::Word(index.unwrap() as u16));
+        }
+    } else {
+        let source = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
+        let binary_string = format!("{:b}", source);
+        let index = binary_string.find('1');
+        if index == None {
+            vm.flags.zero = true;
+        } else {
+            vm.flags.zero = false;
+            vm.set_arg(pipeline.args[0].location, SizedValue::Dword(index.unwrap() as u32));
+        }
+    }
+    Ok(())
+}
+
+pub fn bit_scan_reverse(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+    if pipeline.size_override {
+        let source = vm.get_arg(pipeline.args[1].location)?.u16_exact()?;
+        let binary_string = format!("{:b}", source);
+        let index = binary_string.rfind('1');
+        if index == None {
+            vm.flags.zero = true;
+        } else {
+            vm.flags.zero = false;
+            vm.set_arg(pipeline.args[0].location, SizedValue::Word(index.unwrap() as u16));
+        }
+    } else {
+        let source = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
+        let binary_string = format!("{:b}", source);
+        let index = binary_string.rfind('1');
+        if index == None {
+            vm.flags.zero = true;
+        } else {
+            vm.flags.zero = false;
+            vm.set_arg(pipeline.args[0].location, SizedValue::Dword(index.unwrap() as u32));
+        }
+    }
+    Ok(())
+}
+
 pub fn xchg(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let source = vm.get_arg(pipeline.args[0].location)?;
     let destination = vm.get_arg(pipeline.args[1].location)?;
