@@ -75,7 +75,7 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
 pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
         let source = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-        let binary_string = format!("{:04b}", source);
+        let binary_string = format!("{:b}", source);
         let wrapped_index = binary_string.rfind('1');
         if wrapped_index == None {
             vm.flags.zero = true;
@@ -86,7 +86,7 @@ pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
         }
     } else {
         let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-        let binary_string = format!("{:08b}", source);
+        let binary_string = format!("{:b}", source);
         let wrapped_index = binary_string.rfind('1');
         if wrapped_index == None {
             vm.flags.zero = true;
@@ -102,7 +102,7 @@ pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
 pub fn bit_scan_reverse(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
         let source = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-        let binary_string = format!("{:04b}", source);
+        let binary_string = format!("{:b}", source);
         let wrapped_index = binary_string.find('1');
         if wrapped_index == None {
             vm.flags.zero = true;
