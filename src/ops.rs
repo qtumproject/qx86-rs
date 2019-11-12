@@ -8,6 +8,45 @@ pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     vm.set_arg(pipeline.args[0].location, vm.get_arg(pipeline.args[1].location)?)?;
     Ok(())
 }
+///  The logic function for the 'enter' opcode
+pub fn enter(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let locals = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let mut nesting = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    //push ebp
+    let mut ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword).u32_exact()?;
+    vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
+    //temp . esp
+    let temp = vm.get_reg(Reg32::ESP as u8, ValueSize::Dword);
+    // todo: This portion appears to be erroring but I can't figure out why
+    // should return and fix this in the future
+    // while (nesting > 0)
+    //  nesting . nesting - 1
+    //  eBP . eBP - n
+    // push [SS:eBP]
+    while (nesting > 0) {
+        unimplemented!("Nesting is not working properly yet. TBC.");
+        nesting = nesting - 1;
+        ebp = ebp - 4;
+        vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
+    }
+    //ebp . temp
+    vm.set_reg(Reg32::EBP as u8, temp);
+    //esp . esp - locals
+    let esp = temp.u32_exact()?;
+    let (result, _) = esp.overflowing_sub(locals as u32);
+    vm.set_reg(Reg32::ESP as u8, SizedValue::Dword(result));
+    Ok(())
+}
+///  The logic function for the 'leave' opcode
+pub fn leave(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    //mov esp, ebp
+    let ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword);
+    vm.set_reg(Reg32::ESP as u8, ebp);
+    //pop ebp
+    let dword = vm.pop32()?;
+    vm.set_reg(Reg32::EBP as u8, dword);
+    Ok(())
+}
 /// The logic function for the `push` opcode
 pub fn push(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let v = vm.get_arg(pipeline.args[0].location)?;
@@ -1344,3 +1383,4 @@ pub fn load_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hy
     }
     Ok(())
 }
+

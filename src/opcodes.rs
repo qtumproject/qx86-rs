@@ -1132,6 +1132,14 @@ lazy_static! {
         //0xAD LODS m16/m32
         define_opcode(0xAD).calls(load_string_native_word).with_gas(Low)
             .into_table(&mut ops);
+        //0xC9 LEAVE
+        define_opcode(0xC9).calls(leave).with_gas(Low)
+            .into_table(&mut ops);
+        //0xC8 ENTER imm16, imm8
+        define_opcode(0xC8).calls(enter).with_gas(Low)
+            .with_imm16()
+            .with_imm8()
+            .into_table(&mut ops);
         ops
     };
 }
