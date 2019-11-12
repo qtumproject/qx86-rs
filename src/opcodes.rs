@@ -1143,6 +1143,10 @@ lazy_static! {
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops);
+        //0x0F C8 /r BSWAP r32
+        define_opcode(0xC8).is_two_byte_op().calls(bswap).with_gas(Low)
+            .with_rm32()
+            .into_table(&mut ops);
         //0x0F B6 /r MOVZX rW,rm8
         define_opcode(0xB6).is_two_byte_op().calls(movzx_8bit).with_gas(Low)
             .with_rm_regw()

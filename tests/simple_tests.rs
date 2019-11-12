@@ -1530,3 +1530,13 @@ fn test_bsr_bsf_2() {
     assert_eq!(vm.reg32(Reg32::ESI), 0x17);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
+
+#[test]
+fn test_bswap() {
+    let vm = execute_vm_with_asm("
+        mov eax, 1000100000000010000010001b
+        bswap eax
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x11041001);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}

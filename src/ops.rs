@@ -76,6 +76,15 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     };
     Ok(())
 }
+/// The logic for the `bswap` opcode
+pub fn bswap(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+        let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        println!("bswap reverse bits: {}", source);
+        let test: u32 = 0b1000100000000010000010001;
+        println!("actual reverse output: {}", test.reverse_bits());
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(source.reverse_bits()))?;
+        Ok(())
+}
 
 pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
