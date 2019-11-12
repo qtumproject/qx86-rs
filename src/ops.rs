@@ -74,24 +74,26 @@ pub fn pop(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
 
 pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        let source = vm.get_arg(pipeline.args[1].location)?.u16_exact()?;
-        let binary_string = format!("{:b}", source);
-        let index = binary_string.find('1');
-        if index == None {
+        let source = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        let binary_string = format!("{:04b}", source);
+        let wrapped_index = binary_string.rfind('1');
+        if wrapped_index == None {
             vm.flags.zero = true;
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[0].location, SizedValue::Word(index.unwrap() as u16));
+            let index = (binary_string.len() as u16 - 1) - (wrapped_index.unwrap() as u16);
+            vm.set_arg(pipeline.args[1].location, SizedValue::Word(index));
         }
     } else {
-        let source = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
-        let binary_string = format!("{:b}", source);
-        let index = binary_string.find('1');
-        if index == None {
+        let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        let binary_string = format!("{:08b}", source);
+        let wrapped_index = binary_string.rfind('1');
+        if wrapped_index == None {
             vm.flags.zero = true;
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[0].location, SizedValue::Dword(index.unwrap() as u32));
+            let index = (binary_string.len() as u32 - 1) - (wrapped_index.unwrap() as u32);
+            vm.set_arg(pipeline.args[1].location, SizedValue::Dword(index));
         }
     }
     Ok(())
@@ -99,24 +101,26 @@ pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
 
 pub fn bit_scan_reverse(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        let source = vm.get_arg(pipeline.args[1].location)?.u16_exact()?;
-        let binary_string = format!("{:b}", source);
-        let index = binary_string.rfind('1');
-        if index == None {
+        let source = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        let binary_string = format!("{:04b}", source);
+        let wrapped_index = binary_string.find('1');
+        if wrapped_index == None {
             vm.flags.zero = true;
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[0].location, SizedValue::Word(index.unwrap() as u16));
+            let index = (binary_string.len() as u16 - 1) - (wrapped_index.unwrap() as u16);
+            vm.set_arg(pipeline.args[1].location, SizedValue::Word(index));
         }
     } else {
-        let source = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
+        let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
         let binary_string = format!("{:b}", source);
-        let index = binary_string.rfind('1');
-        if index == None {
+        let wrapped_index = binary_string.find('1');
+        if wrapped_index == None {
             vm.flags.zero = true;
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[0].location, SizedValue::Dword(index.unwrap() as u32));
+            let index = (binary_string.len() as u32 - 1) - (wrapped_index.unwrap() as u32);
+            vm.set_arg(pipeline.args[1].location, SizedValue::Dword(index));
         }
     }
     Ok(())
