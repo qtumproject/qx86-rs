@@ -556,7 +556,7 @@ pub fn adc_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
         0
     };
     let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_sum + carry_add));    
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_sum.wrapping_add(carry_add)));    
     return add_8bit(vm, pipeline, _hv);
 }
 
@@ -568,11 +568,11 @@ pub fn adc_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
     };
     if pipeline.size_override{
         let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-        vm.set_arg(pipeline.args[0].location, SizedValue::Word(prelim_sum + carry_add as u16));
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(prelim_sum.wrapping_add(carry_add as u16)));
         return add_16bit(vm, pipeline, _hv);
     } else {
         let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(prelim_sum + carry_add as u32));
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(prelim_sum.wrapping_add(carry_add as u32)));
         return add_32bit(vm, pipeline, _hv);
     }
 }
