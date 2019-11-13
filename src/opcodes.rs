@@ -1143,10 +1143,22 @@ lazy_static! {
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops);
-        //0F B6 /r MOVZX rW,rm8
+        //0x0F B6 /r MOVZX rW,rm8
         define_opcode(0xB6).is_two_byte_op().calls(movzx_8bit).with_gas(Low)
             .with_rm_regw()
             .with_rm8()
+            .into_table(&mut ops);
+        //0x0F BC BSF r16, r/m16
+        //0x0F BC BSF r32. r/m32
+        define_opcode(0xBC).is_two_byte_op().calls(bit_scan_forward).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0x0F BD BSR r16, r/m16
+        //0x0F BD BSR r32. r/m32
+        define_opcode(0xBD).is_two_byte_op().calls(bit_scan_reverse).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
             .into_table(&mut ops);
         //0x0F B7 /r    MOVZX r32,rm16
         define_opcode(0xB7).is_two_byte_op().calls(movzx_16bit).with_gas(Low)
