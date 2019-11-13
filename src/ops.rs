@@ -14,7 +14,7 @@ pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     Ok(())
 }
 ///  The logic function for the 'enter' opcode
-pub fn enter(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn enter(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let locals = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let mut nesting = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     //push ebp
@@ -28,7 +28,7 @@ pub fn enter(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     //  nesting . nesting - 1
     //  eBP . eBP - n
     // push [SS:eBP]
-    while (nesting > 0) {
+    while nesting > 0 {
         unimplemented!("Nesting is not working properly yet. TBC.");
         nesting = nesting - 1;
         ebp = ebp - 4;
@@ -43,7 +43,7 @@ pub fn enter(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     Ok(())
 }
 ///  The logic function for the 'leave' opcode
-pub fn leave(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn leave(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     //mov esp, ebp
     let ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword);
     vm.set_reg(Reg32::ESP as u8, ebp);
@@ -97,7 +97,7 @@ pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
             vm.flags.zero = true;            
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[1].location, SizedValue::Word(index.unwrap()));
+            return vm.set_arg(pipeline.args[1].location, SizedValue::Word(index.unwrap()));
         }
     } else {
         let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
@@ -112,7 +112,7 @@ pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
             vm.flags.zero = true;            
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[1].location, SizedValue::Dword(index.unwrap()));
+            return vm.set_arg(pipeline.args[1].location, SizedValue::Dword(index.unwrap()));
         }
     }
     Ok(())
@@ -132,7 +132,7 @@ pub fn bit_scan_reverse(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
             vm.flags.zero = true;            
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[1].location, SizedValue::Word(15 - index.unwrap()));
+            return vm.set_arg(pipeline.args[1].location, SizedValue::Word(15 - index.unwrap()));
         }
     } else {
         let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
@@ -147,7 +147,7 @@ pub fn bit_scan_reverse(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
             vm.flags.zero = true;            
         } else {
             vm.flags.zero = false;
-            vm.set_arg(pipeline.args[1].location, SizedValue::Dword(31 - index.unwrap()));
+            return vm.set_arg(pipeline.args[1].location, SizedValue::Dword(31 - index.unwrap()));
         }
     }
     Ok(())
@@ -216,9 +216,9 @@ pub fn jmp_abs(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Re
     Ok(())
 }
 
-pub fn jmp_conditional_ecx_is_zero(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn jmp_conditional_ecx_is_zero(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if vm.regs[Reg32::ECX as usize] == 0 {
-        return jmp_rel(vm, pipeline, hv);
+        return jmp_rel(vm, pipeline, _hv);
     }
     Ok(())
 }
@@ -246,14 +246,14 @@ fn cc_matches(opcode: u8, flags: &X86Flags) -> bool{
     }
 }
 
-pub fn jcc(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn jcc(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if cc_matches(pipeline.opcode, &vm.flags){
-        return jmp_rel(vm, pipeline, hv);
+        return jmp_rel(vm, pipeline, _hv);
     }
     Ok(())
 }
 
-pub fn div_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn div_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let first_arg = vm.reg16(Reg16::AX) as u16;
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_zx()?;
     if second_arg == 0 || ((first_arg / second_arg) > 0xFF) {
@@ -264,15 +264,15 @@ pub fn div_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result
     Ok(())
 }
 
-pub fn div_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn div_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return div_16bit(vm, pipeline, hv);
+        return div_16bit(vm, pipeline, _hv);
     } else {
-        return div_32bit(vm, pipeline, hv);
+        return div_32bit(vm, pipeline, _hv);
     }
 }
 
-pub fn div_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn div_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let first_arg = ((vm.reg16(Reg16::DX) as u32) << 16) | (vm.reg16(Reg16::AX) as u32);
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()?;
     if second_arg == 0 || ((first_arg / second_arg) > 0xFFFF) {
@@ -283,7 +283,7 @@ pub fn div_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Resul
     Ok(())
 }
 
-pub fn div_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn div_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let first_arg = ((vm.reg32(Reg32::EDX) as u64) << 32) | (vm.reg32(Reg32::EAX) as u64);
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()? as u64;
     if second_arg == 0 || ((first_arg / second_arg) > 0xFFFFFFFF) {
@@ -294,7 +294,7 @@ pub fn div_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Resul
     Ok(())
 }
 
-pub fn idiv_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn idiv_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let first_arg = vm.reg16(Reg16::AX) as i16;
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_zx()? as i16;
     if second_arg == 0 || ((first_arg / second_arg) > 0xFF) {
@@ -305,15 +305,15 @@ pub fn idiv_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Resul
     Ok(())
 }
 
-pub fn idiv_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn idiv_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return idiv_16bit(vm, pipeline, hv);
+        return idiv_16bit(vm, pipeline, _hv);
     } else {
-        return idiv_32bit(vm, pipeline, hv);
+        return idiv_32bit(vm, pipeline, _hv);
     }
 }
 
-pub fn idiv_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn idiv_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let first_arg = ((vm.reg16(Reg16::DX) as i16 as i32) << 16) | (vm.reg16(Reg16::AX) as u16 as i32);
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()? as i32;
     if second_arg == 0 || ((first_arg / second_arg) > 0xFFFF) {
@@ -324,7 +324,7 @@ pub fn idiv_16bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Resu
     Ok(())
 }
 
-pub fn idiv_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn idiv_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let first_arg = ((vm.reg32(Reg32::EDX) as i32 as i64) << 32) | (vm.reg32(Reg32::EAX) as i32 as i64);
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u32_zx()? as i32 as i64;
     if second_arg == 0 || ((first_arg / second_arg) > 0xFFFFFFFF) {
@@ -335,7 +335,7 @@ pub fn idiv_32bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Resu
     Ok(())
 }
 
-pub fn mul_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result<(), VMError> {
+pub fn mul_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     let first_arg = vm.reg8(Reg8::AL) as u16;
     let second_arg = vm.get_arg(pipeline.args[0].location)?.u16_zx()?;
     let result = first_arg.wrapping_mul(second_arg);
@@ -350,11 +350,11 @@ pub fn mul_8bit(vm: &mut VM, pipeline: &Pipeline, hv: &mut Hypervisor) -> Result
     Ok(())
 }
 
-pub fn mul_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn mul_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return mul_16bit(vm, pipeline, hv);
+        return mul_16bit(vm, pipeline, _hv);
     } else {
-        return mul_32bit(vm, pipeline, hv);
+        return mul_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -405,11 +405,11 @@ pub fn imul1_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) ->
     Ok(())
 }
 
-pub fn imul1_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn imul1_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return imul1_16bit(vm, pipeline, hv);
+        return imul1_16bit(vm, pipeline, _hv);
     } else {
-        return imul1_32bit(vm, pipeline, hv);
+        return imul1_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -445,11 +445,11 @@ pub fn imul1_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -
     Ok(())
 }
 
-pub fn imul2_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn imul2_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return imul2_16bit(vm, pipeline, hv);
+        return imul2_16bit(vm, pipeline, _hv);
     } else {
-        return imul2_32bit(vm, pipeline, hv);
+        return imul2_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -483,17 +483,17 @@ pub fn imul2_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -
     Ok(())
 }
 
-pub fn imul3_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn imul3_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return imul3_16bit(vm, pipeline, hv);
+        return imul3_16bit(vm, pipeline, _hv);
     } else {
-        return imul3_32bit(vm, pipeline, hv);
+        return imul3_32bit(vm, pipeline, _hv);
     }
 }
 
 pub fn imul3_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
-    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;;
-    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i32 as i64;;
+    let first_arg = vm.get_arg(pipeline.args[1].location)?.u32_sx()? as i32 as i64;
+    let second_arg = vm.get_arg(pipeline.args[2].location)?.u32_sx()? as i32 as i64;
     let result = (first_arg.wrapping_mul(second_arg)) as u32;
     if (result&0xFFFF0000).wrapping_shr(16) > 0 {
         vm.flags.carry = true;
@@ -536,11 +536,11 @@ pub fn shl_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn shl_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn shl_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return shl_16bit(vm, pipeline, hv);
+        return shl_16bit(vm, pipeline, _hv);
     } else {
-        return shl_32bit(vm, pipeline, hv);
+        return shl_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -590,11 +590,11 @@ pub fn shr_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn shr_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn shr_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return shr_16bit(vm, pipeline, hv);
+        return shr_16bit(vm, pipeline, _hv);
     } else {
-        return shr_32bit(vm, pipeline, hv);
+        return shr_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -637,7 +637,7 @@ pub fn adc_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
         0
     };
     let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_sum.wrapping_add(carry_add)));    
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_sum.wrapping_add(carry_add)))?;    
     return add_8bit(vm, pipeline, _hv);
 }
 
@@ -649,11 +649,11 @@ pub fn adc_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
     };
     if pipeline.size_override{
         let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-        vm.set_arg(pipeline.args[0].location, SizedValue::Word(prelim_sum.wrapping_add(carry_add as u16)));
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(prelim_sum.wrapping_add(carry_add as u16)))?;
         return add_16bit(vm, pipeline, _hv);
     } else {
         let prelim_sum = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(prelim_sum.wrapping_add(carry_add as u32)));
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(prelim_sum.wrapping_add(carry_add as u32)))?;
         return add_32bit(vm, pipeline, _hv);
     }
 }
@@ -673,11 +673,11 @@ pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return add_16bit(vm, pipeline, hv);
+        return add_16bit(vm, pipeline, _hv);
     } else {
-        return add_32bit(vm, pipeline, hv);
+        return add_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -728,11 +728,11 @@ pub fn increment_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor
     Ok(())
 }
 
-pub fn increment_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn increment_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return increment_16bit(vm, pipeline, hv);
+        return increment_16bit(vm, pipeline, _hv);
     } else {
-        return increment_32bit(vm, pipeline, hv);
+        return increment_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -775,11 +775,11 @@ pub fn sub_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn sub_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn sub_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return sub_16bit(vm, pipeline, hv);
+        return sub_16bit(vm, pipeline, _hv);
     } else {
-        return sub_32bit(vm, pipeline, hv);
+        return sub_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -825,11 +825,11 @@ pub fn decrement_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor
     Ok(())
 }
 
-pub fn decrement_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn decrement_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return decrement_16bit(vm, pipeline, hv);
+        return decrement_16bit(vm, pipeline, _hv);
     } else {
-        return decrement_32bit(vm, pipeline, hv);
+        return decrement_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -871,11 +871,11 @@ pub fn cmp_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn cmp_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn cmp_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return cmp_16bit(vm, pipeline, hv);
+        return cmp_16bit(vm, pipeline, _hv);
     } else {
-        return cmp_32bit(vm, pipeline, hv);
+        return cmp_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -919,11 +919,11 @@ pub fn test_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     Ok(())
 }
 
-pub fn test_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn test_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return and_16bit(vm, pipeline, hv);
+        return and_16bit(vm, pipeline, _hv);
     } else {
-        return and_32bit(vm, pipeline, hv);
+        return and_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -965,11 +965,11 @@ pub fn and_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn and_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn and_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return and_16bit(vm, pipeline, hv);
+        return and_16bit(vm, pipeline, _hv);
     } else {
-        return and_32bit(vm, pipeline, hv);
+        return and_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -1012,11 +1012,11 @@ pub fn or_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Re
     Ok(())
 }
 
-pub fn or_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn or_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return or_16bit(vm, pipeline, hv);
+        return or_16bit(vm, pipeline, _hv);
     } else {
-        return or_32bit(vm, pipeline, hv);
+        return or_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -1059,11 +1059,11 @@ pub fn xor_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn xor_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn xor_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return xor_16bit(vm, pipeline, hv);
+        return xor_16bit(vm, pipeline, _hv);
     } else {
-        return xor_32bit(vm, pipeline, hv);
+        return xor_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -1100,11 +1100,11 @@ pub fn not_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn not_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn not_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return not_16bit(vm, pipeline, hv);
+        return not_16bit(vm, pipeline, _hv);
     } else {
-        return not_32bit(vm, pipeline, hv);
+        return not_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -1132,11 +1132,11 @@ pub fn neg_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
-pub fn neg_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+pub fn neg_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
-        return neg_16bit(vm, pipeline, hv);
+        return neg_16bit(vm, pipeline, _hv);
     } else {
-        return neg_32bit(vm, pipeline, hv);
+        return neg_32bit(vm, pipeline, _hv);
     }
 }
 
@@ -1255,7 +1255,7 @@ fn decrement_regw(vm: &mut VM, reg: Reg32, size_override: bool) -> u32{
     } 
 }
 
-pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn repe(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let opcodes = &crate::opcodes::OPCODES;
     let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
     let gas_cost = vm.charger.cost(opcodes[pipeline.opcode as usize].opcodes[0].gas_cost);
@@ -1269,7 +1269,7 @@ pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result
         if vm.gas_remaining == 0{
             return Err(VMError::OutOfGas);
         }
-        function(vm, pipeline, hv)?;
+        function(vm, pipeline, _hv)?;
         decrement_regw(vm, Reg32::ECX, pipeline.size_override);
         vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
         if rep_flag_opcodes(pipeline.opcode) {
@@ -1284,7 +1284,7 @@ pub fn repe(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result
     }
     Ok(())
 }
-pub fn repne(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn repne(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let opcodes = &crate::opcodes::OPCODES;
     if rep_flag_opcodes(pipeline.opcode){
         let function = opcodes[pipeline.opcode as usize].opcodes[0].function;
@@ -1299,7 +1299,7 @@ pub fn repne(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
             if vm.gas_remaining == 0{
                 return Err(VMError::OutOfGas);
             }
-            function(vm, pipeline, hv)?;
+            function(vm, pipeline, _hv)?;
             decrement_regw(vm, Reg32::ECX, pipeline.size_override);
             vm.gas_remaining = vm.gas_remaining.saturating_sub(gas_cost);
             if vm.flags.zero{
@@ -1313,7 +1313,7 @@ pub fn repne(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     Ok(())
 }
 
-pub fn movs_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn movs_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     //[EDI] . [ESI]
     if pipeline.size_override{
         vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Word(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?))?;
@@ -1338,7 +1338,7 @@ pub fn movs_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
     }
     Ok(())
 }
-pub fn movsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn movsb(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     //[EDI] . [ESI]
     vm.set_mem(vm.reg32(Reg32::EDI), SizedValue::Byte(vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?))?;
     //todo DF
@@ -1359,7 +1359,7 @@ pub fn clear_direction(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervis
     vm.flags.direction = false;
     Ok(())
 }
-pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     //[EDI] . [ESI]
     if pipeline.size_override{
         let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
@@ -1403,7 +1403,7 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
     Ok(())
 }
 
-pub fn cmpsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn cmpsb(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     //[EDI] . [ESI]
     let destination = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?;
     let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Byte)?.u8_exact()?;
@@ -1427,7 +1427,7 @@ pub fn cmpsb(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Resul
     Ok(())
 }
 
-pub fn store_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn store_string_byte(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     vm.set_mem(vm.reg32(Reg32::EDI), vm.get_reg(Reg8::AL as u8, ValueSize::Byte))?;
     let d = if vm.flags.direction{
         (-1i32) as u32
@@ -1438,7 +1438,7 @@ pub fn store_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervis
     Ok(())
 }
 
-pub fn load_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn load_string_byte(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let esi_mem = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Byte)?.u8_exact()?;
     vm.set_reg(Reg8::AL as u8, SizedValue::Byte(esi_mem as u8));
     let d = if vm.flags.direction{
@@ -1450,7 +1450,7 @@ pub fn load_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hyperviso
     Ok(())
 }
 
-pub fn store_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn store_string_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         vm.set_mem(vm.reg32(Reg32::EDI), vm.get_reg(Reg16::AX as u8, ValueSize::Word))?;
         let d = if vm.flags.direction{
@@ -1471,7 +1471,7 @@ pub fn store_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn H
     Ok(())
 }
 
-pub fn load_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn load_string_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         let esi_mem = vm.get_mem(vm.reg32(Reg32::ESI), ValueSize::Word)?.u16_exact()?;
         vm.set_reg(Reg16::AX as u8, SizedValue::Word(esi_mem));
