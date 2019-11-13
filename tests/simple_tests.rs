@@ -1534,7 +1534,7 @@ fn test_bsr_bsf_2() {
 #[test]
 fn test_bswap() {
     let vm = execute_vm_with_asm("
-        mov eax, 1000100000000010000010001b
+        mov eax, 0x01100411
         bswap eax
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0x11041001);
