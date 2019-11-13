@@ -276,6 +276,10 @@ impl OpcodeDefiner{
     pub fn with_suffix_regw(&mut self) -> &mut OpcodeDefiner{
         self.with_arg(ArgSource::RegisterSuffix, OpcodeValueSize::NativeWord)
     }
+    /// Specifies that the next argument is a +r register opcode suffix chosen from the dword or word sized register set
+    pub fn with_suffix_reg32(&mut self) -> &mut OpcodeDefiner{
+        self.with_arg(ArgSource::RegisterSuffix, OpcodeValueSize::Fixed(ValueSize::Dword))
+    }
     /// Condenses the current opcode description into the faster to execute OpcodeProperties/Opcode structures.
     /// Depending on the exact opcode description, this can fill multiple slots within the opcode table.
     /// Simple error checking is included to ensure that the same opcode is not specified twice
@@ -1142,6 +1146,10 @@ lazy_static! {
         define_opcode(0x8D).calls(lea).with_gas(Low)
             .with_rm_regw()
             .with_rmw()
+            .into_table(&mut ops);
+        //0x0F C8 /r BSWAP r32
+        define_opcode(0xC8).is_two_byte_op().calls(bswap).with_gas(Low)
+            .with_suffix_reg32()
             .into_table(&mut ops);
         //0x0F B6 /r MOVZX rW,rm8
         define_opcode(0xB6).is_two_byte_op().calls(movzx_8bit).with_gas(Low)
