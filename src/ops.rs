@@ -1329,6 +1329,23 @@ pub fn movzx_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -
     Ok(())
 }
 
+pub fn movsx_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let v = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(v))?;
+    }else{
+        let v = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
+    }
+    Ok(())
+}
+
+pub fn movsx_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let v = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
+    Ok(())
+}
+
 fn rep_no_flag_opcodes(opcode: u8) -> bool{
     match opcode{
         0xA4 | 0xA5 | //movs
