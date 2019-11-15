@@ -1540,3 +1540,23 @@ fn test_bswap() {
     assert_eq!(vm.reg32(Reg32::EAX), 0x11041001);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
+
+#[test]
+fn test_bt_32() {
+    let vm = execute_vm_with_asm("
+        mov eax, 011001100110011001100110b
+        bt eax, 1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00666666);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_bt_16() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        bt ax, bx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006666);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
