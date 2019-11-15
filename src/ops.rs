@@ -796,9 +796,29 @@ pub fn adc_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
     }
 }
 
+pub fn xadd_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    xchg(vm, pipeline, _hv)?;
+    return add_8bit(vm, pipeline, _hv);
+}
+
+pub fn xadd_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+    xchg(vm, pipeline, _hv)?;
+    if pipeline.size_override {
+        return add_16bit(vm, pipeline, _hv);
+    } else {
+        return add_32bit(vm, pipeline, _hv);
+    }
+}
+
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    let result = sum_and_get_flags_8bit(vm, base, adder);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    Ok(())
+}
+
+fn sum_and_get_flags_8bit(vm: &mut VM, base: u8, adder: u8) -> u8 {
     let (result, carry) = base.overflowing_add(adder);
     let (_, overflow) = (base as i8).overflowing_add(adder as i8);
     vm.flags.overflow = overflow;
@@ -807,8 +827,7 @@ pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign8(result);
     vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
-    Ok(())
+    result
 }
 
 pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
@@ -822,6 +841,12 @@ pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
 pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    let result = sum_and_get_flags_16bit(vm, base, adder);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    Ok(())
+}
+
+fn sum_and_get_flags_16bit(vm: &mut VM, base: u16, adder: u16) -> u16 {
     let (result, carry) = base.overflowing_add(adder);
     let (_, overflow) = (base as i16).overflowing_add(adder as i16);
     vm.flags.overflow = overflow;
@@ -830,13 +855,18 @@ pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     vm.flags.calculate_parity(result as u32);
     vm.flags.calculate_sign16(result);
     vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
-    Ok(())
+    result
 }
 
 pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    let result = sum_and_get_flags_32bit(vm, base, adder);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    Ok(())
+}
+
+fn sum_and_get_flags_32bit(vm: &mut VM, base: u32, adder: u32) -> u32 {
     let (result, carry) = base.overflowing_add(adder);
     let (_, overflow) = (base as i32).overflowing_add(adder as i32);
     vm.flags.overflow = overflow;
@@ -845,8 +875,7 @@ pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     vm.flags.calculate_parity(result);
     vm.flags.calculate_sign32(result);
     vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
-    Ok(())
+    result
 }
 
 /// The logic function for the `hlt` opcode
