@@ -73,13 +73,13 @@ pub fn execute_vm_with_diagnostics(vm: &mut VM){
 }
 
 #[cfg(test)]
-pub fn execute_vm_with_asm_and_hypervisor(input: &str, hv: &mut Hypervisor) -> VM{
+pub fn execute_vm_with_asm_and_hypervisor(input: &str, hv: &mut dyn Hypervisor) -> VM{
     let mut vm = create_vm_with_asm(input);
     execute_vm_with_diagnostics_and_hypervisor(&mut vm, hv);
     vm
 }
 #[cfg(test)]
-pub fn execute_vm_with_diagnostics_and_hypervisor(vm: &mut VM, hv: &mut Hypervisor){
+pub fn execute_vm_with_diagnostics_and_hypervisor(vm: &mut VM, hv: &mut dyn Hypervisor){
     let r = vm.execute(hv);
     vm_diagnostics(vm);
     r.unwrap();
