@@ -102,6 +102,25 @@ pub fn cbw_cwde(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     Ok(())
 }
 
+pub fn cdq_cwd(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let lower_half = vm.reg16(Reg16::AX) as u16;
+        if lower_half < 0x8000 {
+            vm.set_reg(Reg16::DX as u8, SizedValue::Word(0x0));
+        } else {
+            vm.set_reg(Reg16::DX as u8, SizedValue::Word(0xFFFF));
+        }
+    } else {
+        let lower_half = vm.reg32(Reg32::EAX) as u32;
+        if lower_half < 0x80000000 {
+            vm.set_reg(Reg32::EDX as u8, SizedValue::Dword(0x0));   
+        } else {
+            vm.set_reg(Reg32::EDX as u8, SizedValue::Dword(0xFFFFFFFF));
+        }
+    }
+    Ok(())
+}
+
 pub fn bit_test(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         let bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
