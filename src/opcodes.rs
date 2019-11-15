@@ -1195,6 +1195,10 @@ lazy_static! {
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
+        //0x98 CWDE
+        //0x98 CBW
+        define_opcode(0x98).calls(cbw_cwde).with_gas(Low)
+            .into_table(&mut ops);
         //0x0F C8 /r BSWAP r32
         define_opcode(0xC8).is_two_byte_op().calls(bswap).with_gas(Low)
             .with_suffix_reg32()

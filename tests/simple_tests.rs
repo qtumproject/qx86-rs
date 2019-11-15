@@ -1654,6 +1654,35 @@ fn test_btc_16() {
 }
 
 #[test]
+fn test_cwde() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0x8888
+        cwde
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFFFF8888);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_cbw_lower() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x79
+        cbw
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x0079);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_cbw_upper() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x80
+        cbw
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xFF80);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+#[test]
 fn test_btc_16_modulus() {
     let vm = execute_vm_with_asm("
         mov ax, 0110011001100110b

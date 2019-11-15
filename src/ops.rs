@@ -83,6 +83,21 @@ pub fn bswap(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resu
         Ok(())
 }
 
+pub fn cbw_cwde(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let lower_half = vm.reg8(Reg8::AL) as u8;
+        if lower_half < 0x80 {
+            vm.set_reg(Reg8::AH as u8, SizedValue::Byte(0x0));
+        } else {
+            vm.set_reg(Reg8::AH as u8, SizedValue::Byte(0xFF));
+        }
+    } else {
+        let lower_half = vm.reg16(Reg16::AX) as u16;
+        vm.set_reg(Reg32::EAX as u8, SizedValue::Dword(0xFFFF0000 + lower_half as u32));   
+    }
+    Ok(())
+}
+
 pub fn bit_test(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         let bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
