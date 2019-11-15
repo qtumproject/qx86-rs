@@ -691,6 +691,18 @@ fn test_signed_carry_add32(){
 }
 
 #[test]
+fn test_signed_carry_xadd32(){
+    let vm = execute_vm_with_asm("
+        mov eax, 0xF00090FF
+        mov ebx, 0xF00121FA
+        xadd eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xE001B2F9);
+    assert_eq!(vm.reg32(Reg32::EBX), 0xF00090FF);
+    assert_eq!(vm.flags, X86Flags{carry: true, parity: true, adjust: true, sign: true, ..Default::default()});
+}
+
+#[test]
 fn test_signed_carry_adc32(){
     let vm = execute_vm_with_asm("
         mov eax, 0xF00090FF
@@ -737,6 +749,18 @@ fn test_simple_add16(){
 }
 
 #[test]
+fn test_simple_xadd16(){
+    let vm = execute_vm_with_asm("
+        mov ax, 0x0064
+        mov bx, 0x0320
+        xadd ax, bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x0384);
+    assert_eq!(vm.reg16(Reg16::BX), 0x0064);
+    assert_eq!(vm.flags, X86Flags{parity: true, ..Default::default()});
+}
+
+#[test]
 fn test_signed_zero_add8(){
     let vm = execute_vm_with_asm("
         mov al, 155
@@ -744,6 +768,18 @@ fn test_signed_zero_add8(){
         add al, cl
         hlt");
     assert_eq!(vm.reg8(Reg8::AL), 0);
+    assert_eq!(vm.flags, X86Flags{carry: true, zero: true, adjust: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_signed_zero_xadd8(){
+    let vm = execute_vm_with_asm("
+        mov al, 155
+        mov cl, 101
+        xadd al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0);
+    assert_eq!(vm.reg8(Reg8::CL), 0x9B);
     assert_eq!(vm.flags, X86Flags{carry: true, zero: true, adjust: true, parity: true, ..Default::default()});
 }
 
