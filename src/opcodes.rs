@@ -537,6 +537,57 @@ lazy_static! {
             .into_table(&mut ops);
 
         //Begin maths....
+            //sbb opcodes
+        //0x18 sbb r/m8, r8
+        define_opcode(0x18).calls(sbb_8bit).with_gas(Low)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0x19 sbb r/m16, r16
+        //0x19 sbb r/m32, r32
+        define_opcode(0x19).calls(sbb_native_word).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0x1A sbb r8, r/m8
+        define_opcode(0x1A).calls(sbb_8bit).with_gas(Low)
+            .with_rm_reg8()
+            .with_rm8()
+            .into_table(&mut ops);
+        //0x1B sbb r16. r/m16
+        //0x1B sbb r32, r/m32
+        define_opcode(0x1B).calls(sbb_native_word).with_gas(Low)
+           .with_rm_regw()
+           .with_rmw()
+           .into_table(&mut ops);
+        //0x1C sbb AL, imm8
+        define_opcode(0x1C).calls(sbb_8bit).with_gas(Low)
+            .with_arg(HardcodedRegister(Reg8::AL as u8), Fixed(Byte))
+            .with_imm8()
+            .into_table(&mut ops);
+        //0x1D sbb AX, imm16
+        //0x1D sbb EAX, imm32
+        define_opcode(0x1D).calls(sbb_native_word).with_gas(Low)
+            .with_arg(HardcodedRegister(Reg32::EAX as u8), NativeWord) //Reg32::EAX resolves to the same as Reg16:AX
+            .with_immw()
+            .into_table(&mut ops);
+        //0x80 sbb r/m8, imm8
+        define_opcode(0x80).is_group(3).calls(sbb_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0x81 sbb r/m16, imm16
+        //0x81 sbb r/m32, imm32
+        define_opcode(0x81).is_group(3).calls(sbb_native_word).with_gas(Low)
+            .with_rmw()
+            .with_immw()
+            .into_table(&mut ops);
+        //0x83 sbb r/m16, imm8
+        //0x83 sbb r/m32, imm8
+        define_opcode(0x83).is_group(3).calls(sbb_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
             //adc opcodes
         //0x10 adc r/m8, r8
         define_opcode(0x10).calls(adc_8bit).with_gas(Low)

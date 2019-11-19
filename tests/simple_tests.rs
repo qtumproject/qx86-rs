@@ -825,6 +825,17 @@ fn test_unsigned_8bit_sub(){
 }
 
 #[test]
+fn test_unsigned_8bit_sbb(){
+    let vm = execute_vm_with_asm("
+        mov al, 155
+        mov cl, 101
+        sbb al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x36);
+    assert_eq!(vm.flags, X86Flags{overflow: true, parity: true, ..Default::default()});
+}
+
+#[test]
 fn test_negative_unsigned_16bit_sub(){
     let vm = execute_vm_with_asm("
         mov ax, 100
@@ -836,6 +847,18 @@ fn test_negative_unsigned_16bit_sub(){
 }
 
 #[test]
+fn test_negative_unsigned_16bit_sbb(){
+    let vm = execute_vm_with_asm("
+        mov ax, 100
+        mov bx, 800
+        sub ax, bx
+        sbb ax, bx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xFA23);
+    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+}
+
+#[test]
 fn test_subtracting_negatives_32bit_sub(){
     let vm = execute_vm_with_asm("
         mov eax, 0xF00090FF
@@ -844,6 +867,18 @@ fn test_subtracting_negatives_32bit_sub(){
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0xFFFF6F05);
     assert_eq!(vm.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_subtracting_negatives_32bit_sbb(){
+    let vm = execute_vm_with_asm("
+        mov eax, 0xF00090FF
+        mov ebx, 0xF00121FA
+        sub eax, ebx
+        sbb eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x0FFE4D0A);
+    assert_eq!(vm.flags, X86Flags{adjust: true, parity: true, ..Default::default()});
 }
 
 #[test]
