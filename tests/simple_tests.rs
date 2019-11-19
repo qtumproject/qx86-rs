@@ -1798,3 +1798,87 @@ fn test_cwd_upper() {
     assert_eq!(vm.reg16(Reg16::DX), 0xFFFF);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
+
+#[test]
+fn test_cmpxchg_dword_equal() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x00007878
+        mov ebx, 0x00007878
+        mov ecx, 1
+        cmpxchg ebx, ecx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ECX), 1);
+    assert_eq!(vm.reg32(Reg32::EBX), 1);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00007878);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_cmpxchg_dword_not_equal() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x00007878
+        mov ebx, 0x00007879
+        mov ecx, 1
+        cmpxchg ebx, ecx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ECX), 1);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x00007879);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00007879);
+    assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_cmpxchg_word_equal() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0x7878
+        mov bx, 0x7878
+        mov cx, 1
+        cmpxchg bx, cx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::CX), 1);
+    assert_eq!(vm.reg16(Reg16::BX), 1);
+    assert_eq!(vm.reg16(Reg16::AX), 0x7878);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_cmpxchg_word_not_equal() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x00007878
+        mov ebx, 0x00007879
+        mov ecx, 1
+        cmpxchg ebx, ecx
+        hlt");
+    assert_eq!(vm.reg16(Reg16::CX), 1);
+    assert_eq!(vm.reg16(Reg16::BX), 0x7879);
+    assert_eq!(vm.reg16(Reg16::AX), 0x7879);
+    assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_cmpxchg_byte_equal() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x78
+        mov bl, 0x78
+        mov cl, 1
+        cmpxchg bl, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::CL), 1);
+    assert_eq!(vm.reg8(Reg8::BL), 1);
+    assert_eq!(vm.reg8(Reg8::AL), 0x78);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_cmpxchg_byte_not_equal() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x78
+        mov bl, 0x79
+        mov cl, 1
+        cmpxchg bl, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::CL), 1);
+    assert_eq!(vm.reg8(Reg8::BL), 0x79);
+    assert_eq!(vm.reg8(Reg8::AL), 0x79);
+    assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, sign: true, parity: true, ..Default::default()});
+}

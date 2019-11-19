@@ -986,6 +986,50 @@ pub fn decrement_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
     Ok(())
 }
 
+pub fn cmpxchg_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let accumulator = vm.get_reg(Reg8::AL as u8, ValueSize::Byte).u8_exact()?;
+    let destination = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let source = vm.get_arg(pipeline.args[1].location)?;
+    let (result, carry) = accumulator.overflowing_sub(destination);
+    let (_, overflow) = (accumulator as i8).overflowing_sub(destination as i8);
+    get_flags(vm, result as u32, destination as u32, accumulator as u32, overflow, carry, AdjustType::Dec, SignType::Byte);
+    if vm.flags.zero {
+        vm.set_arg(pipeline.args[0].location, source)?;
+    } else {
+        vm.set_reg(Reg8::AL as u8, SizedValue::Byte(destination));
+    }
+    Ok(())
+}
+
+pub fn cmpxchg_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let accumulator = vm.get_reg(Reg16::AX as u8, ValueSize::Word).u16_exact()?;
+        let destination = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        let source = vm.get_arg(pipeline.args[1].location)?;
+        let (result, carry) = accumulator.overflowing_sub(destination);
+        let (_, overflow) = (accumulator as i16).overflowing_sub(destination as i16);
+        get_flags(vm, result as u32, destination as u32, accumulator as u32, overflow, carry, AdjustType::Dec, SignType::Word);
+        if vm.flags.zero {
+            vm.set_arg(pipeline.args[0].location, source)?;
+        } else {
+            vm.set_reg(Reg16::AX as u8, SizedValue::Word(destination));
+        }
+    } else {
+        let accumulator = vm.get_reg(Reg32::EAX as u8, ValueSize::Dword).u32_exact()?;
+        let destination = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        let source = vm.get_arg(pipeline.args[1].location)?;
+        let (result, carry) = accumulator.overflowing_sub(destination);
+        let (_, overflow) = (accumulator as i32).overflowing_sub(destination as i32);
+        get_flags(vm, result as u32, destination as u32, accumulator as u32, overflow, carry, AdjustType::Dec, SignType::Dword);
+        if vm.flags.zero {
+            vm.set_arg(pipeline.args[0].location, source)?;
+        } else {
+            vm.set_reg(Reg32::EAX as u8, SizedValue::Dword(destination));
+        }
+    }
+    Ok(())
+}
+
 pub fn cmp_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let cmpt = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;

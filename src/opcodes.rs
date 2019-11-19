@@ -839,6 +839,17 @@ lazy_static! {
             .with_rmw()
             .into_table(&mut ops);
         // Begin cmp opcodes
+        //0x0F B0 CMPXCHG r/m8, r8
+        define_opcode(0xB0).is_two_byte_op().calls(cmpxchg_8bit).with_gas(Low)
+            .with_rm8()
+            .with_rm_reg8()
+            .into_table(&mut ops);
+        //0x0F B1 CMPXCHG r/m16, r16
+        //0x0F B1 CMPXCHG r/m32, r32
+        define_opcode(0xB1).is_two_byte_op().calls(cmpxchg_native_word).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
         //0x38 cmp r/m8, r8
         define_opcode(0x38).calls(cmp_8bit).with_gas(Low)
             .with_rm8()
