@@ -1440,23 +1440,47 @@ fn test_repe_cmpsd() {
 }
 
 #[test]
-fn test_lodsb_stosb() {
+fn test_scasb() {
     let vm = execute_vm_with_asm("
-        mov esi, 0x80000000
-        mov edi, 0x80000004
-        mov byte [esi], 0x08
-        mov ecx, 1
-        rep lodsb
-        mov ecx, 3
-        rep stosb
-        mov ebx, dword [edi - 3]
+        mov edi, 0x80000000
+        mov al, \"x\"
+        mov dword [edi], 0x78000000
+        mov ecx, 5
+        repne scasb
         hlt");
-    assert_eq!(vm.reg32(Reg32::ESI), 0x80000001);
-    assert_eq!(vm.reg32(Reg32::EDI), 0x80000007);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000004);
+    assert_eq!(vm.reg32(Reg32::ECX), 1);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00000078);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_scasw() {
+    let vm = execute_vm_with_asm("
+        mov edi, 0x80000000
+        mov ax, \"xx\"
+        mov dword [edi], 0x78780000
+        mov ecx, 3
+        repne scasw
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000004);
+    assert_eq!(vm.reg32(Reg32::ECX), 1);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00007878);
+    assert_eq!(vm.flags, X86Flags{zero: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_scasd() {
+    let vm = execute_vm_with_asm("
+        mov edi, 0x80000000
+        mov eax, \"xx\"
+        mov ecx, 5
+        repne scasd
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000014);
     assert_eq!(vm.reg32(Reg32::ECX), 0);
-    assert_eq!(vm.reg32(Reg32::EAX), 0x00000008);
-    assert_eq!(vm.reg32(Reg32::EBX), 0x00080808);
-    assert_eq!(vm.flags, X86Flags{..Default::default()});
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00007878);
+    assert_eq!(vm.flags, X86Flags{parity: true, ..Default::default()});
 }
 
 #[test]
