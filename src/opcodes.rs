@@ -1229,7 +1229,7 @@ lazy_static! {
             .with_rm_reg32()
             .with_rm16()
             .into_table(&mut ops); 
-        //0x0F B6 /r MOVSX rW,rm8
+        //0x0F BE /r MOVSX rW,rm8
         define_opcode(0xBE).is_two_byte_op().calls(movsx_8bit).with_gas(Low)
             .with_rm_regw()
             .with_rm8()
