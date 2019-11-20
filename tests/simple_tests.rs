@@ -1654,6 +1654,16 @@ fn test_btc_16() {
 }
 
 #[test]
+fn test_btc_16_modulus() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        btc ax, 0x82
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006662);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
 fn test_cwde_upper() {
     let vm = execute_vm_with_asm("
         mov ax, 0x8888
@@ -1731,12 +1741,4 @@ fn test_cwd_upper() {
         hlt");
     assert_eq!(vm.reg16(Reg16::DX), 0xFFFF);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
-}#[test]
-fn test_btc_16_modulus() {
-    let vm = execute_vm_with_asm("
-        mov ax, 0110011001100110b
-        btc ax, 0x82
-        hlt");
-    assert_eq!(vm.reg32(Reg32::EAX), 0x00006662);
-    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
 }
