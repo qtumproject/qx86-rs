@@ -775,21 +775,11 @@ pub fn xadd_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
-    let result = sum_and_get_flags_8bit(vm, base, adder);
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
-    Ok(())
-}
-
-fn sum_and_get_flags_8bit(vm: &mut VM, base: u8, adder: u8) -> u8 {
     let (result, carry) = base.overflowing_add(adder);
     let (_, overflow) = (base as i8).overflowing_add(adder as i8);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
-    result
+    get_flags(vm, result as u32, adder as u32, base as u32, overflow, carry, AdjustType::Inc, SignType::Byte);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
+    Ok(())
 }
 
 pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
@@ -803,41 +793,21 @@ pub fn add_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
 pub fn add_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-    let result = sum_and_get_flags_16bit(vm, base, adder);
-    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
-    Ok(())
-}
-
-fn sum_and_get_flags_16bit(vm: &mut VM, base: u16, adder: u16) -> u16 {
     let (result, carry) = base.overflowing_add(adder);
     let (_, overflow) = (base as i16).overflowing_add(adder as i16);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
-    result
+    get_flags(vm, result as u32, adder as u32, base as u32, overflow, carry, AdjustType::Inc, SignType::Word);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
+    Ok(())
 }
 
 pub fn add_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-    let result = sum_and_get_flags_32bit(vm, base, adder);
-    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
-    Ok(())
-}
-
-fn sum_and_get_flags_32bit(vm: &mut VM, base: u32, adder: u32) -> u32 {
     let (result, carry) = base.overflowing_add(adder);
     let (_, overflow) = (base as i32).overflowing_add(adder as i32);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.adjust = (base&0x0F) + (adder&0x0F) > 15;
-    result
+    get_flags(vm, result as u32, adder as u32, base as u32, overflow, carry, AdjustType::Inc, SignType::Dword);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    Ok(())
 }
 
 /// The logic function for the `hlt` opcode
@@ -894,12 +864,7 @@ pub fn sub_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let subt = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     let (result, carry) = base.overflowing_sub(subt);
     let (_, overflow) = (base as i8).overflowing_sub(subt as i8);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
+    get_flags(vm, result as u32, subt as u32, base as u32, overflow, carry, AdjustType::Dec, SignType::Byte);
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result))?;
     Ok(())
 }
@@ -917,12 +882,7 @@ pub fn sub_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let subt = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let (result, carry) = base.overflowing_sub(subt);
     let (_, overflow) = (base as i16).overflowing_sub(subt as i16);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
+    get_flags(vm, result as u32, subt as u32, base as u32, overflow, carry, AdjustType::Dec, SignType::Word);
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result))?;
     Ok(())
 }
@@ -932,12 +892,7 @@ pub fn sub_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let subt = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let (result, carry) = base.overflowing_sub(subt);
     let (_, overflow) = (base as i32).overflowing_sub(subt as i32);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((subt as i32)&0x0F) < 0;
+    get_flags(vm, result as u32, subt as u32, base as u32, overflow, carry, AdjustType::Dec, SignType::Dword);
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
     Ok(())
 }
@@ -991,12 +946,7 @@ pub fn cmp_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let cmpt = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     let (result, carry) = base.overflowing_sub(cmpt);
     let (_, overflow) = (base as i8).overflowing_sub(cmpt as i8);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+    get_flags(vm, result as u32, cmpt as u32, base as u32, overflow, carry, AdjustType::Dec, SignType::Byte);
     Ok(())
 }
 
@@ -1013,12 +963,7 @@ pub fn cmp_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let cmpt = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let (result, carry) = base.overflowing_sub(cmpt);
     let (_, overflow) = (base as i16).overflowing_sub(cmpt as i16);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+    get_flags(vm, result as u32, cmpt as u32, base as u32, overflow, carry, AdjustType::Dec, SignType::Word);
     Ok(())
 }
 
@@ -1027,12 +972,7 @@ pub fn cmp_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let cmpt = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let (result, carry) = base.overflowing_sub(cmpt);
     let (_, overflow) = (base as i32).overflowing_sub(cmpt as i32);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.adjust = ((base as i32)&0x0F) - ((cmpt as i32)&0x0F) < 0;
+    get_flags(vm, result as u32, cmpt as u32, base as u32, overflow, carry, AdjustType::Dec, SignType::Dword);
     Ok(())
 }
 
@@ -1040,11 +980,7 @@ pub fn test_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     let result = base & mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Byte);
     Ok(())
 }
 
@@ -1060,11 +996,7 @@ pub fn test_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) ->
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let result = base & mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Word);
     Ok(())
 }
 
@@ -1072,11 +1004,7 @@ pub fn test_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) ->
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let result = base & mask;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Dword);
     Ok(())
 }
 
@@ -1085,11 +1013,7 @@ pub fn and_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     let result = base & mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Byte);
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }
@@ -1106,11 +1030,7 @@ pub fn and_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let result = base & mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Word);
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
 }
@@ -1119,11 +1039,7 @@ pub fn and_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let result = base & mask;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Dword);
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
@@ -1132,11 +1048,7 @@ pub fn or_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Re
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     let result = base | mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Byte);
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }
@@ -1153,11 +1065,7 @@ pub fn or_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let result = base | mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Word);
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
 }
@@ -1166,11 +1074,7 @@ pub fn or_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let result = base | mask;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Dword);
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
@@ -1179,11 +1083,7 @@ pub fn xor_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
     let result = base ^ mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Byte);
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
 }
@@ -1200,11 +1100,7 @@ pub fn xor_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let base = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
     let result = base ^ mask;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign16(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Word);
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
 }
@@ -1213,11 +1109,7 @@ pub fn xor_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let base = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
     let mask = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     let result = base ^ mask;
-    vm.flags.calculate_zero(result);
-    vm.flags.calculate_parity(result);
-    vm.flags.calculate_sign32(result);
-    vm.flags.carry = false;
-    vm.flags.overflow = false;
+    get_flags(vm, result as u32, mask as u32, base as u32, false, false, AdjustType::None, SignType::Dword);
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
 }
@@ -1512,12 +1404,7 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
         let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Word)?.u16_exact()?;
         let (result, carry) = destination.overflowing_sub(source);
         let (_, overflow) = (destination as i16).overflowing_sub(source as i16);
-        vm.flags.overflow = overflow;
-        vm.flags.carry = carry;
-        vm.flags.calculate_zero(result as u32);
-        vm.flags.calculate_parity(result as u32);
-        vm.flags.calculate_sign16(result);
-        vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
+        get_flags(vm, result as u32, source as u32, destination as u32, overflow, carry, AdjustType::Dec, SignType::Word);
         let d = if vm.flags.direction{
             (-2i32) as u32
         }else{
@@ -1531,12 +1418,7 @@ pub fn cmps_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
         let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Dword)?.u32_exact()?;
         let (result, carry) = destination.overflowing_sub(source);
         let (_, overflow) = (destination as i32).overflowing_sub(source as i32);
-        vm.flags.overflow = overflow;
-        vm.flags.carry = carry;
-        vm.flags.calculate_zero(result as u32);
-        vm.flags.calculate_parity(result as u32);
-        vm.flags.calculate_sign32(result);
-        vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
+        get_flags(vm, result as u32, source as u32, destination as u32, overflow, carry, AdjustType::Dec, SignType::Dword);
         //todo DF
         let d = if vm.flags.direction{
             (-4i32) as u32
@@ -1555,12 +1437,7 @@ pub fn cmpsb(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Res
     let source = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Byte)?.u8_exact()?;
     let (result, carry) = destination.overflowing_sub(source);
     let (_, overflow) = (destination as i8).overflowing_sub(source as i8);
-    vm.flags.overflow = overflow;
-    vm.flags.carry = carry;
-    vm.flags.calculate_zero(result as u32);
-    vm.flags.calculate_parity(result as u32);
-    vm.flags.calculate_sign8(result);
-    vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
+    get_flags(vm, result as u32, source as u32, destination as u32, overflow, carry, AdjustType::Dec, SignType::Byte);
     //todo DF
     let d = if vm.flags.direction{
         (-1i32) as u32
@@ -1596,7 +1473,22 @@ pub fn load_string_byte(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervi
     Ok(())
 }
 
-pub fn store_string_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+pub fn scan_string_byte(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let edi_mem = vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Byte)?.u8_exact()?;
+    let al_reg = vm.get_reg(Reg8::AL as u8, ValueSize::Byte).u8_exact()?;
+    let (result, carry) = al_reg.overflowing_sub(edi_mem);
+    let (_, overflow) = (al_reg as i8).overflowing_sub(edi_mem as i8);
+    get_flags(vm, result as u32, edi_mem as u32, al_reg as u32, overflow, carry, AdjustType::Dec, SignType::Byte);
+    let d = if vm.flags.direction{
+        (-1i32) as u32
+    }else{
+        1
+    };
+    vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+    Ok(())
+}
+
+pub fn store_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         vm.set_mem(vm.reg32(Reg32::EDI), vm.get_reg(Reg16::AX as u8, ValueSize::Word))?;
         let d = if vm.flags.direction{
@@ -1640,3 +1532,72 @@ pub fn load_string_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn H
     Ok(())
 }
 
+pub fn scan_string_native_word(vm: &mut VM, pipeline: &Pipeline, hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let mut d;
+    if pipeline.size_override {
+        let edi_mem =  vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Word)?.u16_exact()?;
+        let ax_reg = vm.get_reg(Reg16::AX as u8, ValueSize::Word).u16_exact()?;
+        let (result, carry) = ax_reg.overflowing_sub(edi_mem);
+        let (_, overflow) = (ax_reg as i16).overflowing_sub(edi_mem as i16);
+        get_flags(vm, result as u32, edi_mem as u32, ax_reg as u32, overflow, carry, AdjustType::Dec, SignType::Word);
+        d = if vm.flags.direction{
+            (-2i32) as u32
+        }else{
+            2
+        };    
+    } else {
+        let edi_mem =  vm.get_mem(vm.reg32(Reg32::EDI), ValueSize::Dword)?.u32_exact()?;
+        let eax_reg = vm.get_reg(Reg32::EAX as u8, ValueSize::Dword).u32_exact()?;
+        let (result, carry) = eax_reg.overflowing_sub(edi_mem);
+        let (_, overflow) = (eax_reg as i32).overflowing_sub(edi_mem as i32);
+        get_flags(vm, result, edi_mem, eax_reg, overflow, carry, AdjustType::Dec, SignType::Dword);
+        d = if vm.flags.direction{
+            (-4i32) as u32
+        }else{
+            4
+        };
+    }
+    vm.set_reg32(Reg32::EDI, vm.reg32(Reg32::EDI).wrapping_add(d));
+    Ok(())
+}
+
+pub enum SignType{
+    Byte,
+    Word,
+    Dword
+}
+
+pub enum AdjustType{
+    Inc,
+    Dec,
+    None
+}
+
+/// a catch all utility function used by the opcodes to get all flags
+/// this should not be used for every single opcode as some have more fine grained nuances
+pub fn get_flags(vm: &mut VM, result: u32, source: u32, destination: u32, overflow: bool, carry: bool, adjust: AdjustType, sign: SignType) {
+    vm.flags.overflow = overflow;
+    vm.flags.carry = carry;
+    vm.flags.calculate_zero(result as u32);
+    vm.flags.calculate_parity(result as u32);
+    match adjust {
+        AdjustType::Dec => {
+            vm.flags.adjust = ((destination as i32)&0x0F) - ((source as i32)&0x0F) < 0;
+        },
+        AdjustType::Inc => {
+            vm.flags.adjust = (destination&0x0F) + (source&0x0F) > 15;
+        },
+        AdjustType::None => ()
+    }
+    match sign {
+        SignType::Byte => {
+            vm.flags.calculate_sign8(result as u8);
+        },
+        SignType::Word => {
+            vm.flags.calculate_sign16(result as u16);
+        },
+        SignType::Dword => {
+            vm.flags.calculate_sign32(result as u32);
+        }
+    }
+}

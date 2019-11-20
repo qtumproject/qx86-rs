@@ -1267,6 +1267,12 @@ lazy_static! {
         //0xA7 CMPSD/CMPSW
         define_opcode(0xA7).calls(cmps_native_word).with_gas(Low)
             .into_table(&mut ops);
+        //0xAE SCAS m8
+        define_opcode(0xAE).calls(scan_string_byte).with_gas(Low)
+            .into_table(&mut ops);
+        //0xAE SCAS m16/m32
+        define_opcode(0xAF).calls(scan_string_native_word).with_gas(Low)
+            .into_table(&mut ops);        
         //0xAA STOS m8
         define_opcode(0xAA).calls(store_string_byte).with_gas(Low)
             .into_table(&mut ops);
