@@ -121,6 +121,25 @@ pub fn cdq_cwd(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Re
     Ok(())
 }
 
+pub fn cdq_cwd(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let lower_half = vm.reg16(Reg16::AX) as u16;
+        if lower_half < 0x8000 {
+            vm.set_reg(Reg16::DX as u8, SizedValue::Word(0x0));
+        } else {
+            vm.set_reg(Reg16::DX as u8, SizedValue::Word(0xFFFF));
+        }
+    } else {
+        let lower_half = vm.reg32(Reg32::EAX) as u32;
+        if lower_half < 0x80000000 {
+            vm.set_reg(Reg32::EDX as u8, SizedValue::Dword(0x0));   
+        } else {
+            vm.set_reg(Reg32::EDX as u8, SizedValue::Dword(0xFFFFFFFF));
+        }
+    }
+    Ok(())
+}
+
 pub fn bit_test(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         let bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
@@ -1306,6 +1325,23 @@ pub fn movzx_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) ->
 
 pub fn movzx_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let v = vm.get_arg(pipeline.args[1].location)?.u32_zx()?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
+    Ok(())
+}
+
+pub fn movsx_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let v = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(v))?;
+    }else{
+        let v = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
+    }
+    Ok(())
+}
+
+pub fn movsx_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let v = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(v))?;
     Ok(())
 }

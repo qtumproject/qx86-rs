@@ -1154,7 +1154,7 @@ fn test_movzx() {
         mov ebx, 0xFFFFFFFF
         mov ecx, 0xFFFFFFFF
         mov edx, 0xFFFFFFFF
-        mov esi, 0xffffffff
+        mov esi, 0xFFFFFFFF
         movzx ebx, al
         movzx cx, al
         mov dx, 0xFEDC
@@ -1165,6 +1165,26 @@ fn test_movzx() {
     assert_eq!(vm.reg32(Reg32::ECX), 0xFFFF00FA);
     assert_eq!(vm.reg32(Reg32::EDX), 0xFFFFFEDC);
     assert_eq!(vm.reg32(Reg32::ESI), 0xFEDC);
+}
+
+#[test]
+fn test_movsx() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFA
+        mov ebx, 0xFFFFFFFF
+        mov ecx, 0xFFFFFFFF
+        mov edx, 0xFFFFFFFF
+        mov esi, 0xFFFFFFFF
+        movsx ebx, al
+        movsx cx, al
+        mov dx, 0xFEDC
+        movsx esi, dx 
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFA);
+    assert_eq!(vm.reg32(Reg32::EBX), 0xFFFFFFFA);
+    assert_eq!(vm.reg32(Reg32::ECX), 0xFFFFFFFA);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xFFFFFEDC);
+    assert_eq!(vm.reg32(Reg32::ESI), 0xFFFFFEDC);
 }
 
 #[test]
