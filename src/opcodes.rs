@@ -1147,6 +1147,54 @@ lazy_static! {
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops);
+        //0x0F A3 BT r/m16, r16
+        //0x0F A3 BT r/m32, r32
+        define_opcode(0xA3).is_two_byte_op().calls(bit_test).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0xBA BT r/m16, imm8
+        //0xBA BT r/m32, imm8
+        define_opcode(0xBA).is_group(4).is_two_byte_op().calls(bit_test).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0x0F AB BTS r/m16, r16
+        //0x0F AB BTS r/m32, r32
+        define_opcode(0xAB).is_two_byte_op().calls(bit_test_set).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0xBA BTS r/m16, imm8
+        //0xBA BTS r/m32, imm8
+        define_opcode(0xBA).is_group(5).is_two_byte_op().calls(bit_test_set).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0x0F B3 BTR r/m16, r16
+        //0x0F B3 BTR r/m32, r32
+        define_opcode(0xB3).is_two_byte_op().calls(bit_test_reset).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0xBA BTR r/m16, imm8
+        //0xBA BTR r/m32, imm8
+        define_opcode(0xBA).is_group(6).is_two_byte_op().calls(bit_test_reset).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        //0x0F BB BTC r/m16, r16
+        //0x0F BB BTC r/m32, r32
+        define_opcode(0xBB).is_two_byte_op().calls(bit_test_complement).with_gas(Low)
+            .with_rmw()
+            .with_rm_regw()
+            .into_table(&mut ops);
+        //0xBA BTC r/m16, imm8
+        //0xBA BTC r/m32, imm8
+        define_opcode(0xBA).is_group(7).is_two_byte_op().calls(bit_test_complement).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
         //0x0F C8 /r BSWAP r32
         define_opcode(0xC8).is_two_byte_op().calls(bswap).with_gas(Low)
             .with_suffix_reg32()

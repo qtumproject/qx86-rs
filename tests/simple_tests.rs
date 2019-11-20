@@ -1540,3 +1540,125 @@ fn test_bswap() {
     assert_eq!(vm.reg32(Reg32::EAX), 0x11041001);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
+
+#[test]
+fn test_bt_32() {
+    let vm = execute_vm_with_asm("
+        mov eax, 011001100110011001100110b
+        bt eax, 1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00666666);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_bt_32_modulus() {
+    let vm = execute_vm_with_asm("
+        mov eax, 011001100110011001100110b
+        bt eax, 0x81
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00666666);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_bt_16() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        bt ax, bx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006666);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_bts_32() {
+    let vm = execute_vm_with_asm("
+        mov eax, 011001100110011001100110b
+        bts eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00666667);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_bts_16() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        bts ax, 1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006666);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_bts_16_modulus() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        bts ax, 0x81
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006666);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_btr_32() {
+    let vm = execute_vm_with_asm("
+        mov eax, 011001100110011001100110b
+        mov ebx, 1
+        btr eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00666664);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_btr_16() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        btr ax, 5
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006646);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_btr_16_modulus() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        btr ax, 0x85
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006646);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_btc_32() {
+    let vm = execute_vm_with_asm("
+        mov eax, 011001100110011001100110b
+        btc eax, ebx
+        btc eax, ebx
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00666666);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_btc_16() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        btc ax, 2
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006662);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}
+
+#[test]
+fn test_btc_16_modulus() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0110011001100110b
+        btc ax, 0x82
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00006662);
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});
+}

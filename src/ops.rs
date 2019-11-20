@@ -83,6 +83,68 @@ pub fn bswap(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resu
         Ok(())
 }
 
+pub fn bit_test(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
+    } else {
+        let bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
+    }
+    Ok(())
+}
+
+pub fn bit_test_set(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let mut bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
+        bitset.set::<LittleEndian>(((index % 16) as u8).into(), true);
+        return vm.set_arg(pipeline.args[0].location, SizedValue::Word(bitset));          
+    } else {
+        let mut bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
+        bitset.set::<LittleEndian>(((index % 32) as u8).into(), true);
+        return vm.set_arg(pipeline.args[0].location, SizedValue::Dword(bitset));    
+    }
+}
+
+pub fn bit_test_reset(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let mut bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
+        bitset.set::<LittleEndian>(((index % 16) as u8).into(), false);
+        return vm.set_arg(pipeline.args[0].location, SizedValue::Word(bitset));          
+    } else {
+        let mut bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
+        bitset.set::<LittleEndian>(((index % 32) as u8).into(), false);
+        return vm.set_arg(pipeline.args[0].location, SizedValue::Dword(bitset));    
+    }
+}
+
+
+pub fn bit_test_complement(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let mut bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
+        bitset.set::<LittleEndian>(((index % 16) as u8).into(), !vm.flags.carry);
+        return vm.set_arg(pipeline.args[0].location, SizedValue::Word(bitset));          
+    } else {
+        let mut bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        let index = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
+        bitset.set::<LittleEndian>(((index % 32) as u8).into(), !vm.flags.carry);
+        return vm.set_arg(pipeline.args[0].location, SizedValue::Dword(bitset));    
+    }
+}
+
 pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
     if pipeline.size_override {
         let source = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
