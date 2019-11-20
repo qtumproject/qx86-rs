@@ -1654,12 +1654,22 @@ fn test_btc_16() {
 }
 
 #[test]
-fn test_cwde() {
+fn test_cwde_upper() {
     let vm = execute_vm_with_asm("
         mov ax, 0x8888
         cwde
         hlt");
     assert_eq!(vm.reg32(Reg32::EAX), 0xFFFF8888);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_cwde_lower() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xFF6666
+        cwde
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x6666);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
 

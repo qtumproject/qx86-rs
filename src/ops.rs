@@ -93,7 +93,11 @@ pub fn cbw_cwde(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
         }
     } else {
         let lower_half = vm.reg16(Reg16::AX) as u16;
-        vm.set_reg(Reg32::EAX as u8, SizedValue::Dword(0xFFFF0000 + lower_half as u32));   
+        if lower_half > 0x8000 {
+            vm.set_reg(Reg32::EAX as u8, SizedValue::Dword(0xFFFF0000 + lower_half as u32));
+        } else {
+            vm.set_reg(Reg32::EAX as u8, SizedValue::Dword(lower_half as u32));            
+        }
     }
     Ok(())
 }
