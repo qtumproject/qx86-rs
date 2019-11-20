@@ -1484,6 +1484,26 @@ fn test_scasd() {
 }
 
 #[test]
+fn test_lodsb_stosb() {
+    let vm = execute_vm_with_asm("
+        mov esi, 0x80000000
+        mov edi, 0x80000004
+        mov byte [esi], 0x08
+        mov ecx, 1
+        rep lodsb
+        mov ecx, 3
+        rep stosb
+        mov ebx, dword [edi - 3]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESI), 0x80000001);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x80000007);
+    assert_eq!(vm.reg32(Reg32::ECX), 0);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00000008);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x00080808);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
 fn test_lodsw_stosw() {
     let vm = execute_vm_with_asm("
         mov esi, 0x80000000

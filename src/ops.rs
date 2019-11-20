@@ -772,20 +772,6 @@ pub fn xadd_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
     }
 }
 
-pub fn xadd_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    xchg(vm, pipeline, _hv)?;
-    return add_8bit(vm, pipeline, _hv);
-}
-
-pub fn xadd_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
-    xchg(vm, pipeline, _hv)?;
-    if pipeline.size_override {
-        return add_16bit(vm, pipeline, _hv);
-    } else {
-        return add_32bit(vm, pipeline, _hv);
-    }
-}
-
 pub fn add_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let adder = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
