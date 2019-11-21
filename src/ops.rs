@@ -758,6 +758,34 @@ pub fn adc_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyperviso
     }
 }
 
+pub fn sbb_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let carry_sub = if vm.flags.carry{
+        1
+    }else{
+        0
+    };
+    let prelim_dif = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_dif.wrapping_sub(carry_sub)));    
+    return sub_8bit(vm, pipeline, _hv);
+}
+
+pub fn sbb_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError> {
+    let carry_sub = if vm.flags.carry{
+        1
+    }else{
+        0
+    };
+    if pipeline.size_override{
+        let prelim_dif = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Word(prelim_dif.wrapping_sub(carry_sub as u16)))?;
+        return sub_16bit(vm, pipeline, _hv);
+    } else {
+        let prelim_dif = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        vm.set_arg(pipeline.args[0].location, SizedValue::Dword(prelim_dif.wrapping_sub(carry_sub as u32)))?;
+        return sub_32bit(vm, pipeline, _hv);
+    }
+}
+
 pub fn xadd_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     xchg(vm, pipeline, _hv)?;
     return add_8bit(vm, pipeline, _hv);
