@@ -951,6 +951,14 @@ lazy_static! {
             .with_rmw()
             .with_imm8()
             .into_table(&mut ops);
+        // PUSHA
+        // PUSHDA
+        define_opcode(0x60).calls(pusha).with_gas(Low)
+            .into_table(&mut ops); 
+        // POPA
+        // POPDA
+        define_opcode(0x61).calls(popa).with_gas(Low)
+            .into_table(&mut ops); 
         // Bitwise AND
         //0x20 and r/m8, r8
         define_opcode(0x20).calls(and_8bit).with_gas(Low)

@@ -13,6 +13,68 @@ pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     vm.set_arg(pipeline.args[0].location, vm.get_arg(pipeline.args[1].location)?)?;
     Ok(())
 }
+/// The logic function for the 'pusha' opcode
+pub fn pusha(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    println!("size_override: {}", pipeline.size_override);
+    if pipeline.size_override {
+        let sp = vm.get_reg(Reg16::SP as u8, ValueSize::Word);
+        vm.push_stack(vm.get_reg(Reg16::AX as u8, ValueSize::Word), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg16::CX as u8, ValueSize::Word), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg16::DX as u8, ValueSize::Word), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg16::BX as u8, ValueSize::Word), pipeline)?;
+        vm.push_stack(sp, pipeline)?;
+        vm.push_stack(vm.get_reg(Reg16::BP as u8, ValueSize::Word), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg16::SI as u8, ValueSize::Word), pipeline)?;
+        return vm.push_stack(vm.get_reg(Reg16::DI as u8, ValueSize::Word), pipeline);
+    } else {
+        let esp = vm.get_reg(Reg32::ESP as u8, ValueSize::Dword);
+        vm.push_stack(vm.get_reg(Reg32::EAX as u8, ValueSize::Dword), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg32::ECX as u8, ValueSize::Dword), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg32::EDX as u8, ValueSize::Dword), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg32::EBX as u8, ValueSize::Dword), pipeline)?;
+        vm.push_stack(esp, pipeline)?;
+        vm.push_stack(vm.get_reg(Reg32::EBP as u8, ValueSize::Dword), pipeline)?;
+        vm.push_stack(vm.get_reg(Reg32::ESI as u8, ValueSize::Dword), pipeline)?;
+        return vm.push_stack(vm.get_reg(Reg32::EDI as u8, ValueSize::Dword), pipeline);
+    }
+}
+/// The logic function for the 'popa' opcode
+pub fn popa(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override{
+        let di = vm.pop16()?;
+        let si = vm.pop16()?;
+        let bp = vm.pop16()?;
+        vm.pop16()?; //sp doesn't get set
+        let bx = vm.pop16()?;
+        let dx = vm.pop16()?;
+        let cx = vm.pop16()?;
+        let ax = vm.pop16()?;
+        vm.set_reg(Reg16::DI as u8, di);
+        vm.set_reg(Reg16::SI as u8, si);
+        vm.set_reg(Reg16::BP as u8, bp);
+        vm.set_reg(Reg16::BX as u8, bx);
+        vm.set_reg(Reg16::DX as u8, dx);
+        vm.set_reg(Reg16::CX as u8, cx);
+        vm.set_reg(Reg16::AX as u8, ax);
+    } else {
+        let edi = vm.pop32()?;
+        let esi = vm.pop32()?;
+        let ebp = vm.pop32()?;
+        vm.pop32()?; //esp doesn't get set
+        let ebx = vm.pop32()?;
+        let edx = vm.pop32()?;
+        let ecx = vm.pop32()?;
+        let eax = vm.pop32()?;
+        vm.set_reg(Reg32::EDI as u8, edi);
+        vm.set_reg(Reg32::ESI as u8, esi);
+        vm.set_reg(Reg32::EBP as u8, ebp);
+        vm.set_reg(Reg32::EBX as u8, ebx);
+        vm.set_reg(Reg32::EDX as u8, edx);
+        vm.set_reg(Reg32::ECX as u8, ecx);
+        vm.set_reg(Reg32::EAX as u8, eax);
+    }
+    Ok(())
+}
 ///  The logic function for the 'enter' opcode
 pub fn enter(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let locals = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
