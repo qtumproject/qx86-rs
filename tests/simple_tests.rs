@@ -1889,9 +1889,9 @@ fn test_pusha() {
         mov di, 0x6014
         mov esp, 0x800065FE
         mov bp, 0x6647
-        pusha
+        pushaw
         hlt");
-    assert_eq!(vm.reg32(Reg32::ESP), 0x800065DE);
+    assert_eq!(vm.reg32(Reg32::ESP), 0x800065EE);
     assert_eq!(vm.flags, X86Flags{..Default::default()});
 }
 
@@ -1906,7 +1906,7 @@ fn test_popa() {
         mov di, 0x6014
         mov esp, 0x800065FE
         mov bp, 0x6647
-        pusha
+        pushaw
         mov ax, 0
         mov bx, 0
         mov cx, 0
@@ -1914,7 +1914,7 @@ fn test_popa() {
         mov si, 0
         mov di, 0
         mov bp, 0
-        popa
+        popaw
         hlt");
     assert_eq!(vm.reg32(Reg32::ESP), 0x800065FE);
     assert_eq!(vm.reg32(Reg32::EAX), 0x6666);
