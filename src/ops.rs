@@ -15,7 +15,6 @@ pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
 }
 /// The logic function for the 'pusha' opcode
 pub fn pusha(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    println!("size_override: {}", pipeline.size_override);
     if pipeline.size_override {
         let sp = vm.get_reg(Reg16::SP as u8, ValueSize::Word);
         vm.push_stack(vm.get_reg(Reg16::AX as u8, ValueSize::Word), pipeline)?;
