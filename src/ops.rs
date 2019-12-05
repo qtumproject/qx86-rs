@@ -144,6 +144,19 @@ pub fn bswap(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resu
         Ok(())
 }
 
+pub fn pushf(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let flag_int = vm.flags.serialize_flag_storage();
+    vm.push_stack(SizedValue::Dword(flag_int), pipeline);
+    Ok(())
+}
+
+pub fn popf(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let flag_result = vm.pop32()?;
+    let flag_int = flag_result.u32_exact()?;
+    vm.flags.deserialize_flag_storage(flag_int);
+    Ok(())
+}
+
 pub fn cbw_cwde(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         let lower_half = vm.reg8(Reg8::AL) as u8;

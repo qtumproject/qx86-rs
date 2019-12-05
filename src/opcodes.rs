@@ -1217,6 +1217,12 @@ lazy_static! {
             .with_rm_regw()
             .with_rmw()
             .into_table(&mut ops);
+        //0x9C PUSHF
+        define_opcode(0x9C).calls(pushf).with_gas(Low)
+            .into_table(&mut ops);
+        //0x9D POPF
+        define_opcode(0x9D).calls(popf).with_gas(Low)
+            .into_table(&mut ops);
         //0x0F A3 BT r/m16, r16
         //0x0F A3 BT r/m32, r32
         define_opcode(0xA3).is_two_byte_op().calls(bit_test).with_gas(Low)
