@@ -2058,3 +2058,21 @@ fn test_cmpxchg_byte_not_equal() {
     assert_eq!(vm.reg8(Reg8::AL), 0x79);
     assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, sign: true, parity: true, ..Default::default()});
 }
+
+#[test]
+fn test_pushf_popf() {
+    let vm = execute_vm_with_asm("
+        mov esp, 0x80000080
+        mov al, 0x78
+        mov bl, 0x79
+        mov cl, 1
+        cmpxchg bl, cl
+        pushf
+        mov al, 0x78
+        mov bl, 0x78
+        mov cl, 1
+        cmpxchg bl, cl
+        popf
+        hlt");
+    assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, sign: true, parity: true, ..Default::default()});
+}
