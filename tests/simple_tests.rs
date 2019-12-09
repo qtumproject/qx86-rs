@@ -1879,6 +1879,103 @@ fn test_cwd_upper() {
 }
 
 #[test]
+fn test_pusha() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0x6666
+        mov bx, 0x80
+        mov cx, 0xFF
+        mov dx, 0xFFFF
+        mov si, 0xFEDC
+        mov di, 0x6014
+        mov esp, 0x800065FE
+        mov bp, 0x6647
+        pushaw
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESP), 0x800065EE);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_popa() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x6666666
+        mov ebx, 0x80080
+        mov ecx, 0xFF00FF
+        mov edx, 0xFFFFFFFF
+        mov esi, 0xBBBBFEDC
+        mov edi, 0x12346014
+        mov esp, 0x800065FE
+        mov ebp, 0x12346647
+        pushaw
+        mov eax, 0
+        mov ebx, 0
+        mov ecx, 0
+        mov edx, 0
+        mov esi, 0
+        mov edi, 0
+        mov ebp, 0
+        popaw
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESP), 0x800065FE);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x6666);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x80);
+    assert_eq!(vm.reg32(Reg32::ECX), 0xFF);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xFFFF);
+    assert_eq!(vm.reg32(Reg32::EDI), 0x6014);
+    assert_eq!(vm.reg32(Reg32::EBP), 0x6647);
+    assert_eq!(vm.reg32(Reg32::ESI), 0xFEDC);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_pushad() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x6666
+        mov ebx, 0x80
+        mov ecx, 0xFF
+        mov edx, 0xFFFF
+        mov esi, 0xFFFFFEDC
+        mov edi, 0xFF8C6014
+        mov esp, 0x800065FE
+        mov ebp, 0xFF8E6647
+        pushad
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESP), 0x800065DE);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_popad() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x6666
+        mov ebx, 0x80
+        mov ecx, 0xFF
+        mov edx, 0xFFFF
+        mov esi, 0xFFFFFEDC
+        mov edi, 0xFF8C6014
+        mov esp, 0x800065FE
+        mov ebp, 0xFF8E6647
+        pushad
+        mov ax, 0
+        mov bx, 0
+        mov cx, 0
+        mov dx, 0
+        mov si, 0
+        mov di, 0
+        mov bp, 0
+        popad
+        hlt");
+    assert_eq!(vm.reg32(Reg32::ESP), 0x800065FE);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x6666);
+    assert_eq!(vm.reg32(Reg32::EBX), 0x80);
+    assert_eq!(vm.reg32(Reg32::ECX), 0xFF);
+    assert_eq!(vm.reg32(Reg32::EDX), 0xFFFF);
+    assert_eq!(vm.reg32(Reg32::EDI), 0xFF8C6014);
+    assert_eq!(vm.reg32(Reg32::EBP), 0xFF8E6647);
+    assert_eq!(vm.reg32(Reg32::ESI), 0xFFFFFEDC);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+#[test]
 fn test_cmpxchg_dword_equal() {
     let vm = execute_vm_with_asm("
         mov eax, 0x00007878
