@@ -1153,14 +1153,28 @@ lazy_static! {
         define_opcode(0x40).calls(increment_native_word).with_gas(Low)
             .with_suffix_regw()
             .into_table(&mut ops);
-        // 0xFE dec r/m8
+        // 0xFE inc r/m8
         define_opcode(0xFE).is_group(0).calls(increment_8bit).with_gas(Low)
             .with_rm8()
             .into_table(&mut ops);
-        // 0xFF dec r/m16
-        // 0xFF dec r/m32
+        // 0xFF inc r/m16
+        // 0xFF inc r/m32
         define_opcode(0xFF).is_group(0).calls(increment_native_word).with_gas(Low)
             .with_rmw()
+            .into_table(&mut ops);
+        // 0x37 aaa 
+        define_opcode(0x37).calls(aaa).with_gas(Low)
+            .into_table(&mut ops);
+        // 0x3F aas
+        define_opcode(0x3F).calls(aas).with_gas(Low)
+            .into_table(&mut ops);
+        // 0xD4 aam imm8
+        define_opcode(0xD4).calls(aam).with_gas(Low)
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xD5 aad imm8
+        define_opcode(0xD5).calls(aad).with_gas(Low)
+            .with_imm8()
             .into_table(&mut ops);
         // 0xCD int imm8
         define_opcode(0xCD).calls(interrupt).with_gas(Moderate)
