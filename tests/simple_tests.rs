@@ -2158,6 +2158,7 @@ fn test_aad3() {
     assert_eq!(vm.reg16(Reg16::AX), 0xbf);
     assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
 }
+
 #[test]
 fn test_pushf_popf() {
     let vm = execute_vm_with_asm("
@@ -2174,4 +2175,54 @@ fn test_pushf_popf() {
         popf
         hlt");
     assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_lahf() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0xaabb
+        aam 0xFA
+        lahf
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AH), 0x86);        
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_sahf() {
+        let vm = execute_vm_with_asm("
+        mov ax, 0xaabb
+        mov bx, 0x86
+        mov ecx, 0xFFFFFF01
+        aam 0xFA
+        lahf
+        cmp ebx, ecx
+        sahf
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AH), 0x86);        
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_daa() {
+        let vm = execute_vm_with_asm("
+        mov al, 0x79
+        mov bl, 0x35
+        add al, bl
+        daa
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x14);        
+    assert_eq!(vm.flags, X86Flags{adjust: true, carry: true, parity: true, overflow: true, ..Default::default()});
+}
+
+#[test]
+fn test_das() {
+        let vm = execute_vm_with_asm("
+        mov al, 0x35
+        mov bl, 0x47
+        sub al, bl
+        das
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x88);        
+    assert_eq!(vm.flags, X86Flags{sign: true, adjust: true, carry: true, parity: true, ..Default::default()});
 }

@@ -1162,6 +1162,18 @@ lazy_static! {
         define_opcode(0xFF).is_group(0).calls(increment_native_word).with_gas(Low)
             .with_rmw()
             .into_table(&mut ops);
+        // 0x9E SAHF 
+        define_opcode(0x9E).calls(sahf).with_gas(Low)
+            .into_table(&mut ops);
+        // 0x9F LAHF 
+        define_opcode(0x9F).calls(lahf).with_gas(Low)
+            .into_table(&mut ops);
+        //0x2F DAS 
+        define_opcode(0x2F).calls(das).with_gas(Low)
+            .into_table(&mut ops);
+        //0x27 DAA
+        define_opcode(0x27).calls(daa).with_gas(Low)
+            .into_table(&mut ops);
         // 0x37 aaa 
         define_opcode(0x37).calls(aaa).with_gas(Low)
             .into_table(&mut ops);

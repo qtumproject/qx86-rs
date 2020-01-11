@@ -146,7 +146,7 @@ pub fn bswap(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resu
 
 pub fn pushf(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let flag_int = vm.flags.serialize_flag_storage();
-    vm.push_stack(SizedValue::Dword(flag_int), pipeline);
+    vm.push_stack(SizedValue::Dword(flag_int), pipeline)?;
     Ok(())
 }
 
@@ -154,6 +154,18 @@ pub fn popf(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resu
     let flag_result = vm.pop32()?;
     let flag_int = flag_result.u32_exact()?;
     vm.flags.deserialize_flag_storage(flag_int);
+    Ok(())
+}
+
+pub fn lahf(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let flag_int = vm.flags.serialize_flag_storage();
+    vm.set_reg(Reg8::AH as u8, SizedValue::Byte(flag_int as u8));
+    Ok(())
+}
+
+pub fn sahf(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let ah = vm.get_reg(Reg8::AH as u8, ValueSize::Byte).u8_exact()?;
+    vm.flags.deserialize_flag_storage(ah as u32);
     Ok(())
 }
 
@@ -838,6 +850,56 @@ pub fn aas(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result
     Ok(())
 }
 
+pub fn daa(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let old_al = vm.get_reg(Reg8::AL as u8, ValueSize::Byte).u8_exact()?;
+    let mut al = old_al;
+    let old_carry = vm.flags.carry;
+    if (al & 0x0F) > 9 || vm.flags.adjust{
+        let (temp_al, carry) = al.overflowing_add(6);
+        al = temp_al;
+        vm.flags.carry = carry;
+        vm.flags.adjust = true;
+    } else {
+        vm.flags.adjust = false;
+    }
+    if (old_al > 0x99) || old_carry {
+        let (temp_al, _carry) = al.overflowing_add(0x60);
+        al = temp_al;
+        vm.flags.carry = true;
+    } else {
+        vm.flags.carry = false;
+    }
+    vm.flags.calculate_parity(al as u32);
+    vm.flags.calculate_sign8(al);
+    vm.flags.calculate_zero(al as u32);
+    vm.set_reg(Reg8::AL as u8, SizedValue::Byte(al));
+    Ok(())
+}
+
+pub fn das(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let old_al = vm.get_reg(Reg8::AL as u8, ValueSize::Byte).u8_exact()?;
+    let mut al = old_al;
+    let old_carry = vm.flags.carry;
+    if (al & 0x0F) > 9 || vm.flags.adjust{
+        let (temp_al, carry) = al.overflowing_sub(6);
+        al = temp_al;
+        vm.flags.carry = carry;
+        vm.flags.adjust = true;
+    } else {
+        vm.flags.adjust = false;
+    }
+    if (old_al > 0x99) || old_carry {
+        let (temp_al, _carry) = al.overflowing_sub(0x60);
+        al = temp_al;
+        vm.flags.carry = true;
+    }
+    vm.flags.calculate_parity(al as u32);
+    vm.flags.calculate_sign8(al);
+    vm.flags.calculate_zero(al as u32);
+    vm.set_reg(Reg8::AL as u8, SizedValue::Byte(al));
+    Ok(())
+}
+
 pub fn aad(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let al = vm.get_reg(Reg8::AL as u8, ValueSize::Byte).u8_exact()?;
     let ah = vm.get_reg(Reg8::AH as u8, ValueSize::Byte).u8_exact()?;
@@ -903,7 +965,7 @@ pub fn sbb_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
         0
     };
     let prelim_dif = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
-    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_dif.wrapping_sub(carry_sub)));    
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(prelim_dif.wrapping_sub(carry_sub)))?;    
     return sub_8bit(vm, pipeline, _hv);
 }
 
