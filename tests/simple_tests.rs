@@ -2060,6 +2060,105 @@ fn test_cmpxchg_byte_not_equal() {
 }
 
 #[test]
+fn test_aaa() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x78
+        aaa
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x08);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_aaa2() {
+    let vm = execute_vm_with_asm("
+        mov al, 0xAA
+        aaa
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x0100);
+    assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, ..Default::default()});
+}
+
+#[test]
+fn test_aas() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x79
+        aas
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x09);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_aas2() {
+    let vm = execute_vm_with_asm("
+        mov al, 0xAA
+        aas
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xff04);
+    assert_eq!(vm.flags, X86Flags{carry: true, adjust: true, ..Default::default()});
+}
+
+#[test]
+fn test_aam() {
+    let vm = execute_vm_with_asm("
+        mov al, 0xAA
+        aam
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x1100);
+    assert_eq!(vm.flags, X86Flags{parity: true, zero: true, ..Default::default()});
+}
+
+#[test]
+fn test_aam2() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x79
+        aam
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xc01);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_aam3() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0xaabb
+        aam 0xfa
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xbb);
+    assert_eq!(vm.flags, X86Flags{sign: true, parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_aad() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0xAAAA
+        aad
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x4e);
+    assert_eq!(vm.flags, X86Flags{parity: true, ..Default::default()});
+}
+
+#[test]
+fn test_aad2() {
+    let vm = execute_vm_with_asm("
+        mov al, 0x79
+        aad
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x79);
+    assert_eq!(vm.flags, X86Flags{..Default::default()});
+}
+
+#[test]
+fn test_aad3() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0xaabb
+        aad 0xfa
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xbf);
+    assert_eq!(vm.flags, X86Flags{sign: true, ..Default::default()});
+}
+#[test]
 fn test_pushf_popf() {
     let vm = execute_vm_with_asm("
         mov esp, 0x80000080
