@@ -1174,6 +1174,138 @@ lazy_static! {
         //0x27 DAA
         define_opcode(0x27).calls(daa).with_gas(Low)
             .into_table(&mut ops);
+        // 0xC0 group 1, ROR r/m8, imm8
+        define_opcode(0xC0).is_group(1).calls(ror_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xC1 group 1, ROR r/m16, imm8
+        // 0xC1 group 1, ROR r/m32, imm8
+        define_opcode(0xC1).is_group(1).calls(ror_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xD0 group 1, ROR r/m8, 1
+        define_opcode(0xD0).is_group(1).calls(ror_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD1 group 1, ROR r/m16, 1
+        // 0xD1 group 1, ROR r/m32, 1
+        define_opcode(0xD1).is_group(1).calls(ror_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD2 group 1, ROR r/m8, CL
+        define_opcode(0xD2).is_group(1).calls(ror_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xD3 group 1, ROR r/m16, CL
+        // 0xD3 group 1, ROR r/m32, CL
+        define_opcode(0xD3).is_group(1).calls(ror_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xC0 group 0, ROL r/m8, imm8
+        define_opcode(0xC0).is_group(0).calls(rol_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xC1 group 0, ROL r/m16, imm8
+        // 0xC1 group 0, ROL r/m32, imm8
+        define_opcode(0xC1).is_group(0).calls(rol_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xD0 group 0, ROL r/m8, 1
+        define_opcode(0xD0).is_group(0).calls(rol_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD1 group 0, ROL r/m16, 1
+        // 0xD1 group 0, ROL r/m32, 1
+        define_opcode(0xD1).is_group(0).calls(rol_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD2 group 0, ROL r/m8, CL
+        define_opcode(0xD2).is_group(0).calls(rol_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xD3 group 0, ROL r/m16, CL
+        // 0xD3 group 0, ROL r/m32, CL
+        define_opcode(0xD3).is_group(0).calls(rol_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xC0 group 2, rcl r/m8, imm8
+        define_opcode(0xC0).is_group(2).calls(rcl_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xC1 group 2, rcl r/m16, imm8
+        // 0xC1 group 2, rcl r/m32, imm8
+        define_opcode(0xC1).is_group(2).calls(rcl_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xD0 group 2, rcl r/m8, 1
+        define_opcode(0xD0).is_group(2).calls(rcl_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD1 group 2, rcl r/m16, 1
+        // 0xD1 group 2, rcl r/m32, 1
+        define_opcode(0xD1).is_group(2).calls(rcl_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD2 group 2, rcl r/m8, CL
+        define_opcode(0xD2).is_group(2).calls(rcl_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xD3 group 2, rcl r/m16, CL
+        // 0xD3 group 2, rcl r/m32, CL
+        define_opcode(0xD3).is_group(2).calls(rcl_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xC0 group 3, rcr r/m8, imm8
+        define_opcode(0xC0).is_group(3).calls(rcr_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xC1 group 3, rcr r/m16, imm8
+        // 0xC1 group 3, rcr r/m32, imm8
+        define_opcode(0xC1).is_group(3).calls(rcr_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xD0 group 3, rcr r/m8, 1
+        define_opcode(0xD0).is_group(3).calls(rcr_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD1 group 3, rcr r/m16, 1
+        // 0xD1 group 3, rcr r/m32, 1
+        define_opcode(0xD1).is_group(3).calls(rcr_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD2 group 3, rcr r/m8, CL
+        define_opcode(0xD2).is_group(3).calls(rcr_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xD3 group 3, rcr r/m16, CL
+        // 0xD3 group 3, rcr r/m32, CL
+        define_opcode(0xD3).is_group(3).calls(rcr_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
         // 0x37 aaa 
         define_opcode(0x37).calls(aaa).with_gas(Low)
             .into_table(&mut ops);
