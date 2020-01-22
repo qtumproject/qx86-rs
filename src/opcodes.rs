@@ -1306,6 +1306,39 @@ lazy_static! {
             .with_rmw()
             .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
             .into_table(&mut ops);
+        // 0xC0 group 7, sar r/m8, imm8
+        define_opcode(0xC0).is_group(7).calls(sar_8bit).with_gas(Low)
+            .with_rm8()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xC1 group 7, sar r/m16, imm8
+        // 0xC1 group 7, sar r/m32, imm8
+        define_opcode(0xC1).is_group(7).calls(sar_native_word).with_gas(Low)
+            .with_rmw()
+            .with_imm8()
+            .into_table(&mut ops);
+        // 0xD0 group 7, sar r/m8, 1
+        define_opcode(0xD0).is_group(7).calls(sar_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD1 group 7, sar r/m16, 1
+        // 0xD1 group 7, sar r/m32, 1
+        define_opcode(0xD1).is_group(7).calls(sar_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::Literal(SizedValue::Byte(1)), OpcodeValueSize::Fixed(ValueSize::Byte))
+            .into_table(&mut ops);
+        // 0xD2 group 7, sar r/m8, CL
+        define_opcode(0xD2).is_group(7).calls(sar_8bit).with_gas(Low)
+            .with_rm8()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
+        // 0xD3 group 7, sar r/m16, CL
+        // 0xD3 group 7, sar r/m32, CL
+        define_opcode(0xD3).is_group(7).calls(sar_native_word).with_gas(Low)
+            .with_rmw()
+            .with_arg(ArgSource::HardcodedRegister(Reg8::CL as u8), OpcodeValueSize::Fixed(Byte))
+            .into_table(&mut ops);
         // 0x37 aaa 
         define_opcode(0x37).calls(aaa).with_gas(Low)
             .into_table(&mut ops);

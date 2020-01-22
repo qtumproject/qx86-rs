@@ -2448,3 +2448,53 @@ fn test_rcr_6() {
     assert_eq!(vm.reg32(Reg32::EAX), 0x9F00FABC);        
     assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});    
 }
+
+#[test]
+fn test_sar_1() {
+    let vm = execute_vm_with_asm("
+        mov al, 11011101b
+        sar al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0b11101110);
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, parity: true, ..Default::default()});    
+}
+
+#[test]
+fn test_sar_2() {
+    let vm = execute_vm_with_asm("
+        mov al, 0xFA
+        sar al, 32
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xFA);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_sar_3() {
+    let vm = execute_vm_with_asm("
+        mov ax, 1101110000001100b
+        sar ax, 1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0b1110111000000110);        
+    assert_eq!(vm.flags, X86Flags{sign:true, parity: true, ..Default::default()});    
+}
+
+#[test]
+fn test_sar_4() {
+    let vm = execute_vm_with_asm("
+        mov eax, 11011100000011000000000000001001b
+        sar eax, 1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0b11101110000001100000000000000100);        
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, ..Default::default()});    
+}
+
+#[test]
+fn test_sar_5() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xF00FABCC
+        sar eax, 4
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFF00FABC);        
+    assert_eq!(vm.flags, X86Flags{carry: true, sign: true, ..Default::default()});    
+}
