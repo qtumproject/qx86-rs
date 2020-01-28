@@ -1595,10 +1595,7 @@ fn test_enter_leave() {
     /**
      * Todo: add these statements after enter 1, 0 and figure out why
      * the while loop portion is erroring
-     *  enter 1, 2
-     *  mov edx, [esp + 1]
-     *  mov esi, esp
-     *  mov edi, ebp
+     *  
      * also add in these assertions
      * assert_eq!(vm.reg32(Reg32::EDI), 0x8000664b);
      * assert_eq!(vm.reg32(Reg32::ESI), 0x8000664C);    
