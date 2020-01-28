@@ -191,6 +191,23 @@ pub fn cmc(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resul
     Ok(())
 }
 
+pub fn xlatb(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override {
+        let al = vm.get_reg(Reg8::AL as u8, ValueSize::Byte).u16_zx()?;
+        let bx = vm.get_reg(Reg16::BX as u8, ValueSize::Word).u16_exact()?;
+        let sum = al.wrapping_add(bx);
+        let result = vm.get_mem(sum as u32, ValueSize::Byte)?.u8_exact()?;
+        vm.set_reg(Reg8::AL as u8, SizedValue::Byte(result));
+    } else {
+        let al = vm.get_reg(Reg8::AL as u8, ValueSize::Byte).u32_zx()?;
+        let bx = vm.get_reg(Reg32::EBX as u8, ValueSize::Dword).u32_exact()?;
+        let sum = al.wrapping_add(bx);
+        let result = vm.get_mem(sum as u32, ValueSize::Byte)?.u8_exact()?;
+        vm.set_reg(Reg8::AL as u8, SizedValue::Byte(result));
+    }
+    Ok(())
+}
+
 pub fn cbw_cwde(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         let lower_half = vm.reg8(Reg8::AL) as u8;
