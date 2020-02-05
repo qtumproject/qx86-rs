@@ -1584,6 +1584,28 @@ pub fn cmpxchg_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyper
     Ok(())
 }
 
+pub fn cmpxchg8b(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+        let eax = vm.get_reg(Reg32::EAX as u8, ValueSize::Dword).u32_exact()?;
+        let edx = vm.get_reg(Reg32::EDX as u8, ValueSize::Dword).u32_exact()?;
+        let ecx = vm.get_reg(Reg32::ECX as u8, ValueSize::Dword).u32_exact()?;
+        let ebx = vm.get_reg(Reg32::EBX as u8, ValueSize::Dword).u32_exact()?;
+        let destination = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+        let temp = vm.get_mem(destination, ValueSize::Qword)?.u64_exact()?;
+        let combined_value = ((edx as u64) << 32) + (eax as u64);
+        if combined_value == temp {
+            vm.flags.zero = true;
+            let other_combined_value = ((ecx as u64) << 32) + (ebx as u64);
+            vm.set_mem(destination, SizedValue::Qword(other_combined_value))?;
+        } else {
+            vm.flags.zero = false;
+            let new_eax = (temp & 0xFFFFFFFF) as u32;
+            let new_edx = ((temp & 0xFFFFFFFF00000000) >> 32) as u32;
+            vm.set_reg(Reg32::EAX as u8, SizedValue::Dword(new_eax));
+            vm.set_reg(Reg32::EDX as u8, SizedValue::Dword(new_edx));
+        }
+        Ok(())
+}
+
 pub fn cmp_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let base = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
     let cmpt = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;

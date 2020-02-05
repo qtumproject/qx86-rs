@@ -102,6 +102,14 @@ impl MemorySystem{
         let v: [u8; 4] = *(&m[0..4].try_into().unwrap());
         Ok(u32::from_le_bytes(v))
     }
+
+    /// Retreives a single u32 from memory, including endianness correction if needed
+    pub fn get_u64(&self, address: u32) -> Result<u64, VMError>{
+        use std::convert::TryInto;
+        let m = self.get_sized_memory(address, 8)?;
+        let v: [u8; 8] = *(&m[0..8].try_into().unwrap());
+        Ok(u64::from_le_bytes(v))
+    }
     /// Sets a single u8 in memory
     pub fn set_u8(&mut self, address: u32, v: u8) -> Result<u8, VMError>{
         let m = self.get_mut_sized_memory(address, 1)?;
@@ -120,6 +128,13 @@ impl MemorySystem{
         let m = self.get_mut_sized_memory(address, 4)?;
         let d = v.to_le_bytes();
         (&mut m[0..4]).copy_from_slice(&d);
+        Ok(v)
+    }
+    /// Sets a single u64 in memory, including endianness correction if needed
+    pub fn set_u64(&mut self, address: u32, v: u64) -> Result<u64, VMError>{
+        let m = self.get_mut_sized_memory(address, 8)?;
+        let d = v.to_le_bytes();
+        (&mut m[0..8]).copy_from_slice(&d);
         Ok(v)
     }
     /// Determines if a block of memory exists
