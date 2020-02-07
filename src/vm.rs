@@ -259,6 +259,7 @@ impl VM{
             None => SizedValue::None,
             Immediate(v) => v,
             Address(a, s) => {
+                println!("got muh memory, {:X}", a);
                 self.get_mem(a, s)?
             },
             RegisterValue(r, s) => {
@@ -382,6 +383,7 @@ impl VM{
     /// Retreives a SizedValue from VM memory which matches the specified ValueSize
     pub fn get_mem(&self, address: u32, size: ValueSize) -> Result<SizedValue, VMError>{
         use ValueSize::*;
+        println!("get_mem address: {:X}", address);
         match size{
             None => Ok(SizedValue::None),
             Byte => {
@@ -394,6 +396,7 @@ impl VM{
                 Ok(SizedValue::Dword(self.memory.get_u32(address)?))
             },
             Qword => {
+                println!("hit the qword address: {:X}", address);
                 Ok(SizedValue::Qword(self.memory.get_u64(address)?))
             }
         }

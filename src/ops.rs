@@ -1589,13 +1589,16 @@ pub fn cmpxchg8b(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
         let edx = vm.get_reg(Reg32::EDX as u8, ValueSize::Dword).u32_exact()?;
         let ecx = vm.get_reg(Reg32::ECX as u8, ValueSize::Dword).u32_exact()?;
         let ebx = vm.get_reg(Reg32::EBX as u8, ValueSize::Dword).u32_exact()?;
-        let destination = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
-        let temp = vm.get_mem(destination, ValueSize::Qword)?.u64_exact()?;
+        println!("hit in the cmpxchg opcode");
+        let address = vm.get_arg_lea(pipeline.args[0].location)?;
+        println!("Hit destination: {:X}", address);
+        let temp = vm.get_mem(address, ValueSize::Qword)?.u64_exact()?;
+        println!("Hit after get mem!");
         let combined_value = ((edx as u64) << 32) + (eax as u64);
         if combined_value == temp {
             vm.flags.zero = true;
             let other_combined_value = ((ecx as u64) << 32) + (ebx as u64);
-            vm.set_mem(destination, SizedValue::Qword(other_combined_value))?;
+            vm.set_mem(address, SizedValue::Qword(other_combined_value))?;
         } else {
             vm.flags.zero = false;
             let new_eax = (temp & 0xFFFFFFFF) as u32;
