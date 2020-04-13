@@ -886,7 +886,6 @@ pub fn rcr_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let mut result = (base >> count) | (base << (9 - count));
     vm.flags.carry = (result & (1 << 8)) > 0;
     result &= 0xFF;
-    println!("result: {:b}", result);
     if count == 1 {
         vm.flags.overflow = result.get::<LittleEndian>(7.into()) as bool ^ ((result & 0x40) > 0);
     }
@@ -1589,11 +1588,8 @@ pub fn cmpxchg8b(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
         let edx = vm.get_reg(Reg32::EDX as u8, ValueSize::Dword).u32_exact()?;
         let ecx = vm.get_reg(Reg32::ECX as u8, ValueSize::Dword).u32_exact()?;
         let ebx = vm.get_reg(Reg32::EBX as u8, ValueSize::Dword).u32_exact()?;
-        println!("hit in the cmpxchg opcode");
         let address = vm.get_arg_lea(pipeline.args[0].location)?;
-        println!("Hit destination: {:X}", address);
         let temp = vm.get_mem(address, ValueSize::Qword)?.u64_exact()?;
-        println!("Hit after get mem!");
         let combined_value = ((edx as u64) << 32) + (eax as u64);
         if combined_value == temp {
             vm.flags.zero = true;
