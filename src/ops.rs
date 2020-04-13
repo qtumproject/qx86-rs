@@ -947,12 +947,91 @@ pub fn ror_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
         return Ok(());
     }
     let result = (destination >> count) | (destination << (32 - count));
-    println!("result: {:b}", result);
     vm.flags.carry = result.get::<BigEndian>(0.into()) as bool;
     if count == 1 {
         vm.flags.overflow = vm.flags.carry ^ ((result & 0x40000000) > 0);
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result))?;
+    Ok(())
+}
+
+pub fn sar_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let mut destination = vm.get_arg(pipeline.args[0].location)?.u8_exact()?;
+    let mut count = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    if count == 1 {
+        vm.flags.overflow = false;
+    }
+    count &= 0x1F;
+    if count == 0 {
+        return Ok(());
+    }
+    vm.flags.carry = ((destination >> (count - 1)) & 1) > 0;
+    // get MSB
+    if destination.get::<BigEndian>(0.into()) as bool {
+        destination = (destination >> count) | (!(0xFF >> count));
+    } else {
+        destination = destination >> count;
+    }
+    vm.flags.calculate_parity(destination as u32);
+    vm.flags.calculate_sign8(destination);
+    vm.flags.calculate_zero(destination as u32);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Byte(destination))?;
+    Ok(())
+}
+
+pub fn sar_native_word(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    if pipeline.size_override {
+        return sar_16bit(vm, pipeline, _hv);
+    } else {
+        return sar_32bit(vm, pipeline, _hv);
+    }
+}
+
+pub fn sar_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let mut destination = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
+    let mut count = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
+    if count == 1 {
+        vm.flags.overflow = false;
+    }
+    count &= 0x1F;
+    if count == 0 {
+        return Ok(());
+    }
+    vm.flags.carry = ((destination >> (count - 1)) & 1) > 0;
+    // get MSB
+    if destination.get::<BigEndian>(0.into()) as bool {
+        destination = (destination >> count) | (!(0xFFFF >> count));
+    } else {
+        destination = destination >> count;
+    }
+    vm.flags.calculate_parity(destination as u32);
+    vm.flags.calculate_sign16(destination);
+    vm.flags.calculate_zero(destination as u32);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Word(destination))?;
+    Ok(())
+}
+
+pub fn sar_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    let mut destination = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
+    let mut count = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
+    if count == 1 {
+        vm.flags.overflow = false;
+    }
+    count &= 0x1F;
+    if count == 0 {
+        return Ok(());
+    }
+    vm.flags.carry = ((destination >> (count - 1)) & 1) > 0;
+    // get MSB
+    if destination.get::<BigEndian>(0.into()) as bool {
+        destination = (destination >> count) | (!(0xFFFFFFFF >> count));
+    } else {
+        destination = destination >> count;
+    }
+    vm.flags.calculate_parity(destination);
+    vm.flags.calculate_sign32(destination);
+    vm.flags.calculate_zero(destination);
+    vm.set_arg(pipeline.args[0].location, SizedValue::Dword(destination))?;
     Ok(())
 }
 
