@@ -65,7 +65,6 @@ impl MemorySystem{
     }
     /// This will get an area of memory as a slice of bytes
     pub fn get_memory(&self, address: u32) -> Result<&[u8], VMError> {
-        //println!("result: {:X}", address & 0xFFFF0000);
         match self.map.get(&(address & 0xFFFF0000)){
             Option::None => return Err(VMError::ReadUnloadedMemory(address)),
             Option::Some(m) =>  {
@@ -119,9 +118,7 @@ impl MemorySystem{
     pub fn get_u64(&self, address: u32) -> Result<u64, VMError>{
         use std::convert::TryInto;
         let m = self.get_sized_memory(address, 8)?;
-        println!("hit here in u64");
         let v: [u8; 8] = *(&m[0..8].try_into().unwrap());
-        println!("get_u64 result: {}", u64::from_le_bytes(v));
         Ok(u64::from_le_bytes(v))
     }
     /// Sets a single u8 in memory

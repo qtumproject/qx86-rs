@@ -236,7 +236,6 @@ pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [Op
                 0
             },
             ImmediateAddress =>{
-                println!("immediate address value: {:X}", u32_from_bytes(bytes)?);
                 args[n].location = ArgLocation::Address(u32_from_bytes(bytes)?, arg_size);
                 args[n].is_memory = true;
                 4
