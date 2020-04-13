@@ -2,11 +2,7 @@ use crate::vm::*;
 use crate::pipeline::*;
 use crate::structs::*;
 use crate::flags::X86Flags;
-use bitvec::prelude::{
-    BitStore,
-    BigEndian,
-    LittleEndian,
-};
+use crate::bitmanip::BitManipulation;
 
 /// The logic function for the `mov` opcode
 pub fn mov(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
@@ -211,11 +207,11 @@ pub fn bit_test(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     if pipeline.size_override{
         let bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
+        vm.flags.carry = bitset.get_bit(((index % 16) as u8).into()) as bool;
     } else {
         let bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
+        vm.flags.carry = bitset.get_bit(((index % 32) as u8).into()) as bool;
     }
     Ok(())
 }
@@ -224,14 +220,14 @@ pub fn bit_test_set(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) 
     if pipeline.size_override{
         let mut bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
-        bitset.set::<LittleEndian>(((index % 16) as u8).into(), true);
+        vm.flags.carry = bitset.get_bit(((index % 16) as u8).into()) as bool;
+        bitset.set_bit(((index % 16) as u8).into(), true);
         return vm.set_arg(pipeline.args[0].location, SizedValue::Word(bitset));          
     } else {
         let mut bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
-        bitset.set::<LittleEndian>(((index % 32) as u8).into(), true);
+        vm.flags.carry = bitset.get_bit(((index % 32) as u8).into()) as bool;
+        bitset.set_bit(((index % 32) as u8).into(), true);
         return vm.set_arg(pipeline.args[0].location, SizedValue::Dword(bitset));    
     }
 }
@@ -240,14 +236,14 @@ pub fn bit_test_reset(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor
     if pipeline.size_override{
         let mut bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
-        bitset.set::<LittleEndian>(((index % 16) as u8).into(), false);
+        vm.flags.carry = bitset.get_bit(((index % 16) as u8).into()) as bool;
+        bitset.set_bit(((index % 16) as u8).into(), false);
         return vm.set_arg(pipeline.args[0].location, SizedValue::Word(bitset));          
     } else {
         let mut bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u32_exact()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
-        bitset.set::<LittleEndian>(((index % 32) as u8).into(), false);
+        vm.flags.carry = bitset.get_bit(((index % 32) as u8).into()) as bool;
+        bitset.set_bit(((index % 32) as u8).into(), false);
         return vm.set_arg(pipeline.args[0].location, SizedValue::Dword(bitset));    
     }
 }
@@ -257,14 +253,14 @@ pub fn bit_test_complement(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hyper
     if pipeline.size_override{
         let mut bitset = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u16_sx()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 16) as u8).into()) as bool;
-        bitset.set::<LittleEndian>(((index % 16) as u8).into(), !vm.flags.carry);
+        vm.flags.carry = bitset.get_bit(((index % 16) as u8).into()) as bool;
+        bitset.set_bit(((index % 16) as u8).into(), !vm.flags.carry);
         return vm.set_arg(pipeline.args[0].location, SizedValue::Word(bitset));          
     } else {
         let mut bitset = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
         let index = vm.get_arg(pipeline.args[1].location)?.u32_sx()?;
-        vm.flags.carry = bitset.get::<LittleEndian>(((index % 32) as u8).into()) as bool;
-        bitset.set::<LittleEndian>(((index % 32) as u8).into(), !vm.flags.carry);
+        vm.flags.carry = bitset.get_bit(((index % 32) as u8).into()) as bool;
+        bitset.set_bit(((index % 32) as u8).into(), !vm.flags.carry);
         return vm.set_arg(pipeline.args[0].location, SizedValue::Dword(bitset));    
     }
 }
@@ -274,7 +270,7 @@ pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
         let source = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
         let mut index: Option<u16> = None;
         for i in 0..16 {
-            if source.get::<LittleEndian>(i.into()){
+            if source.get_bit(i.into()){
                 index = Some(i.into()); 
                 break;
             }
@@ -289,7 +285,7 @@ pub fn bit_scan_forward(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
         let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
         let mut index: Option<u32> = None;
         for i in 0..32 {
-            if source.get::<LittleEndian>(i.into()){
+            if source.get_bit(i.into()){
                 index = Some(i.into()); 
                 break;
             }
@@ -309,7 +305,7 @@ pub fn bit_scan_reverse(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
         let source = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
         let mut index: Option<u16> = None;
         for i in 0..16 {
-            if source.get::<BigEndian>(i.into()){
+            if source.get_bit_big_endian(i.into()){
                 index = Some(i.into()); 
                 break;
             }
@@ -324,7 +320,7 @@ pub fn bit_scan_reverse(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervis
         let source = vm.get_arg(pipeline.args[0].location)?.u32_exact()?;
         let mut index: Option<u32> = None;
         for i in 0..32 {
-            if source.get::<BigEndian>(i.into()){
+            if source.get_bit_big_endian(i.into()){
                 index = Some(i.into()); 
                 break;
             }

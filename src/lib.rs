@@ -3,7 +3,6 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate strum;
-extern crate bitvec;
 #[macro_use]
 extern crate strum_macros;
 
@@ -23,6 +22,8 @@ pub mod memory;
 mod ops;
 /// The structures used for flag register and flag register calculations
 pub mod flags;
+/// Helper functions used for bit manipulation
+mod bitmanip;
 
 
 
