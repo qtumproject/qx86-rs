@@ -753,7 +753,7 @@ pub fn rol_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     destination = (destination << count) | (destination >> (8 - count));
     vm.flags.carry = (destination & 0x1) != 0;
     if count == 1 {
-        vm.flags.overflow = destination.get::<BigEndian>(0.into()) as bool ^ vm.flags.carry;
+        vm.flags.overflow = destination.get_bit_big_endian(0.into()) as bool ^ vm.flags.carry;
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(destination))?;
     Ok(())
@@ -778,7 +778,7 @@ pub fn rol_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     destination = (destination << count) | (destination >> (16 - count));
     vm.flags.carry = (destination & 0x1) != 0;
     if count == 1 {
-        vm.flags.overflow = destination.get::<BigEndian>(0.into()) as bool ^ vm.flags.carry;
+        vm.flags.overflow = destination.get_bit_big_endian(0.into()) as bool ^ vm.flags.carry;
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(destination))?;
     Ok(())
@@ -795,7 +795,7 @@ pub fn rol_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     destination = (destination << count) | (destination >> (32 - count));
     vm.flags.carry = (destination & 0x1) != 0;
     if count == 1 {
-        vm.flags.overflow = destination.get::<BigEndian>(0.into()) as bool ^ vm.flags.carry;
+        vm.flags.overflow = destination.get_bit_big_endian(0.into()) as bool ^ vm.flags.carry;
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(destination))?;
     Ok(())
@@ -814,7 +814,7 @@ pub fn rcl_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     let mut result = ((base << count) | (base >> (9-count))) as u16;
     vm.flags.carry = (result & (1 << 9)) > 0;
     if count == 1 {
-        vm.flags.overflow = result.get::<LittleEndian>(7.into()) as bool ^ vm.flags.carry;
+        vm.flags.overflow = result.get_bit(7.into()) as bool ^ vm.flags.carry;
     }
     result >>= 1;
     result &= 0xFF;
@@ -843,7 +843,7 @@ pub fn rcl_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     let mut result = ((base << count) | (base >> (17-count))) as u32;
     vm.flags.carry = (result & (1 << 17)) > 0;
     if count == 1 {
-        vm.flags.overflow = result.get::<LittleEndian>(15.into()) as bool ^ vm.flags.carry;
+        vm.flags.overflow = result.get_bit(15.into()) as bool ^ vm.flags.carry;
     }
     result >>= 1;
     result &= 0xFFFF;
@@ -864,7 +864,7 @@ pub fn rcl_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     result  >>= 1;
     result &= 0xFFFFFFFF;
     if count == 1 {
-        vm.flags.overflow = result.get::<LittleEndian>(31.into()) as bool ^ vm.flags.carry;
+        vm.flags.overflow = result.get_bit(31.into()) as bool ^ vm.flags.carry;
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
@@ -883,7 +883,7 @@ pub fn rcr_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     vm.flags.carry = (result & (1 << 8)) > 0;
     result &= 0xFF;
     if count == 1 {
-        vm.flags.overflow = result.get::<LittleEndian>(7.into()) as bool ^ ((result & 0x40) > 0);
+        vm.flags.overflow = result.get_bit(7.into()) as bool ^ ((result & 0x40) > 0);
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Byte(result as u8))?;
     Ok(())
@@ -910,7 +910,7 @@ pub fn rcr_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     vm.flags.carry = (result & (1 << 16)) > 0;
     result &= 0xFFFF;
     if count == 1 {
-        vm.flags.overflow = result.get::<LittleEndian>(15.into()) as bool ^ ((result & 0x4000) > 0);
+        vm.flags.overflow = result.get_bit(15.into()) as bool ^ ((result & 0x4000) > 0);
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Word(result as u16))?;
     Ok(())
@@ -928,7 +928,7 @@ pub fn rcr_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     vm.flags.carry = (result & (1 << 32)) > 0;
     result &= 0xFFFFFFFF;
     if count == 1 {
-        vm.flags.overflow = result.get::<LittleEndian>(31.into()) as bool ^ ((result & 0x40000000) > 0);
+        vm.flags.overflow = result.get_bit(31.into()) as bool ^ ((result & 0x40000000) > 0);
     }
     vm.set_arg(pipeline.args[0].location, SizedValue::Dword(result as u32))?;
     Ok(())
@@ -944,7 +944,7 @@ pub fn ror_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
         return Ok(());
     }
     let result = (destination >> count) | (destination << (8 - count));
-    vm.flags.carry = result.get::<BigEndian>(0.into()) as bool;
+    vm.flags.carry = result.get_bit_big_endian(0.into()) as bool;
     if count == 1 {
         vm.flags.overflow = vm.flags.carry ^ ((result & 0x40) > 0);
     }
@@ -969,7 +969,7 @@ pub fn ror_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
         return Ok(());
     }
     let result = (destination >> count) | (destination << (16 - count));
-    vm.flags.carry = result.get::<BigEndian>(0.into()) as bool;
+    vm.flags.carry = result.get_bit_big_endian(0.into()) as bool;
     if count == 1 {
         vm.flags.overflow = vm.flags.carry ^ ((result & 0x4000) > 0);
     }
@@ -985,7 +985,7 @@ pub fn ror_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
         return Ok(());
     }
     let result = (destination >> count) | (destination << (32 - count));
-    vm.flags.carry = result.get::<BigEndian>(0.into()) as bool;
+    vm.flags.carry = result.get_bit_big_endian(0.into()) as bool;
     if count == 1 {
         vm.flags.overflow = vm.flags.carry ^ ((result & 0x40000000) > 0);
     }
@@ -1005,7 +1005,7 @@ pub fn sar_8bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> R
     }
     vm.flags.carry = ((destination >> (count - 1)) & 1) > 0;
     // get MSB
-    if destination.get::<BigEndian>(0.into()) as bool {
+    if destination.get_bit_big_endian(0.into()) as bool {
         destination = (destination >> count) | (!(0xFF >> count));
     } else {
         destination = destination >> count;
@@ -1037,7 +1037,7 @@ pub fn sar_16bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     }
     vm.flags.carry = ((destination >> (count - 1)) & 1) > 0;
     // get MSB
-    if destination.get::<BigEndian>(0.into()) as bool {
+    if destination.get_bit_big_endian(0.into()) as bool {
         destination = (destination >> count) | (!(0xFFFF >> count));
     } else {
         destination = destination >> count;
@@ -1061,7 +1061,7 @@ pub fn sar_32bit(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> 
     }
     vm.flags.carry = ((destination >> (count - 1)) & 1) > 0;
     // get MSB
-    if destination.get::<BigEndian>(0.into()) as bool {
+    if destination.get_bit_big_endian(0.into()) as bool {
         destination = (destination >> count) | (!(0xFFFFFFFF >> count));
     } else {
         destination = destination >> count;
