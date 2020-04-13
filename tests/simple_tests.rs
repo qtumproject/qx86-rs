@@ -2226,3 +2226,225 @@ fn test_das() {
     assert_eq!(vm.reg8(Reg8::AL), 0x88);        
     assert_eq!(vm.flags, X86Flags{sign: true, adjust: true, carry: true, parity: true, ..Default::default()});
 }
+
+#[test]
+fn test_oldvm_rol_1() {
+    let vm = execute_vm_with_asm("
+        mov al, 11011101b
+        rol al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0b10111011);        
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});    
+}
+
+#[test]
+fn test_oldvm_rol_2() {
+    let vm = execute_vm_with_asm("
+        mov al, 01011101b
+        rol al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0b10111010);        
+    assert_eq!(vm.flags, X86Flags{overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rol_1() {
+    let vm = execute_vm_with_asm("
+        mov al, 10010001b
+        rol al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x23);        
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rol_2() {
+    let vm = execute_vm_with_asm("
+        mov al, 10010000b
+        rol al, 2
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x42);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_rol_3() {
+    let vm = execute_vm_with_asm("
+        mov ax, 1001001010011010b
+        rol ax, 0x32
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x4a6a);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_rol_4() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x7ff929ac
+        rol eax, 1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xfff25358);        
+    assert_eq!(vm.flags, X86Flags{overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcl_1() {
+    let vm = execute_vm_with_asm("
+        mov al, 10010001b
+        mov cl, 1
+        rcl al, cl
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x22);        
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcl_2() {
+    let vm = execute_vm_with_asm("
+        mov al, 10010001b
+        rcl al, 2
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x45);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_rcl_3() {
+    let vm = execute_vm_with_asm("
+        mov ax, 1111000010010001b
+        rcl ax, 1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0xe122);        
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcl_4() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0x84ff
+        rcl ax, 1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0x09FE);        
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcl_5() {
+    let input = "
+        mov eax, 0xF00FABCC
+        rcl eax, 4
+        hlt";
+    let mut vm = create_vm();
+    vm.flags.carry = true;
+    vm.copy_into_memory(CODE_MEM, &asm(input)).unwrap();
+    execute_vm_with_diagnostics(&mut vm);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x00FABCCF);        
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});    
+}
+
+#[test]
+fn test_ror_1() {
+    let vm = execute_vm_with_asm("
+        mov al, 10010011b
+        ror al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0xc9);        
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});    
+}
+
+#[test]
+fn test_ror_2() {
+    let vm = execute_vm_with_asm("
+        mov al, 10010001b
+        ror al, 2
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x64);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_ror_3() {
+    let vm = execute_vm_with_asm("
+        mov ax, 0001110000001100b
+        ror ax, 1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0b111000000110);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_ror_4() {
+    let vm = execute_vm_with_asm("
+        mov eax, 01011100000011000000000000001001b
+        ror eax, 1
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0b10101110000001100000000000000100);        
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcr_1() {
+    let vm = execute_vm_with_asm("
+        mov al, 11011101b
+        rcr al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0b01101110);        
+    assert_eq!(vm.flags, X86Flags{carry: true, overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcr_2() {
+    let vm = execute_vm_with_asm("
+        mov al, 01011110b
+        rcr al, 1
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x2F);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_rcr_3() {
+    let input = "
+        rcr al, 1
+        hlt";
+    let mut vm = create_vm();
+    vm.flags.carry = true;
+    vm.copy_into_memory(CODE_MEM, &asm(input)).unwrap();
+    execute_vm_with_diagnostics(&mut vm);
+    assert_eq!(vm.reg8(Reg8::AL), 0x80);        
+    assert_eq!(vm.flags, X86Flags{overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcr_4() {
+    let vm = execute_vm_with_asm("
+        mov ax, 1001110000001100b
+        rcr ax, 1
+        hlt");
+    assert_eq!(vm.reg16(Reg16::AX), 0b0100111000000110);        
+    assert_eq!(vm.flags, X86Flags{overflow: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcr_5() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0xF00FABCC
+        rcr eax, 4
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x8F00FABC);        
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});    
+}
+
+#[test]
+fn test_rcr_6() {
+    let input = "
+        mov eax, 0xF00FABCC
+        rcr eax, 4
+        hlt";
+    let mut vm = create_vm();
+    vm.flags.carry = true;
+    vm.copy_into_memory(CODE_MEM, &asm(input)).unwrap();
+    execute_vm_with_diagnostics(&mut vm);
+    assert_eq!(vm.reg32(Reg32::EAX), 0x9F00FABC);        
+    assert_eq!(vm.flags, X86Flags{carry: true, ..Default::default()});    
+}
