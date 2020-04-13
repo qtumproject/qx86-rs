@@ -890,6 +890,10 @@ lazy_static! {
             .with_rmw()
             .into_table(&mut ops);
         // Begin cmp opcodes
+        //0x0F C7 CMPXCHG8B  
+        define_opcode(0xC7).is_two_byte_op().calls(cmpxchg8b).with_gas(Low)
+            .with_arg(ArgSource::ModRM, OpcodeValueSize::Fixed(ValueSize::Dword))
+            .into_table(&mut ops);
         //0x0F B0 CMPXCHG r/m8, r8
         define_opcode(0xB0).is_two_byte_op().calls(cmpxchg_8bit).with_gas(Low)
             .with_rm8()

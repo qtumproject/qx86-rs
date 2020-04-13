@@ -2507,3 +2507,44 @@ fn test_xlatb() {
     assert_eq!(vm.reg8(Reg8::AL), 0x38);        
     assert_eq!(vm.flags, X86Flags{..Default::default()});    
 }
+
+#[test]
+fn test_cmpxchg8b() {
+    let vm = execute_vm_with_asm("
+        mov dword [0x80000000], 0xFFFFAAAA
+        mov dword [0x80000004], 0x11223344
+        cmpxchg8b [0x80000000]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFAAAA); 
+    assert_eq!(vm.reg32(Reg32::EDX), 0x11223344);          
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
+
+#[test]
+fn test_cmpxchg8b_2() {
+    let vm = execute_vm_with_asm("
+        mov dword [0x80000000], 0xFFFFAAAA
+        mov dword [0x80000004], 0x11223344
+        cmpxchg8b [0x80000000]
+        cmpxchg8b [0x80000000]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0xFFFFAAAA); 
+    assert_eq!(vm.reg32(Reg32::EDX), 0x11223344);    
+    assert_eq!(vm.flags, X86Flags{zero: true, ..Default::default()});    
+}
+
+#[test]
+fn test_cmpxchg8b_3() {
+    let vm = execute_vm_with_asm("
+        mov dword [0x80000000], 0xFFFFAAAA
+        mov dword [0x80000004], 0x11223344
+        mov ebx, 0x44332211
+        mov ecx, 0xAAAAEEEE
+        cmpxchg8b [0x80000000]
+        cmpxchg8b [0x80000000]
+        cmpxchg8b [0x80000000]
+        hlt");
+    assert_eq!(vm.reg32(Reg32::EAX), 0x44332211); 
+    assert_eq!(vm.reg32(Reg32::EDX), 0xAAAAEEEE);    
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}

@@ -18,6 +18,8 @@ pub enum ValueSize{
     Word,
     /// Dword value size, this is 4 bytes
     Dword,
+    /// Qword value size, this is 8 bytes
+    Qword,
 }
 
 
@@ -36,10 +38,19 @@ pub enum SizedValue{
     /// A word value of 2 bytes
     Word(u16),
     /// A dword value of 4 bytes
-    Dword(u32)
+    Dword(u32),
+    /// A quadruple word value of 8 bytes
+    Qword(u64)
 }
 
 impl SizedValue{
+    /// Unwraps the value expecting it to be exactly a Dword. Returns an error if not
+    pub fn u64_exact(&self) -> Result<u64, VMError>{
+        match self{
+            SizedValue::Qword(v) => Ok(*v),
+            _ => Err(VMError::WrongSizeExpectation)
+        }
+    }
     /// Unwraps the value expecting it to be exactly a Dword. Returns an error if not
     pub fn u32_exact(&self) -> Result<u32, VMError>{
         match self{
@@ -69,6 +80,7 @@ impl SizedValue{
             SizedValue::Dword(v) => Ok(*v),
             SizedValue::Word(v) => Ok(*v as u32),
             SizedValue::Byte(v) => Ok(*v as u32),
+            SizedValue::Qword(v) => Err(VMError::TooBigSizeExpectation),
             SizedValue::None => Ok(0),
         }
     }
@@ -80,7 +92,8 @@ impl SizedValue{
             SizedValue::Word(v) => Ok(*v),
             SizedValue::Byte(v) => Ok(*v as u16),
             SizedValue::None => Ok(0),
-            SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation)
+            SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation),
+            SizedValue::Qword(v) => Err(VMError::TooBigSizeExpectation),
         }
     }
 
@@ -92,6 +105,7 @@ impl SizedValue{
             SizedValue::Word(v) => Ok(*v as i16 as i32 as u32),
             SizedValue::Byte(v) => Ok(*v as i8 as i32 as u32),
             SizedValue::None => Ok(0),
+            SizedValue::Qword(v) => Err(VMError::TooBigSizeExpectation),
         }
     }
 
@@ -102,7 +116,19 @@ impl SizedValue{
             SizedValue::Word(v) => Ok(*v),
             SizedValue::Byte(v) => Ok(*v as i8 as i16 as u16),
             SizedValue::None => Ok(0),
-            SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation)
+            SizedValue::Dword(_v) => Err(VMError::TooBigSizeExpectation),
+            SizedValue::Qword(_v) => Err(VMError::TooBigSizeExpectation),
+        }
+    }
+
+    /// Unwraps the value as a u32 by zero-extending smaller values and truncating larger values to keep only the least significant bits that will fit
+    pub fn u64_trunc(&self) ->  u64{
+        match self{
+            SizedValue::Dword(v) => *v as u64,
+            SizedValue::Qword(v) => *v,
+            SizedValue::Word(v) => *v as u64,
+            SizedValue::Byte(v) => *v as u64,
+            SizedValue::None => 0,
         }
     }
 
@@ -110,6 +136,7 @@ impl SizedValue{
     pub fn u32_trunc(&self) ->  u32{
         match self{
             SizedValue::Dword(v) => *v,
+            SizedValue::Qword(v) => *v as u32,
             SizedValue::Word(v) => *v as u32,
             SizedValue::Byte(v) => *v as u32,
             SizedValue::None => 0,
@@ -121,7 +148,8 @@ impl SizedValue{
             SizedValue::Word(v) => *v as u16,
             SizedValue::Byte(v) => *v as u16,
             SizedValue::None => 0,
-            SizedValue::Dword(v) => *v as u16
+            SizedValue::Dword(v) => *v as u16,
+            SizedValue::Qword(v) => *v as u16,
         }
     }
     /// Unwraps the value as a u8 by zero-extending smaller values and truncating larger values to keep only the least significant bits that will fit
@@ -130,7 +158,8 @@ impl SizedValue{
             SizedValue::Word(v) => *v as u8,
             SizedValue::Byte(v) => *v as u8,
             SizedValue::None => 0,
-            SizedValue::Dword(v) => *v as u8
+            SizedValue::Dword(v) => *v as u8,
+            SizedValue::Qword(v) => *v as u8,
         }
     }
 
@@ -142,7 +171,8 @@ impl SizedValue{
             Dword => Ok(SizedValue::Dword(self.u32_zx()?)),
             Word => Ok(SizedValue::Word(self.u16_zx()?)),
             Byte => Ok(SizedValue::Byte(self.u8_exact()?)),
-            None => Err(VMError::WrongSizeExpectation)
+            None => Err(VMError::WrongSizeExpectation),
+            Qword => Err(VMError::TooBigSizeExpectation),
         }
     }
     /// This will convert the current SizedValue to the specified ValueSize by sign-extending smaller values
@@ -153,13 +183,15 @@ impl SizedValue{
             Dword => Ok(SizedValue::Dword(self.u32_sx()?)),
             Word => Ok(SizedValue::Word(self.u16_sx()?)),
             Byte => Ok(SizedValue::Byte(self.u8_exact()?)),
-            None => Err(VMError::WrongSizeExpectation)
+            None => Err(VMError::WrongSizeExpectation),
+            Qword=> Err(VMError::TooBigSizeExpectation),
         }
     }
     /// This will convert the current SizedValue to the specified ValueSize by zero-extending smaller values and truncating larger values than will fit
     pub fn convert_size_trunc(&self, s: ValueSize) -> SizedValue{
         use ValueSize::*;
         match s{
+            Qword => SizedValue::Qword(self.u64_trunc()),
             Dword => SizedValue::Dword(self.u32_trunc()),
             Word => SizedValue::Word(self.u16_trunc()),
             Byte => SizedValue::Byte(self.u8_trunc()),

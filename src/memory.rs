@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::string::String;
+use std::fmt;
 
 use crate::vm::*;
 
@@ -7,12 +9,21 @@ use crate::vm::*;
 pub const WRITEABLE_MEMORY:u32 = 0x80000000;
 
 /// A simple buffer of memory for MemorySystem
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct BufferMemory{
     pub memory: Vec<u8>,
 }
+
+
+
+impl fmt::Display for BufferMemory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let formatted_vec = String::from_utf8(self.memory.clone()).unwrap();
+        write!(f, "{}", formatted_vec)
+    }
+}
 /// The system for tracking all memory within the VM
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct MemorySystem{
     map: HashMap<u32, BufferMemory>
 }
@@ -102,6 +113,14 @@ impl MemorySystem{
         let v: [u8; 4] = *(&m[0..4].try_into().unwrap());
         Ok(u32::from_le_bytes(v))
     }
+
+    /// Retreives a single u64 from memory, including endianness correction if needed
+    pub fn get_u64(&self, address: u32) -> Result<u64, VMError>{
+        use std::convert::TryInto;
+        let m = self.get_sized_memory(address, 8)?;
+        let v: [u8; 8] = *(&m[0..8].try_into().unwrap());
+        Ok(u64::from_le_bytes(v))
+    }
     /// Sets a single u8 in memory
     pub fn set_u8(&mut self, address: u32, v: u8) -> Result<u8, VMError>{
         let m = self.get_mut_sized_memory(address, 1)?;
@@ -120,6 +139,13 @@ impl MemorySystem{
         let m = self.get_mut_sized_memory(address, 4)?;
         let d = v.to_le_bytes();
         (&mut m[0..4]).copy_from_slice(&d);
+        Ok(v)
+    }
+    /// Sets a single u64 in memory, including endianness correction if needed
+    pub fn set_u64(&mut self, address: u32, v: u64) -> Result<u64, VMError>{
+        let m = self.get_mut_sized_memory(address, 8)?;
+        let d = v.to_le_bytes();
+        (&mut m[0..8]).copy_from_slice(&d);
         Ok(v)
     }
     /// Determines if a block of memory exists

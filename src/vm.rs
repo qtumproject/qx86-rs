@@ -259,6 +259,7 @@ impl VM{
             None => SizedValue::None,
             Immediate(v) => v,
             Address(a, s) => {
+                println!("got muh memory, {:X}", a);
                 self.get_mem(a, s)?
             },
             RegisterValue(r, s) => {
@@ -350,7 +351,8 @@ impl VM{
             },
             Dword => {
                 SizedValue::Dword(self.regs[r])
-            }
+            },
+            Qword => SizedValue::None // we aren't doing registers with quad words yet no need to implement this
         }
     }
     /// Resolves a numerical register index and using the size of the SizedValue determiens which 
@@ -360,6 +362,7 @@ impl VM{
         let r = reg as usize;
         match value{
             SizedValue::None => (), //could potentially throw an error here?
+            SizedValue::Qword(_v) => (), //same for here too
             Byte(v) => {
                 if reg & 0x04 == 0{
                     //access lows, AL, CL, DL, BL
@@ -391,6 +394,9 @@ impl VM{
             Dword => {
                 Ok(SizedValue::Dword(self.memory.get_u32(address)?))
             },
+            Qword => {
+                Ok(SizedValue::Qword(self.memory.get_u64(address)?))
+            }
         }
     }
     /// Sets an area in VM memory to the specified SizedValue
@@ -410,6 +416,9 @@ impl VM{
             },
             Dword(v) => {
                 self.memory.set_u32(address, v)?;
+            },
+            Qword(v) => {
+                self.memory.set_u64(address, v)?;
             }
         };
         Ok(())

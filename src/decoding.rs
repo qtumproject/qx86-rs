@@ -249,7 +249,10 @@ pub fn decode_args_with_modrm(opcode: &Opcode, bytestream: &[u8], args: &mut [Op
                     },
                     ValueSize::Dword => {
                         (ArgLocation::Immediate(SizedValue::Dword(u32_from_bytes(bytes)?)), 4)
-                    }
+                    },
+                    ValueSize::Qword => { //throw error here in the future?
+                        (ArgLocation::Immediate(SizedValue::None), 0)
+                    },
                 };
                 args[n].location = loc;
                 args[n].is_memory = false;
