@@ -1174,6 +1174,9 @@ lazy_static! {
         // 0xF5 CMC
         define_opcode(0xF5).calls(cmc).with_gas(Low)
             .into_table(&mut ops);
+        // 0xD7 XLAT
+        define_opcode(0xD7).calls(xlatb).with_gas(Low)
+            .into_table(&mut ops);
         // 0x9F LAHF 
         define_opcode(0x9F).calls(lahf).with_gas(Low)
             .into_table(&mut ops);

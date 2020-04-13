@@ -2495,3 +2495,15 @@ fn test_sar_5() {
     assert_eq!(vm.reg32(Reg32::EAX), 0xFF00FABC);        
     assert_eq!(vm.flags, X86Flags{carry: true, sign: true, ..Default::default()});    
 }
+
+#[test]
+fn test_xlatb() {
+    let vm = execute_vm_with_asm("
+        mov eax, 0x80000034
+        mov ebx, 0x8000663e
+        mov byte [0x80006672], 0x38
+        xlatb
+        hlt");
+    assert_eq!(vm.reg8(Reg8::AL), 0x38);        
+    assert_eq!(vm.flags, X86Flags{..Default::default()});    
+}
