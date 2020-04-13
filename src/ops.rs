@@ -73,9 +73,11 @@ pub fn popa(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resul
 ///  The logic function for the 'enter' opcode
 pub fn enter(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     let locals = vm.get_arg(pipeline.args[0].location)?.u16_exact()?;
-    let mut nesting = vm.get_arg(pipeline.args[1].location)?.u8_exact()?;
+    vm.eip += 2;
+    let nesting = vm.get_arg(pipeline.args[1].location)?.u8_exact()? % 32;
+    vm.eip += 1;
     //push ebp
-    let mut ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword).u32_exact()?;
+    let ebp = vm.get_reg(Reg32::EBP as u8, ValueSize::Dword).u32_exact()?;
     vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
     //temp . esp
     let temp = vm.get_reg(Reg32::ESP as u8, ValueSize::Dword);
@@ -85,11 +87,16 @@ pub fn enter(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resu
     //  nesting . nesting - 1
     //  eBP . eBP - n
     // push [SS:eBP]
-    while nesting > 0 {
-        unimplemented!("Nesting is not working properly yet. TBC.");
-        nesting = nesting - 1;
-        ebp = ebp - 4;
-        vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
+    if nesting > 0 {
+        for _ in 1..nesting - 1 {
+            if pipeline.size_override {
+                vm.set_reg(Reg32::EBP as u8, SizedValue::Dword(ebp - 2));
+            } else {
+                vm.set_reg(Reg32::EBP as u8, SizedValue::Dword(ebp - 4));
+            }
+            vm.push_stack(SizedValue::Dword(ebp), pipeline)?;
+        }
+        vm.push_stack(temp, pipeline)?;
     }
     //ebp . temp
     vm.set_reg(Reg32::EBP as u8, temp);
@@ -170,18 +177,8 @@ pub fn stc(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resul
     Ok(())
 }
 
-pub fn std(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    vm.flags.direction = true;
-    Ok(())
-}
-
 pub fn clc(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     vm.flags.carry = false;
-    Ok(())
-}
-
-pub fn cld(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
-    vm.flags.direction = false;
     Ok(())
 }
 
