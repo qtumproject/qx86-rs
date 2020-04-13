@@ -1165,6 +1165,21 @@ lazy_static! {
         // 0x9E SAHF 
         define_opcode(0x9E).calls(sahf).with_gas(Low)
             .into_table(&mut ops);
+        // 0xF9 STC
+        define_opcode(0xF9).calls(stc).with_gas(Low)
+            .into_table(&mut ops);
+        // 0xFD STD
+        define_opcode(0xFD).calls(std).with_gas(Low)
+            .into_table(&mut ops);
+        // 0xF8 CLC
+        define_opcode(0xF8).calls(clc).with_gas(Low)
+            .into_table(&mut ops);
+        // 0xFC CLD
+        define_opcode(0xFC).calls(cld).with_gas(Low)
+            .into_table(&mut ops);
+        // 0xF5 CMC
+        define_opcode(0xF5).calls(cmc).with_gas(Low)
+            .into_table(&mut ops);
         // 0x9F LAHF 
         define_opcode(0x9F).calls(lahf).with_gas(Low)
             .into_table(&mut ops);

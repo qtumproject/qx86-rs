@@ -165,6 +165,31 @@ pub fn sahf(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Resu
     Ok(())
 }
 
+pub fn stc(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.flags.carry = true;
+    Ok(())
+}
+
+pub fn std(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.flags.direction = true;
+    Ok(())
+}
+
+pub fn clc(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.flags.carry = false;
+    Ok(())
+}
+
+pub fn cld(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.flags.direction = false;
+    Ok(())
+}
+
+pub fn cmc(vm: &mut VM, _pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
+    vm.flags.carry = !vm.flags.carry;
+    Ok(())
+}
+
 pub fn cbw_cwde(vm: &mut VM, pipeline: &Pipeline, _hv: &mut dyn Hypervisor) -> Result<(), VMError>{
     if pipeline.size_override{
         let lower_half = vm.reg8(Reg8::AL) as u8;
