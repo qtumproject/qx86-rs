@@ -22,7 +22,7 @@ pub mod memory;
 mod ops;
 /// The structures used for flag register and flag register calculations
 pub mod flags;
-
+/// Helper functions used for bit manipulation
 mod bitmanip;
 
 

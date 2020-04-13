@@ -1,7 +1,11 @@
 
+/// Bit manipulation helper functions for integer types
 pub trait BitManipulation{
+    /// gets the value of the bit at the specified index
     fn get_bit(&self, index: u8) -> bool;
+    /// sets the value of the bit at the specified index
     fn set_bit(&mut self, index: u8, value: bool); 
+    /// gets the value of the bit at the specified index, with the value being treated as a big endian integer
     fn get_bit_big_endian(&self, index: u8) -> bool;
 }
 
@@ -17,6 +21,21 @@ impl BitManipulation for u32{
             *self = *self | (1 << index);
         }else{
             *self = *self & (0xFFFFFFFF ^ (1 << index));
+        }
+    }
+}
+impl BitManipulation for u64{
+    fn get_bit(&self, index: u8) -> bool{
+        self & (1 << index) > 0
+    }
+    fn get_bit_big_endian(&self, index: u8) -> bool{
+        self & (1 << (63 - index)) > 0
+    }
+    fn set_bit(&mut self, index: u8, value: bool){
+        if value{
+            *self = *self | (1 << index);
+        }else{
+            *self = *self & (0xFFFFFFFFFFFFFFFF ^ (1 << index));
         }
     }
 }
