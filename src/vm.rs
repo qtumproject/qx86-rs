@@ -259,7 +259,6 @@ impl VM{
             None => SizedValue::None,
             Immediate(v) => v,
             Address(a, s) => {
-                println!("got muh memory, {:X}", a);
                 self.get_mem(a, s)?
             },
             RegisterValue(r, s) => {
