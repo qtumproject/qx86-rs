@@ -388,6 +388,11 @@ lazy_static! {
         //nop
         define_opcode(0x90).calls(nop).with_gas(GasCost::None).into_table(&mut ops);
 
+        //lock
+        //this is technically a prefix, but since it is always the first prefix in an instruction, it is ok to just treat this
+        //like a normal "nop" instruction 
+        define_opcode(0xF0).calls(nop).with_gas(GasCost::None).into_table(&mut ops);
+
         //hlt
         define_opcode(0xF4).calls(hlt).with_gas(GasCost::None).is_unpredictable_no_gas().into_table(&mut ops);
 
